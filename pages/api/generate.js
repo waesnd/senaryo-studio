@@ -15,12 +15,14 @@ export default async function handler(req, res) {
       }
     );
     const data = await response.json();
+    console.log("GEMINI YANIT:", JSON.stringify(data));
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("JSON bulunamadı");
+    if (!match) throw new Error("JSON bulunamadı: " + text);
     const parsed = JSON.parse(match[0]);
     res.status(200).json(parsed);
   } catch (e) {
+    console.log("HATA:", e.message);
     res.status(500).json({ error: e.message });
   }
 }
