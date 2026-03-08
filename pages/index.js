@@ -19,8 +19,7 @@ return d;
 }
 function TW({ text, speed = 25, style = {} }) {
 const d = useTypewriter(text, speed);
-return {d}<span style={{ animation: "blink 1s step-end infinite" }}>|;
-}
+return <p style={style}>{d}<span style={{ animation: "blink 1s step-end infinite" }}>|</span></p>;
 export default function App() {
 const [step, setStep] = useState("tip");
 const [tip, setTip] = useState(null);
