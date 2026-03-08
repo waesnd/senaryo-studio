@@ -19,7 +19,7 @@ export default function Profil() {
   useEffect(function() {
     setTimeout(function() { setLoaded(true); }, 100);
     supabase.auth.getSession().then(function(r) {
-      if (r.data && r.data.session) {
+      if (rdata && r.data.session) {
         var u = r.data.session.user;
         setUser(u);
         supabase.from("profiles").select("*").eq("id", u.id).single().then(function(pr) {
