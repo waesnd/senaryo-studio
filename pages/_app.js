@@ -2,40 +2,41 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function App({ Component, pageProps }) {
-  var s1 = useState(false); var ready = s1[0]; var setReady = s1[1];
+  var s = useState(false);
+  var ready = s[0];
+  var setReady = s[1];
 
   useEffect(function() {
     supabase.auth.getSession().then(function() {
       setReady(true);
     });
-
-    var sub = supabase.auth.onAuthStateChange(function(event, session) {
-      // session değişince sayfayı bilgilendir
-    });
-
-    return function() {
-      sub.data && sub.data.subscription && sub.data.subscription.unsubscribe();
-    };
   }, []);
 
   if (!ready) {
     return (
       <div style={{
         minHeight: "100vh",
-        background: "#0f0f0f",
+        background: "#f4f4f0",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
+        fontFamily: "sans-serif"
       }}>
         <div style={{
-          width: 32,
-          height: 32,
-          border: "3px solid rgba(232,35,10,0.2)",
-          borderTopColor: "#e8230a",
-          borderRadius: "50%",
-          animation: "spin 0.8s linear infinite"
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          textAlign: "center"
+        }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            border: "3px solid rgba(232,35,10,0.2)",
+            borderTopColor: "#e8230a",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite",
+            margin: "0 auto 12px"
+          }} />
+          <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
+          <p style={{ fontSize: 13, color: "#999" }}>Yükleniyor...</p>
+        </div>
       </div>
     );
   }
