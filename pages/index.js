@@ -1,27 +1,23 @@
 import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function Home() {
   var [loaded, setLoaded] = useState(false);
-  var [tema, setTema] = useState("light");
+  var [user, setUser] = useState(null);
 
   useEffect(function () {
-    try {
-      var t = localStorage.getItem("sf_tema") || "light";
-      setTema(t);
-    } catch (e) {}
     setLoaded(true);
+    supabase.auth.getSession().then(function (r) {
+      if (r.data && r.data.session) {
+        setUser(r.data.session.user);
+      }
+    });
   }, []);
 
   return (
-    <div style={{ padding: 40, fontFamily: "sans-serif", background: tema === "dark" ? "#111" : "#fff", minHeight: "100vh" }}>
-      <h1 style={{ color: tema === "dark" ? "#fff" : "#000" }}>
-        {loaded ? "✅ Yüklendi - tema: " + tema : "Yükleniyor..."}
-      </h1>
-      <button onClick={function () {
-        var t = tema === "dark" ? "light" : "dark";
-        setTema(t);
-        localStorage.setItem("sf_tema", t);
-      }}>Tema Değiştir</button>
+    <div style={{ padding: 40, fontFamily: "sans-serif" }}>
+      <h1>{loaded ? "✅ Supabase bağlı" : "Yükleniyor..."}</h1>
+      <p>{user ? "Giriş yapıldı: " + user.email : "Giriş yapılmadı"}</p>
     </div>
   );
 }
