@@ -246,7 +246,7 @@ export default function Kesfet() {
                 <a href="/profil" style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, marginBottom: 4, textDecoration: "none" }}>
                   <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>👤</span><span>Profil & Ayarlar</span>
                 </a>
-                <button onClick={() => { var t = dk ? "light" : "dark"; setTema(t); try {
+                <button onClick={() => setTema(dk ? "light" : "dark")} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, background: "none", border: "none", width: "100%", textAlign: "left", cursor: "pointer", marginBottom: 4 }}>
                   <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>{dk ? "☀️" : "🌙"}</span><span>{dk ? "Açık Tema" : "Koyu Tema"}</span>
                 </button>
                 {user && <button onClick={() => { if(confirm("Çıkış yapılsın mı?")) supabase.auth.signOut().then(() => window.location.href = "/"); }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: ACCENT, fontSize: 15, background: ACCENT + "10", border: "none", width: "100%", textAlign: "left", cursor: "pointer", marginTop: 4 }}>
