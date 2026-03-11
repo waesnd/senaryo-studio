@@ -76,16 +76,9 @@ export default function Profil() {
   var C = getC(dk);
 
   useEffect(() => {
-    // Otomatik tema
-    try {
-      var _st = localStorage.getItem("sf_tema");
-      if (_st) setTema(_st);
-      else if (window.matchMedia("(prefers-color-scheme: dark)").matches) setTema("dark");
-    } catch (e) {}
+    setTema(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     var _mq = window.matchMedia("(prefers-color-scheme: dark)");
-    function _onMq(e) {
-      try { if (!localStorage.getItem("sf_tema")) setTema(e.matches ? "dark" : "light"); } catch (_) {}
-    }
+    function _onMq(e) { setTema(e.matches ? "dark" : "light"); }
     _mq.addEventListener("change", _onMq);
     supabase.auth.getSession().then(({ data }) => {
       if (data?.session) { setUser(data.session.user); yukle(data.session.user); }

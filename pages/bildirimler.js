@@ -18,7 +18,8 @@ function getC(dk) {
 
 function getInitialTema() {
   if (typeof window === "undefined") return "light";
-  try { var s = localStorage.getItem("sf_tema"); if (s) return s; } catch (e) {}
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+} catch (e) {}
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 

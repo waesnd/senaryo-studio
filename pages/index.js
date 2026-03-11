@@ -20,7 +20,8 @@ function getC(dk) {
 
 function getInitialTema() {
   if (typeof window === "undefined") return "light";
-  try { var s = localStorage.getItem("sf_tema"); if (s) return s; } catch (e) {}
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+} catch (e) {}
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
@@ -387,8 +388,7 @@ export default function Home() {
   }
 
   function temaToggle() {
-    var t = tema === "dark" ? "light" : "dark"; setTema(t);
-    try { localStorage.setItem("sf_tema", t); } catch (e) {}
+    setTema(function(prev) { return prev === "dark" ? "light" : "dark"; });
   }
 
   async function gonderiPaylas(metin, fotoUrl, hashtaglar) {

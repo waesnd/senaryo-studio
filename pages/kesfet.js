@@ -39,9 +39,9 @@ export default function Kesfet() {
   var C = getC(dk);
 
   useEffect(() => {
-    try { var _st = localStorage.getItem("sf_tema"); if (_st) setTema(_st); else if (window.matchMedia("(prefers-color-scheme: dark)").matches) setTema("dark"); } catch (e) {}
+    setTema(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     var _mq = window.matchMedia("(prefers-color-scheme: dark)");
-    function _onMq(e) { try { if (!localStorage.getItem("sf_tema")) setTema(e.matches ? "dark" : "light"); } catch (_) {} }
+    function _onMq(e) { setTema(e.matches ? "dark" : "light"); } catch (_) {} }
     _mq.addEventListener("change", _onMq);
     supabase.auth.getSession().then(({ data }) => {
       if (data?.session) { setUser(data.session.user); yukleKisisel(data.session.user); }
@@ -246,7 +246,7 @@ export default function Kesfet() {
                 <a href="/profil" style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, marginBottom: 4, textDecoration: "none" }}>
                   <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>👤</span><span>Profil & Ayarlar</span>
                 </a>
-                <button onClick={() => { var t = dk ? "light" : "dark"; setTema(t); try { localStorage.setItem("sf_tema", t); } catch(e){} }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, background: "none", border: "none", width: "100%", textAlign: "left", cursor: "pointer" }}>
+                <button onClick={() => { var t = dk ? "light" : "dark"; setTema(t); try {
                   <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>{dk ? "☀️" : "🌙"}</span><span>{dk ? "Açık Tema" : "Koyu Tema"}</span>
                 </button>
                 {user && <button onClick={() => { if(confirm("Çıkış yapılsın mı?")) supabase.auth.signOut().then(() => window.location.href = "/"); }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: ACCENT, fontSize: 15, background: ACCENT + "10", border: "none", width: "100%", textAlign: "left", cursor: "pointer", marginTop: 4 }}>

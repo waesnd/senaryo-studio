@@ -113,14 +113,9 @@ export default function Mesajlar() {
   var username = profil?.username || user?.email?.split("@")[0] || "";
 
   useEffect(() => {
-    // Otomatik tema: localStorage yoksa sistem temasını kullan
-    try {
-      var s = localStorage.getItem("sf_tema");
-      if (s) setTema(s);
-      else if (window.matchMedia("(prefers-color-scheme: dark)").matches) setTema("dark");
-    } catch (e) {}
+    setTema(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     var _mq = window.matchMedia("(prefers-color-scheme: dark)");
-    function _onMq(e) { try { if (!localStorage.getItem("sf_tema")) setTema(e.matches ? "dark" : "light"); } catch (_) {} }
+    function _onMq(e) { setTema(e.matches ? "dark" : "light"); }
     _mq.addEventListener("change", _onMq);
     function onTema(e) { setTema(e.detail); }
     window.addEventListener("sf_tema_change", onTema);
@@ -256,8 +251,7 @@ export default function Mesajlar() {
   }
 
   function temaToggle() {
-    var t = dk ? "light" : "dark"; setTema(t);
-    try { localStorage.setItem("sf_tema", t); } catch (e) {}
+    setTema(function(prev) { return prev === "dark" ? "light" : "dark"; });
   }
 
   function zaman(ts) {

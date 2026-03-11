@@ -207,9 +207,9 @@ export default function Topluluk() {
   var username = profil?.username || user?.email?.split("@")[0] || "";
 
   useEffect(() => {
-    try { var _st = localStorage.getItem("sf_tema"); if (_st) setTema(_st); else if (window.matchMedia("(prefers-color-scheme: dark)").matches) setTema("dark"); } catch (e) {}
+    setTema(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     var _mq = window.matchMedia("(prefers-color-scheme: dark)");
-    function _onMq(e) { try { if (!localStorage.getItem("sf_tema")) setTema(e.matches ? "dark" : "light"); } catch (_) {} }
+    function _onMq(e) { setTema(e.matches ? "dark" : "light"); } catch (_) {} }
     _mq.addEventListener("change", _onMq);
     supabase.auth.getSession().then(({ data }) => {
       setLoaded(true);
@@ -239,8 +239,7 @@ export default function Topluluk() {
   }
 
   function temaToggle() {
-    var t = dk ? "light" : "dark"; setTema(t);
-    try { localStorage.setItem("sf_tema", t); } catch (e) {}
+    setTema(function(prev) { return prev === "dark" ? "light" : "dark"; });
   }
 
   async function begeni(id, sayi) {
