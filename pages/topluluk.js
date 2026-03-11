@@ -1,484 +1,330 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
-var ACCENT = "#e8230a";
-var TEAL = "#0891b2";
-var TEAL_L = "#06b6d4";
-
-var DRAWER_MENU = [
-  { icon: "🏠", label: "Ana Sayfa", href: "/" },
-  { icon: "🎬", label: "Senaryo Üret", href: "/uret", badge: "AI" },
-  { icon: "🔭", label: "Keşfet", href: "/kesfet" },
-  { icon: "🎭", label: "Topluluk", href: "/topluluk" },
-  { icon: "💬", label: "Mesajlar", href: "/mesajlar" },
-];
-
-var TURLER = ["Tümü","Gerilim","Drama","Bilim Kurgu","Komedi","Romantik","Korku","Aksiyon","Fantastik","Suç","Tarihi"];
-
-var ROZET_BILGI = {
-  ilk_senaryo: { icon: "🎬", label: "İlk Senaryo", renk: TEAL },
-  trend: { icon: "🔥", label: "Trend Oldu", renk: "#f59e0b" },
-  on_begeni: { icon: "❤️", label: "10 Beğeni", renk: ACCENT },
-  elli_begeni: { icon: "💎", label: "50 Beğeni", renk: "#7c3aed" },
-  challenge_king: { icon: "🏆", label: "Challenge King", renk: "#10b981" },
+var G = {
+  black:"#080808",deep:"#0d0d0d",surface:"#111",card:"#141414",
+  border:"rgba(212,175,55,0.12)",borderHov:"rgba(212,175,55,0.35)",
+  gold:"#D4AF37",goldL:"#F2D46F",goldD:"#A8892A",
+  goldGrad:"linear-gradient(135deg,#D4AF37 0%,#F2D46F 40%,#A8892A 70%,#D4AF37 100%)",
+  red:"#C0392B",redL:"#E74C3C",
+  silver:"#A8A9AD",
+  text:"#F5F0E8",textMuted:"rgba(245,240,232,0.42)",textDim:"rgba(245,240,232,0.2)",
+  shadow:"0 8px 40px rgba(0,0,0,0.85)",glow:"0 0 30px rgba(212,175,55,0.18)",
+  fontDisp:"'Bebas Neue','Arial Narrow',sans-serif",
+  fontBody:"'DM Sans',system-ui,sans-serif",
 };
 
-function getC(dk) {
-  return {
-    bg: dk ? "#080f1c" : "#f4f6fb",
-    surface: dk ? "#0f1829" : "#ffffff",
-    border: dk ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
-    text: dk ? "#f1f5f9" : "#0f172a",
-    muted: dk ? "rgba(241,245,249,0.45)" : "rgba(15,23,42,0.42)",
-    input: dk ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
-    shadow: dk ? "0 4px 20px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.06)",
-  };
+var ROZETLER=[
+  {label:"Yeni Kalem",   icon:"✏️",color:G.silver,min:0},
+  {label:"Aday Senarist",icon:"📝",color:"#A8A9AD",min:5},
+  {label:"Senarist",     icon:"🎬",color:G.gold,  min:20},
+  {label:"Usta Senarist",icon:"🏆",color:G.goldL, min:50},
+  {label:"Efsane",       icon:"👑",color:G.red,   min:100},
+];
+function getRozet(n){return[...ROZETLER].reverse().find(r=>(n||0)>=r.min)||ROZETLER[0];}
+
+function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
+  var p={width:size,height:size,fill:"none",stroke:color,strokeWidth,viewBox:"0 0 24 24"};
+  if(id==="home")return<svg {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>;
+  if(id==="film")return<svg {...p}><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/></svg>;
+  if(id==="compass")return<svg {...p}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>;
+  if(id==="users")return<svg {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>;
+  if(id==="chat")return<svg {...p}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>;
+  if(id==="user")return<svg {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+  if(id==="logout")return<svg {...p}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+  if(id==="target")return<svg {...p}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+  if(id==="trophy")return<svg {...p}><polyline points="8 21 12 17 16 21"/><line x1="12" y1="17" x2="12" y2="11"/><path d="M7 4H4a2 2 0 000 4h2.5M17 4h3a2 2 0 010 4h-2.5M7 4l2 7h6l2-7"/></svg>;
+  if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+  return null;
 }
 
-function Av({ url, size, fs }) {
-  return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs || 14, flexShrink: 0 }}>
-      {url ? <img src={url} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : "👤"}
+function FilmCorners({color=G.goldD,size=10,thickness=2}){
+  var s={position:"absolute",width:size,height:size};
+  var l={background:color,position:"absolute"};
+  return(<>
+    <div style={{...s,top:0,left:0}}><div style={{...l,top:0,left:0,width:thickness,height:size}}/><div style={{...l,top:0,left:0,width:size,height:thickness}}/></div>
+    <div style={{...s,top:0,right:0}}><div style={{...l,top:0,right:0,width:thickness,height:size}}/><div style={{...l,top:0,right:0,width:size,height:thickness}}/></div>
+    <div style={{...s,bottom:0,left:0}}><div style={{...l,bottom:0,left:0,width:thickness,height:size}}/><div style={{...l,bottom:0,left:0,width:size,height:thickness}}/></div>
+    <div style={{...s,bottom:0,right:0}}><div style={{...l,bottom:0,right:0,width:thickness,height:size}}/><div style={{...l,bottom:0,right:0,width:size,height:thickness}}/></div>
+  </>);
+}
+
+function Av({url,size}){
+  return(
+    <div style={{width:size,height:size,borderRadius:"50%",background:"linear-gradient(135deg,#1a1500,#2a2000)",border:`1.5px solid rgba(212,175,55,0.25)`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+      {url?<img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={size*0.4} color="rgba(212,175,55,0.4)"/>}
     </div>
   );
 }
 
-function Drawer({ dk, C, user, username, avatarUrl, onClose, onTema }) {
-  return (
-    <div>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }} />
-      <div style={{ position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 201, width: 300, background: dk ? "#0d1627" : "#fff", boxShadow: "4px 0 40px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
-        <div style={{ height: 4, background: "linear-gradient(90deg," + ACCENT + "," + TEAL + "," + TEAL_L + ")" }} />
-        <div style={{ padding: "20px", borderBottom: "1px solid " + C.border }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div onClick={() => { onClose(); window.location.href = "/profil"; }} style={{ cursor: "pointer" }}><Av url={avatarUrl} size={54} fs={22} /></div>
-            <button onClick={onClose} style={{ background: C.input, border: "1px solid " + C.border, borderRadius: 10, padding: "6px 12px", color: C.muted, fontSize: 13, cursor: "pointer" }}>✕</button>
-          </div>
-          {user ? <div><p style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 2 }}>@{username}</p><p style={{ fontSize: 12, color: C.muted }}>{user.email}</p></div>
-            : <button onClick={() => { onClose(); window.location.href = "/"; }} style={{ width: "100%", padding: "10px", borderRadius: 12, background: "linear-gradient(135deg," + ACCENT + ",#c5180a)", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Giriş Yap</button>}
-        </div>
-        <nav style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
-          {DRAWER_MENU.map(item => {
-            var isActive = item.href === "/topluluk";
-            return (
-              <a key={item.href} href={item.href} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: isActive ? TEAL : C.text, background: isActive ? TEAL + "12" : "transparent", fontWeight: isActive ? 700 : 500, fontSize: 15, marginBottom: 4, textDecoration: "none", border: "1px solid " + (isActive ? TEAL + "25" : "transparent") }}>
-                <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>{item.icon}</span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.badge && <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 20, background: ACCENT, color: "#fff" }}>{item.badge}</span>}
-              </a>
-            );
-          })}
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid " + C.border }}>
-            <a href="/profil" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, marginBottom: 4, textDecoration: "none" }}>
-              <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>👤</span><span>Profil & Ayarlar</span>
-            </a>
-            <button onClick={onTema} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, background: "none", border: "none", width: "100%", textAlign: "left", cursor: "pointer" }}>
-              <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>{dk ? "☀️" : "🌙"}</span><span>{dk ? "Açık Tema" : "Koyu Tema"}</span>
-            </button>
-            {user && <button onClick={() => { supabase.auth.signOut(); onClose(); window.location.href = "/"; }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: ACCENT, fontSize: 15, background: ACCENT + "10", border: "none", width: "100%", textAlign: "left", cursor: "pointer", marginTop: 4 }}>
-              <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>🚪</span><span>Çıkış Yap</span>
-            </button>}
-          </div>
-        </nav>
-        <div style={{ padding: "12px 20px 20px", borderTop: "1px solid " + C.border, textAlign: "center" }}>
-          <p style={{ fontSize: 11, color: C.muted }}>© 2025 Scriptify · by Öztürk</p>
-        </div>
-      </div>
-    </div>
-  );
+function Skeleton({w,h,r}){
+  return<div style={{width:w||"100%",height:h||16,borderRadius:r||8,background:"linear-gradient(90deg,rgba(212,175,55,0.04) 25%,rgba(212,175,55,0.08) 50%,rgba(212,175,55,0.04) 75%)",backgroundSize:"200% 100%",animation:"skeletonAnim 1.5s infinite"}}/>;
 }
 
-// Yorum modalı
-function YorumModal({ dk, C, senaryo, yorumlar, yorumYeni, setYorumYeni, onYolla, yukleniyor, onClose, user }) {
-  var listRef = null;
-  return (
-    <div>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} />
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 301, background: dk ? "#0f1829" : "#fff", borderRadius: "24px 24px 0 0", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: dk ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", margin: "12px auto 0" }} />
-        <div style={{ padding: "12px 20px 10px", borderBottom: "1px solid " + C.border }}>
-          <p style={{ fontSize: 15, fontWeight: 800, color: C.text }}>💬 Yorumlar</p>
-          <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{senaryo.baslik}</p>
+function Drawer({onClose,user,username,avatarUrl}){
+  var [cikisOnay,setCikisOnay]=useState(false);
+  var LINKS=[
+    {href:"/",label:"Ana Sayfa",id:"home"},
+    {href:"/uret",label:"Senaryo Üret",id:"film",badge:"AI"},
+    {href:"/kesfet",label:"Keşfet",id:"compass"},
+    {href:"/topluluk",label:"Topluluk",id:"users"},
+    {href:"/mesajlar",label:"Mesajlar",id:"chat"},
+  ];
+  return(<>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)"}}/>
+    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:290,background:"#0a0a0a",borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",boxShadow:"12px 0 80px rgba(0,0,0,0.9)"}}>
+      <div style={{height:3,background:G.goldGrad,flexShrink:0}}/>
+      <div style={{padding:"22px 18px 16px",borderBottom:`1px solid ${G.border}`,flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+          <Av url={avatarUrl} size={50}/>
+          <button onClick={onClose} style={{background:`rgba(212,175,55,0.06)`,border:`1px solid ${G.border}`,borderRadius:10,padding:"6px 11px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "12px 20px" }}>
-          {(!yorumlar || yorumlar.length === 0) ? (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <p style={{ fontSize: 32, marginBottom: 8 }}>💬</p>
-              <p style={{ fontSize: 13, color: C.muted }}>İlk yorumu sen yap!</p>
-            </div>
-          ) : yorumlar.map((y, i) => (
-            <div key={y.id || i} style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
-                {y.profiles?.avatar_url ? <img src={y.profiles.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : "👤"}
-              </div>
-              <div style={{ flex: 1, background: dk ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)", borderRadius: 14, padding: "8px 12px" }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: TEAL, marginBottom: 3 }}>@{y.profiles?.username || "anonim"}</p>
-                <p style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{y.metin}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        {user ? (
-          <div style={{ padding: "10px 16px env(safe-area-inset-bottom,16px)", borderTop: "1px solid " + C.border, display: "flex", gap: 8 }}>
-            <input value={yorumYeni} onChange={e => setYorumYeni(e.target.value)} onKeyDown={e => e.key === "Enter" && onYolla()} placeholder="Yorumunu yaz..." style={{ flex: 1, background: dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", border: "1px solid " + C.border, borderRadius: 20, padding: "10px 16px", color: C.text, fontSize: 14, outline: "none", fontFamily: "inherit" }} />
-            <button onClick={onYolla} disabled={yukleniyor || !yorumYeni.trim()} style={{ padding: "10px 16px", borderRadius: 20, background: yorumYeni.trim() ? "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")" : C.input, border: "none", color: yorumYeni.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              {yukleniyor ? "..." : "Gönder"}
-            </button>
-          </div>
-        ) : (
-          <div style={{ padding: "12px 20px env(safe-area-inset-bottom,16px)", textAlign: "center" }}>
-            <a href="/" style={{ fontSize: 13, color: TEAL, fontWeight: 700 }}>Yorum yazmak için giriş yap →</a>
-          </div>
-        )}
+        {user?<><p style={{fontSize:15,fontWeight:800,color:G.text}}>@{username}</p><p style={{fontSize:11,color:G.textDim,marginTop:3}}>{user.email}</p></>
+          :<button onClick={()=>{onClose();window.location.href="/";}} style={{width:"100%",padding:"10px",borderRadius:12,background:G.goldGrad,border:"none",color:"#0d0d0d",fontSize:13,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",cursor:"pointer"}}>Giriş Yap</button>}
       </div>
-    </div>
-  );
-}
-
-// Paylaş kart modalı
-function PaylasModal({ dk, C, senaryo, onClose }) {
-  var [kopyalandi, setKopyalandi] = useState(false);
-  var url = typeof window !== "undefined" ? window.location.origin + "/senaryo/" + senaryo.id : "";
-
-  function kopyala() {
-    try { navigator.clipboard.writeText(url); setKopyalandi(true); setTimeout(() => setKopyalandi(false), 2000); } catch (e) {}
-  }
-
-  function paylasWhatsapp() { window.open("https://wa.me/?text=" + encodeURIComponent("🎬 " + senaryo.baslik + " — Scriptify'da bak: " + url)); }
-  function paylasTwitter() { window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent("🎬 " + senaryo.baslik + " — " + (senaryo.tagline || "") + " #Scriptify") + "&url=" + encodeURIComponent(url)); }
-
-  return (
-    <div>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} />
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 301, background: dk ? "#0f1829" : "#fff", borderRadius: "24px 24px 0 0", padding: "8px 20px env(safe-area-inset-bottom,24px)" }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: dk ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", margin: "12px auto 20px" }} />
-
-        {/* Senaryo kartı önizleme */}
-        <div style={{ background: "linear-gradient(135deg," + ACCENT + "15," + TEAL + "10)", border: "1px solid " + TEAL + "25", borderRadius: 18, padding: "16px 18px", marginBottom: 20 }}>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: TEAL + "20", color: TEAL }}>{senaryo.tip}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: ACCENT + "15", color: ACCENT }}>{senaryo.tur}</span>
-          </div>
-          <p style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 4 }}>🎬 {senaryo.baslik}</p>
-          {senaryo.tagline && <p style={{ fontSize: 13, fontStyle: "italic", color: TEAL }}>"{senaryo.tagline}"</p>}
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 8, fontWeight: 600 }}>scriptify.app · AI Senaryo Platformu</p>
-        </div>
-
-        {/* Paylaş butonları */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <button onClick={paylasWhatsapp} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", borderRadius: 14, background: "#25d366", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            <span style={{ fontSize: 18 }}>💬</span> WhatsApp
-          </button>
-          <button onClick={paylasTwitter} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", borderRadius: 14, background: "#1da1f2", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            <span style={{ fontSize: 18 }}>🐦</span> Twitter
-          </button>
-        </div>
-        <button onClick={kopyala} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", borderRadius: 14, background: kopyalandi ? "#10b981" : C.input, border: "1px solid " + (kopyalandi ? "#10b981" : C.border), color: kopyalandi ? "#fff" : C.text, fontSize: 14, fontWeight: 700, cursor: "pointer", marginBottom: 10, transition: "all 0.2s" }}>
-          {kopyalandi ? "✅ Kopyalandı!" : "🔗 Linki Kopyala"}
-        </button>
-        <button onClick={onClose} style={{ width: "100%", padding: "12px", borderRadius: 14, background: "none", border: "none", color: C.muted, fontSize: 14, cursor: "pointer" }}>İptal</button>
-      </div>
-    </div>
-  );
-}
-
-export default function Topluluk() {
-  var [user, setUser] = useState(null);
-  var [profil, setProfil] = useState(null);
-  var [senaryolar, setSenaryolar] = useState([]);
-  var [tur, setTur] = useState("Tümü");
-  var [siralama, setSiralama] = useState("yeni");
-  var [sekme, setSekme] = useState("hepsi"); // hepsi | takip
-  var [tema, setTema] = useState("light");
-  var [loaded, setLoaded] = useState(false);
-  var [drawer, setDrawer] = useState(false);
-  var [begeniler, setBegeniler] = useState([]);
-  var [takipler, setTakipler] = useState([]);
-  var [paylasModal, setPaylasModal] = useState(null);
-  var [challengeYapildi, setChallengeYapildi] = useState([]);
-  var [yorumModal, setYorumModal] = useState(null); // senaryo objesi
-  var [yorumlar, setYorumlar] = useState({}); // { senaryo_id: [...] }
-  var [yorumYeni, setYorumYeni] = useState("");
-  var [yorumGonder, setYorumGonder] = useState(false);
-
-  var dk = tema === "dark";
-  var C = getC(dk);
-  var avatarUrl = profil?.avatar_url || null;
-  var username = profil?.username || user?.email?.split("@")[0] || "";
-
-  useEffect(() => {
-    setTema(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    var _mq = window.matchMedia("(prefers-color-scheme: dark)");
-    function _onMq(e) { setTema(e.matches ? "dark" : "light"); }
-    _mq.addEventListener("change", _onMq);
-    supabase.auth.getSession().then(({ data }) => {
-      setLoaded(true);
-      if (data?.session) { setUser(data.session.user); loadProfil(data.session.user); loadTakipler(data.session.user); }
-      loadSenaryolar("yeni", "Tümü");
-    });
-    supabase.auth.onAuthStateChange((_, session) => {
-      if (session) { setUser(session.user); loadProfil(session.user); loadTakipler(session.user); }
-      else { setUser(null); setProfil(null); setTakipler([]); }
-    });
-  }, []);
-
-  function loadProfil(u) {
-    supabase.from("profiles").select("*").eq("id", u.id).single().then(({ data }) => { if (data) setProfil(data); });
-  }
-
-  function loadTakipler(u) {
-    supabase.from("takipler").select("takip_edilen").eq("takip_eden", u.id)
-      .then(({ data }) => { if (data) setTakipler(data.map(t => t.takip_edilen)); });
-  }
-
-  function loadSenaryolar(s, t) {
-    var q = supabase.from("senaryolar").select("*, profiles(id, username, avatar_url)").eq("paylasim_acik", true);
-    if (t !== "Tümü") q = q.eq("tur", t);
-    q = q.order(s === "yeni" ? "created_at" : "begeni_sayisi", { ascending: false }).limit(40);
-    q.then(({ data }) => { if (data) setSenaryolar(data); });
-  }
-
-  function temaToggle() {
-    setTema(function(prev) { return prev === "dark" ? "light" : "dark"; });
-  }
-
-  async function begeni(id, sayi) {
-    if (!user) { window.location.href = "/"; return; }
-    if (begeniler.includes(id)) return;
-    setBegeniler(p => [...p, id]);
-    await supabase.from("senaryolar").update({ begeni_sayisi: (sayi || 0) + 1 }).eq("id", id);
-    setSenaryolar(p => p.map(s => s.id === id ? { ...s, begeni_sayisi: (sayi || 0) + 1 } : s));
-    // Bildirim gönder
-    var sn2 = senaryolar.find(function(s) { return s.id === id; });
-    if (sn2 && sn2.profiles?.id && sn2.profiles.id !== user.id) {
-      supabase.from("bildirimler").insert([{ alici_id: sn2.profiles.id, gonderen_id: user.id, tip: "begeni", senaryo_id: id }]);
-    }
-    // Rozet kontrolü
-    var yeniBegeni = (sayi || 0) + 1;
-    var sn = senaryolar.find(s => s.id === id);
-    if (sn && yeniBegeni === 10) {
-      await supabase.from("rozetler").insert([{ user_id: sn.profiles?.id, tip: "on_begeni" }]).onConflict().ignore();
-    }
-    if (sn && yeniBegeni === 50) {
-      await supabase.from("rozetler").insert([{ user_id: sn.profiles?.id, tip: "elli_begeni" }]).onConflict().ignore();
-    }
-  }
-
-  async function takipToggle(hedefId) {
-    if (!user) { window.location.href = "/"; return; }
-    if (takipler.includes(hedefId)) {
-      await supabase.from("takipler").delete().eq("takip_eden", user.id).eq("takip_edilen", hedefId);
-      setTakipler(p => p.filter(t => t !== hedefId));
-    } else {
-      await supabase.from("takipler").insert([{ takip_eden: user.id, takip_edilen: hedefId }]);
-      setTakipler(p => [...p, hedefId]);
-      // Bildirim gönder
-      if (hedefId !== user.id) { supabase.from("bildirimler").insert([{ alici_id: hedefId, gonderen_id: user.id, tip: "takip" }]); }
-    }
-  }
-
-  async function yorumlariYukle(senaryoId) {
-    var { data } = await supabase.from("yorumlar")
-      .select("*, profiles(username, avatar_url)")
-      .eq("senaryo_id", senaryoId)
-      .order("created_at", { ascending: true });
-    if (data) setYorumlar(p => ({ ...p, [senaryoId]: data }));
-  }
-
-  async function yorumYolla(senaryo) {
-    if (!user || !yorumYeni.trim()) return;
-    setYorumGonder(true);
-    var { data: yeni } = await supabase.from("yorumlar")
-      .insert([{ user_id: user.id, senaryo_id: senaryo.id, metin: yorumYeni.trim() }])
-      .select("*, profiles(username, avatar_url)").single();
-    if (yeni) {
-      setYorumlar(p => ({ ...p, [senaryo.id]: [...(p[senaryo.id] || []), yeni] }));
-      setYorumYeni("");
-      // Bildirim gönder
-      if (senaryo.profiles?.id && senaryo.profiles.id !== user.id) {
-        await supabase.from("bildirimler").insert([{
-          alici_id: senaryo.profiles.id, gonderen_id: user.id,
-          tip: "yorum", icerik: yorumYeni.trim().slice(0, 80), senaryo_id: senaryo.id
-        }]);
-      }
-    }
-    setYorumGonder(false);
-  }
-
-  async function challengeYap(senaryo) {
-    if (!user) { window.location.href = "/"; return; }
-    if (challengeYapildi.includes(senaryo.id)) return;
-    setChallengeYapildi(p => [...p, senaryo.id]);
-    await supabase.from("challengelar").insert([{ kaynak_senaryo_id: senaryo.id, kullanici_id: user.id }]);
-    await supabase.from("senaryolar").update({ challenge_sayisi: (senaryo.challenge_sayisi || 0) + 1 }).eq("id", senaryo.id);
-    setSenaryolar(p => p.map(s => s.id === senaryo.id ? { ...s, challenge_sayisi: (s.challenge_sayisi || 0) + 1 } : s));
-    // Uret sayfasına yönlendir — konuyu taşı
-    var params = new URLSearchParams({ challenge: senaryo.baslik, tur: senaryo.tur, tip: senaryo.tip });
-    window.location.href = "/uret?" + params.toString();
-  }
-
-  async function goruntulemeArt(id, sayi) {
-    await supabase.from("senaryolar").update({ goruntuleme_sayisi: (sayi || 0) + 1 }).eq("id", id);
-  }
-
-  function zaman(ts) {
-    var d = Math.floor((Date.now() - new Date(ts)) / 1000);
-    if (d < 3600) return Math.floor(d / 60) + "dk";
-    if (d < 86400) return Math.floor(d / 3600) + "sa";
-    return Math.floor(d / 86400) + "g";
-  }
-
-  var gosterilen = sekme === "takip"
-    ? senaryolar.filter(s => s.profiles && takipler.includes(s.profiles.id))
-    : senaryolar;
-
-  if (!loaded) return null;
-
-  return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif", paddingBottom: 90 }}>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0;}::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:${TEAL}44;border-radius:2px;}@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}@keyframes popIn{from{opacity:0;transform:scale(0.9);}to{opacity:1;transform:scale(1);}}a{text-decoration:none;color:inherit;}button{font-family:inherit;}`}</style>
-
-      {/* TOPBAR */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, background: dk ? "rgba(8,15,28,0.93)" : "rgba(238,242,247,0.93)", backdropFilter: "blur(20px)", borderBottom: "1px solid " + C.border, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <button onClick={() => setDrawer(true)} style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid " + TEAL + "40" }}>
-            {avatarUrl ? <img src={avatarUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : "👤"}
-          </div>
-          <img src="/logo.png" alt="Scriptify" style={{ height: 26, objectFit: "contain", maxWidth: 100 }} />
-        </button>
-        <a href="/uret" style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 20, background: "linear-gradient(135deg," + ACCENT + ",#c5180a)", boxShadow: "0 3px 12px " + ACCENT + "35" }}>
-          <span style={{ fontSize: 14 }}>🎬</span><span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>Üret</span>
-        </a>
-      </div>
-
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 0 16px" }}>
-
-        {/* Sekme: Hepsi / Takip */}
-        <div style={{ display: "flex", borderBottom: "1px solid " + C.border, background: C.surface }}>
-          {[{ id: "hepsi", label: "🌍 Herkese Açık" }, { id: "takip", label: "👥 Takip Ettiklerim" }].map(s => (
-            <button key={s.id} onClick={() => setSekme(s.id)} style={{ flex: 1, padding: "13px 8px", background: "none", border: "none", borderBottom: sekme === s.id ? "2px solid " + TEAL : "2px solid transparent", color: sekme === s.id ? TEAL : C.muted, fontSize: 13, fontWeight: sekme === s.id ? 700 : 500, cursor: "pointer", marginBottom: "-1px" }}>
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ padding: "14px 16px 0" }}>
-          {/* Sıralama */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            {[{ id: "yeni", label: "🕐 En Yeni" }, { id: "trend", label: "🔥 Trend" }].map(s => (
-              <button key={s.id} onClick={() => { setSiralama(s.id); loadSenaryolar(s.id, tur); }} style={{ flex: 1, padding: "9px", borderRadius: 12, border: "1.5px solid " + (siralama === s.id ? TEAL : C.border), background: siralama === s.id ? TEAL + "15" : C.input, color: siralama === s.id ? TEAL : C.muted, fontSize: 13, fontWeight: siralama === s.id ? 700 : 500, cursor: "pointer" }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tür filtresi */}
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 16, scrollbarWidth: "none" }}>
-            {TURLER.map(t => (
-              <button key={t} onClick={() => { setTur(t); loadSenaryolar(siralama, t); }} style={{ flexShrink: 0, padding: "6px 14px", borderRadius: 20, border: "1.5px solid " + (tur === t ? ACCENT : C.border), background: tur === t ? ACCENT + "15" : C.input, color: tur === t ? ACCENT : C.muted, fontSize: 12, fontWeight: tur === t ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap" }}>
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {/* Senaryolar */}
-          {gosterilen.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "70px 0" }}>
-              <p style={{ fontSize: 48, marginBottom: 14 }}>{sekme === "takip" ? "👥" : "🎭"}</p>
-              <p style={{ fontSize: 15, color: C.muted, marginBottom: 18 }}>
-                {sekme === "takip" ? "Takip ettiğin kullanıcıların senaryosu yok." : "Henüz paylaşılan senaryo yok."}
-              </p>
-              <a href="/uret" style={{ display: "inline-block", padding: "10px 24px", borderRadius: 12, background: "linear-gradient(135deg," + ACCENT + ",#c5180a)", color: "#fff", fontSize: 14, fontWeight: 700 }}>Senaryo Üret →</a>
-            </div>
-          ) : gosterilen.map((s, i) => {
-            var av = s.profiles?.avatar_url || null;
-            var begendi = begeniler.includes(s.id);
-            var takipEdiliyor = s.profiles && takipler.includes(s.profiles.id);
-            var challengeYapildiMi = challengeYapildi.includes(s.id);
-            var benimMi = user && s.profiles?.id === user.id;
-
-            return (
-              <div key={s.id} style={{ background: C.surface, border: "1px solid " + C.border, borderRadius: 20, padding: "18px 20px", marginBottom: 14, boxShadow: C.shadow, animation: "fadeUp 0.3s " + Math.min(i * 0.04, 0.2) + "s both ease" }}
-                onMouseEnter={() => goruntulemeArt(s.id, s.goruntuleme_sayisi)}>
-
-                {/* Yazar + takip */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                  <Av url={av} size={38} fs={15} />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: C.text }}>@{s.profiles?.username || "anonim"}</p>
-                    <p style={{ fontSize: 11, color: C.muted }}>{zaman(s.created_at)}</p>
-                  </div>
-                  {!benimMi && (
-                    <button onClick={() => takipToggle(s.profiles?.id)} style={{ padding: "6px 14px", borderRadius: 20, border: "1.5px solid " + (takipEdiliyor ? C.border : TEAL), background: takipEdiliyor ? C.input : TEAL + "15", color: takipEdiliyor ? C.muted : TEAL, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
-                      {takipEdiliyor ? "Takipte ✓" : "+ Takip"}
-                    </button>
-                  )}
-                </div>
-
-                {/* Başlık + türler */}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: TEAL + "15", color: TEAL }}>{s.tip}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: ACCENT + "12", color: ACCENT }}>{s.tur}</span>
-                  {s.challenge_sayisi > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: "#f59e0b15", color: "#f59e0b" }}>🎯 {s.challenge_sayisi} challenge</span>}
-                </div>
-
-                <a href={"/senaryo/" + s.id}><h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 4, letterSpacing: "-0.02em", cursor: "pointer" }}>{s.baslik} <span style={{ fontSize: 12, color: TEAL }}>→</span></h3></a>
-                {s.tagline && <p style={{ fontSize: 13, fontStyle: "italic", color: TEAL, marginBottom: 10 }}>"{s.tagline}"</p>}
-                {s.ana_fikir && <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>{s.ana_fikir.slice(0, 160)}{s.ana_fikir.length > 160 ? "..." : ""}</p>}
-
-                {/* İstatistikler */}
-                <div style={{ display: "flex", gap: 14, paddingBottom: 12, borderBottom: "1px solid " + C.border, marginBottom: 12 }}>
-                  <span style={{ fontSize: 11, color: C.muted }}>👁 {s.goruntuleme_sayisi || 0}</span>
-                  <span style={{ fontSize: 11, color: C.muted }}>♥ {s.begeni_sayisi || 0}</span>
-                  <span style={{ fontSize: 11, color: C.muted }}>🔗 {s.paylasim_sayisi || 0}</span>
-                  <span style={{ fontSize: 11, color: C.muted }}>🎯 {s.challenge_sayisi || 0}</span>
-                </div>
-
-                {/* Aksiyon butonları */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
-                  <button onClick={() => begeni(s.id, s.begeni_sayisi)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 0", borderRadius: 12, border: "1.5px solid " + (begendi ? ACCENT + "40" : C.border), background: begendi ? ACCENT + "10" : C.input, color: begendi ? ACCENT : C.muted, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
-                    {begendi ? "❤️" : "♡"} {s.begeni_sayisi || 0}
-                  </button>
-
-                  <button onClick={() => challengeYap(s)} disabled={challengeYapildiMi} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 0", borderRadius: 12, border: "1.5px solid " + (challengeYapildiMi ? "#f59e0b40" : C.border), background: challengeYapildiMi ? "#f59e0b10" : C.input, color: challengeYapildiMi ? "#f59e0b" : C.muted, fontSize: 12, fontWeight: 700, cursor: challengeYapildiMi ? "default" : "pointer", transition: "all 0.15s" }}>
-                    🎯 {challengeYapildiMi ? "Katıldın!" : "Challenge"}
-                  </button>
-
-                  <button onClick={() => { setPaylasModal(s); supabase.from("senaryolar").update({ paylasim_sayisi: (s.paylasim_sayisi || 0) + 1 }).eq("id", s.id); }} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 0", borderRadius: 12, border: "1.5px solid " + C.border, background: C.input, color: C.muted, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                    🔗 Paylaş
-                  </button>
-                  <button onClick={() => { setYorumModal(s); yorumlariYukle(s.id); }} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 0", borderRadius: 12, border: "1.5px solid " + C.border, background: C.input, color: C.muted, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                    💬 Yorum
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ALT NAV */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100, background: dk ? "rgba(8,15,28,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(28px)", borderTop: "1px solid " + C.border, padding: "8px 0 env(safe-area-inset-bottom,8px)", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
-        {[
-          { href: "/", svg: (a) => <svg width="24" height="24" fill="none" stroke={a?TEAL:C.muted} strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
-          { href: "/kesfet", svg: (a) => <svg width="24" height="24" fill="none" stroke={a?TEAL:C.muted} strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> },
-          { href: "/topluluk", svg: (a) => <svg width="24" height="24" fill="none" stroke={a?TEAL:C.muted} strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> },
-          { href: "/mesajlar", svg: (a) => <svg width="24" height="24" fill="none" stroke={a?TEAL:C.muted} strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> },
-          { href: "/profil", svg: (a) => <svg width="24" height="24" fill="none" stroke={a?TEAL:C.muted} strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
-        ].map(item => {
-          var active = item.href === "/topluluk";
-          return (
-            <a key={item.href} href={item.href} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "6px 14px", borderRadius: 14, position: "relative", opacity: active ? 1 : 0.6 }}>
-              {item.svg(active)}
-              {active && <div style={{ position: "absolute", bottom: 2, width: 18, height: 3, borderRadius: 2, background: TEAL }} />}
+      <nav style={{flex:1,overflowY:"auto",padding:"10px"}}>
+        {LINKS.map(item=>{
+          var active=typeof window!=="undefined"&&window.location.pathname===item.href;
+          return(
+            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:13,padding:"11px 12px",borderRadius:11,marginBottom:2,color:active?G.gold:G.textMuted,background:active?`${G.gold}08`:"transparent",border:`1px solid ${active?G.border:"transparent"}`,fontWeight:active?700:500,fontSize:14,textDecoration:"none"}}>
+              <Icon id={item.id} size={18} color={active?G.gold:G.textDim}/>
+              <span style={{flex:1}}>{item.label}</span>
+              {item.badge&&<span style={{fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:20,background:G.red,color:"#fff"}}>{item.badge}</span>}
             </a>
           );
         })}
+        <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${G.border}`}}>
+          <a href="/profil" style={{display:"flex",alignItems:"center",gap:13,padding:"11px 12px",borderRadius:11,color:G.textMuted,fontSize:14,textDecoration:"none"}}><Icon id="user" size={18} color={G.textDim}/>Profil</a>
+          {user&&<button onClick={()=>setCikisOnay(true)} style={{display:"flex",alignItems:"center",gap:13,padding:"11px 12px",borderRadius:11,width:"100%",textAlign:"left",color:G.red,background:`${G.red}07`,border:`1px solid ${G.red}15`,fontSize:14,fontWeight:600,cursor:"pointer"}}><Icon id="logout" size={18} color={G.red}/>Çıkış Yap</button>}
+        </div>
+      </nav>
+      <div style={{padding:"12px 18px",borderTop:`1px solid ${G.border}`,textAlign:"center",flexShrink:0}}>
+        <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.18em"}}>© 2025 SCRIPTIFY</p>
+      </div>
+    </div>
+    {cikisOnay&&<>
+      <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)"}}/>
+      <div style={{position:"fixed",inset:0,zIndex:301,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+        <div style={{background:"#111",border:`1px solid ${G.border}`,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:300,textAlign:"center",position:"relative"}}>
+          <FilmCorners/>
+          <div style={{fontFamily:G.fontDisp,fontSize:22,letterSpacing:"0.05em",color:G.text,marginBottom:8}}>ÇIKIŞ YAP</div>
+          <p style={{fontSize:13,color:G.textMuted,marginBottom:22}}>Emin misin?</p>
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={()=>setCikisOnay(false)} style={{flex:1,padding:"12px",borderRadius:12,background:"rgba(245,240,232,0.05)",border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600,cursor:"pointer"}}>İptal</button>
+            <button onClick={()=>{supabase.auth.signOut();window.location.href="/";}} style={{flex:1,padding:"12px",borderRadius:12,background:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Çıkış</button>
+          </div>
+        </div>
+      </div>
+    </>}
+  </>);
+}
+
+function AltNav(){
+  var items=[{href:"/",id:"home"},{href:"/kesfet",id:"compass"},{href:"/topluluk",id:"users"},{href:"/mesajlar",id:"chat"},{href:"/profil",id:"user"}];
+  return(
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:"rgba(8,8,8,0.97)",backdropFilter:"blur(20px)",borderTop:`1px solid ${G.border}`,padding:"8px 0 env(safe-area-inset-bottom,10px)",display:"flex",justifyContent:"space-around",alignItems:"center"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.gold}25,transparent)`}}/>
+      {items.map(item=>{
+        var active=item.href==="/topluluk";
+        return(
+          <a key={item.href} href={item.href} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 16px",borderRadius:12,position:"relative",opacity:active?1:0.4,transition:"opacity 0.2s"}}>
+            <Icon id={item.id} size={22} color={active?G.gold:G.silver}/>
+            {active&&<div style={{position:"absolute",bottom:2,width:20,height:2,borderRadius:1,background:G.goldGrad}}/>}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function Topluluk(){
+  var [user,setUser]=useState(null);
+  var [profil,setProfil]=useState(null);
+  var [challengelar,setChallenglar]=useState([]);
+  var [topSenaristler,setTopSenaristler]=useState([]);
+  var [yukleniyorC,setYukleniyorC]=useState(true);
+  var [yukleniyorS,setYukleniyorS]=useState(true);
+  var [drawer,setDrawer]=useState(false);
+  var [sekme,setSekme]=useState("challenge");
+
+  var avatarUrl=profil?.avatar_url||null;
+  var username=profil?.username||(user?user.email.split("@")[0]:"");
+
+  useEffect(()=>{
+    supabase.auth.getSession().then(r=>{
+      if(r.data?.session){
+        setUser(r.data.session.user);
+        supabase.from("profiles").select("*").eq("id",r.data.session.user.id).single().then(r2=>{if(r2.data)setProfil(r2.data);});
+      }
+    });
+    supabase.auth.onAuthStateChange((_,s)=>{if(s)setUser(s.user);else setUser(null);});
+    loadChallenglar();
+    loadTopSenaristler();
+  },[]);
+
+  async function loadChallenglar(){
+    setYukleniyorC(true);
+    var{data}=await supabase.from("challengelar").select("*").eq("aktif",true).order("olusturulma_tarihi",{ascending:false}).limit(10);
+    setChallenglar(data||[]);
+    setYukleniyorC(false);
+  }
+
+  async function loadTopSenaristler(){
+    setYukleniyorS(true);
+    var{data}=await supabase.from("profiles").select("*").order("senaryo_sayisi",{ascending:false}).limit(10);
+    setTopSenaristler(data||[]);
+    setYukleniyorS(false);
+  }
+
+  return(
+    <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:90}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,800&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        a{text-decoration:none;color:inherit;} button{font-family:inherit;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes skeletonAnim{0%{background-position:-200% 0}100%{background-position:200% 0}}
+        @keyframes filmRoll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        ::-webkit-scrollbar{width:2px;} ::-webkit-scrollbar-thumb{background:${G.goldD};border-radius:2px;}
+        ::selection{background:rgba(212,175,55,0.2);color:${G.goldL};}
+      `}</style>
+
+      {/* TOPBAR */}
+      <div style={{position:"sticky",top:0,zIndex:50,background:"rgba(8,8,8,0.97)",backdropFilter:"blur(24px)",borderBottom:`1px solid ${G.border}`}}>
+        {/* Film şeridi animasyonu */}
+        <div style={{overflow:"hidden",height:16,background:"#050505",borderBottom:`1px solid ${G.border}`}}>
+          <div style={{display:"flex",animation:"filmRoll 6s linear infinite",width:"200%"}}>
+            {[...Array(60)].map((_,i)=><div key={i} style={{width:12,height:9,margin:"3px 4px",border:`1px solid rgba(212,175,55,0.07)`,borderRadius:1,flexShrink:0}}/>)}
+          </div>
+        </div>
+        <div style={{padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
+            <Av url={avatarUrl} size={34}/>
+            <span style={{fontFamily:G.fontDisp,fontSize:20,letterSpacing:"0.12em",background:G.goldGrad,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>SCRIPTIFY</span>
+          </button>
+          <span style={{fontFamily:G.fontDisp,fontSize:13,letterSpacing:"0.12em",color:G.gold,background:`${G.gold}12`,border:`1px solid ${G.gold}25`,borderRadius:20,padding:"4px 12px"}}>TOPLULUK</span>
+        </div>
+        {/* Sekmeler */}
+        <div style={{display:"flex",borderTop:`1px solid ${G.border}`,padding:"0 16px"}}>
+          {[{id:"challenge",label:"CHALLENGELAR",icon:"target"},{id:"senaristler",label:"TOP SENARİSTLER",icon:"trophy"}].map(s=>(
+            <button key={s.id} onClick={()=>setSekme(s.id)} style={{flex:1,padding:"11px 0",fontSize:11,fontWeight:800,letterSpacing:"0.1em",color:sekme===s.id?G.gold:G.textDim,background:"none",border:"none",position:"relative",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"color 0.2s"}}>
+              <Icon id={s.icon} size={12} color={sekme===s.id?G.gold:G.textDim}/>
+              {s.label}
+              {sekme===s.id&&<div style={{position:"absolute",bottom:0,left:"20%",right:"20%",height:2,background:`linear-gradient(90deg,transparent,${G.gold},transparent)`,borderRadius:1}}/>}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {drawer && <Drawer dk={dk} C={C} user={user} username={username} avatarUrl={avatarUrl} onClose={() => setDrawer(false)} onTema={temaToggle} />}
-      {yorumModal && <YorumModal dk={dk} C={C} senaryo={yorumModal} yorumlar={yorumlar[yorumModal.id]} yorumYeni={yorumYeni} setYorumYeni={setYorumYeni} onYolla={() => yorumYolla(yorumModal)} yukleniyor={yorumGonder} onClose={() => { setYorumModal(null); setYorumYeni(""); }} user={user} />}
-      {paylasModal && <PaylasModal dk={dk} C={C} senaryo={paylasModal} onClose={() => setPaylasModal(null)} />}
+      <div style={{maxWidth:640,margin:"0 auto",padding:"16px 12px 0"}}>
+
+        {/* ── CHALLENGELAR ── */}
+        {sekme==="challenge"&&(
+          <div style={{animation:"fadeUp 0.35s ease"}}>
+            {/* Banner */}
+            <div style={{background:`linear-gradient(135deg,${G.gold}08,${G.red}05)`,border:`1px solid ${G.gold}15`,borderRadius:16,padding:"18px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+              <FilmCorners color={G.goldD}/>
+              <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:`radial-gradient(circle,${G.gold}06,transparent)`}}/>
+              <p style={{fontSize:11,fontWeight:800,color:G.textDim,letterSpacing:"0.15em",marginBottom:6}}>HAFTALIK</p>
+              <h2 style={{fontFamily:G.fontDisp,fontSize:22,letterSpacing:"0.06em",color:G.text,marginBottom:4}}>SENARYO CHALLENGELARı</h2>
+              <p style={{fontSize:12,color:G.textMuted}}>Konuya katıl, senaryo üret, topluluğu şaşırt</p>
+            </div>
+
+            {yukleniyorC?(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[...Array(4)].map((_,i)=>(
+                  <div key={i} style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:14,padding:16}}>
+                    <Skeleton w="70%" h={16} r={6}/><div style={{marginTop:8}}><Skeleton w="90%" h={12} r={5}/></div>
+                  </div>
+                ))}
+              </div>
+            ):challengelar.length===0?(
+              <div style={{textAlign:"center",padding:"60px 0"}}>
+                <div style={{fontFamily:G.fontDisp,fontSize:44,color:G.textDim,letterSpacing:"0.1em",marginBottom:10}}>YAKINDA</div>
+                <p style={{fontSize:13,color:G.textMuted}}>Yeni challenge geliyor!</p>
+              </div>
+            ):challengelar.map((ch,i)=>(
+              <div key={ch.id} style={{background:`linear-gradient(135deg,${G.card},${G.surface})`,border:`1px solid ${G.border}`,borderRadius:14,padding:"16px",marginBottom:10,animation:"fadeUp 0.3s ease",animationDelay:`${i*0.05}s`,animationFillMode:"both",position:"relative",overflow:"hidden"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=G.borderHov;e.currentTarget.style.boxShadow=G.glow;}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.boxShadow="none";}}>
+                <FilmCorners color={G.goldD} size={8}/>
+                {/* Sıra numarası */}
+                <div style={{position:"absolute",top:12,right:12,width:30,height:30,borderRadius:"50%",background:`${G.gold}08`,border:`1px solid ${G.gold}18`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{fontFamily:G.fontDisp,fontSize:12,color:G.textDim}}>#{i+1}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,background:`${G.red}10`,color:G.red,border:`1px solid ${G.red}20`,letterSpacing:"0.06em"}}>
+                    {ch.tur||"DRAMA"} · {ch.tip||"DİZİ"}
+                  </span>
+                  {ch.katilimci_sayisi>0&&<span style={{fontSize:10,color:G.textDim}}>👥 {ch.katilimci_sayisi} katılımcı</span>}
+                </div>
+                <h3 style={{fontSize:15,fontWeight:800,color:G.text,marginBottom:6,lineHeight:1.3}}>{ch.konu}</h3>
+                {ch.aciklama&&<p style={{fontSize:12,color:G.textMuted,lineHeight:1.55,marginBottom:12}}>{ch.aciklama}</p>}
+                <a href={`/uret?challenge=${encodeURIComponent(ch.konu)}&tur=${ch.tur||""}&tip=${ch.tip||""}`}
+                  style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:10,background:G.goldGrad,border:"none",color:"#0d0d0d",fontSize:11,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase"}}>
+                  <Icon id="zap" size={11} color="#0d0d0d" strokeWidth={2.5}/>
+                  Katıl & Üret
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── TOP SENARİSTLER ── */}
+        {sekme==="senaristler"&&(
+          <div style={{animation:"fadeUp 0.35s ease"}}>
+            {/* Banner */}
+            <div style={{background:`linear-gradient(135deg,${G.gold}08,${G.red}05)`,border:`1px solid ${G.gold}15`,borderRadius:16,padding:"18px",marginBottom:16,position:"relative"}}>
+              <FilmCorners color={G.goldD}/>
+              <p style={{fontSize:11,fontWeight:800,color:G.textDim,letterSpacing:"0.15em",marginBottom:6}}>LIDERBOARD</p>
+              <h2 style={{fontFamily:G.fontDisp,fontSize:22,letterSpacing:"0.06em",color:G.text}}>EN İYİ SENARİSTLER</h2>
+            </div>
+
+            {yukleniyorS?(
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {[...Array(5)].map((_,i)=>(
+                  <div key={i} style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:14,padding:14,display:"flex",gap:12,alignItems:"center"}}>
+                    <Skeleton w={44} h={44} r={22}/><div style={{flex:1}}><Skeleton w="50%" h={14} r={6}/><div style={{marginTop:6}}><Skeleton w="35%" h={11} r={5}/></div></div>
+                  </div>
+                ))}
+              </div>
+            ):topSenaristler.map((p,i)=>{
+              var rozet=getRozet(p.senaryo_sayisi||0);
+              var madalyaRenk=["#F2D46F","#C0C0C0","#cd7f32"];
+              return(
+                <a key={p.id} href={`/@${p.username||p.id}`}
+                  style={{display:"flex",alignItems:"center",gap:12,padding:"14px",background:`linear-gradient(135deg,${G.card},${G.surface})`,border:`1px solid ${G.border}`,borderRadius:14,marginBottom:8,animation:"fadeUp 0.3s ease",animationDelay:`${i*0.04}s`,animationFillMode:"both",textDecoration:"none",transition:"all 0.2s",position:"relative"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=G.borderHov;e.currentTarget.style.boxShadow=G.glow;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.boxShadow="none";}}>
+                  {i<3&&<FilmCorners color={madalyaRenk[i]} size={8}/>}
+                  {/* Sıra */}
+                  <div style={{width:32,textAlign:"center",flexShrink:0}}>
+                    {i<3?<span style={{fontSize:18}}>{"🥇🥈🥉"[i]}}</span>:<span style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim}}>#{i+1}</span>}
+                  </div>
+                  <Av url={p.avatar_url} size={44}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <p style={{fontSize:14,fontWeight:700,color:G.text}}>@{p.username||"kullanıcı"}</p>
+                      {p.dogrulandi&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:20,background:`${G.gold}15`,color:G.gold,fontWeight:800}}>✓</span>}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>
+                      <span style={{fontSize:10,padding:"1px 7px",borderRadius:20,background:`${rozet.color}15`,color:rozet.color,border:`1px solid ${rozet.color}22`,fontWeight:700}}>{rozet.icon} {rozet.label}</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontFamily:G.fontDisp,fontSize:20,color:i===0?G.goldL:i===1?G.silver:i===2?"#cd7f32":G.gold}}>{p.senaryo_sayisi||0}</div>
+                    <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.08em"}}>SENARYO</p>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <AltNav/>
+      {drawer&&<Drawer onClose={()=>setDrawer(false)} user={user} username={username} avatarUrl={avatarUrl}/>}
     </div>
   );
 }
