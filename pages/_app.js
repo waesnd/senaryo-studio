@@ -115,9 +115,26 @@ function SplashScreen({ onDone }) {
       {/* Logo */}
       {phase >= 2 && (
         <div style={{ textAlign: "center", animation: "logoIn 0.8s cubic-bezier(0.16,1,0.3,1) forwards" }}>
+          {/* Önce logo.png dene, yoksa yazı göster */}
+          <img
+            src="/logo.png"
+            alt="Scriptify"
+            onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "block"; }}
+            style={{
+              height: "clamp(60px, 14vw, 90px)",
+              objectFit: "contain",
+              maxWidth: 320,
+              filter: "drop-shadow(0 0 20px rgba(212,175,55,0.4)) drop-shadow(0 0 40px rgba(212,175,55,0.15))",
+              animation: "flicker 3s ease 1s infinite",
+              display: "block",
+              margin: "0 auto",
+            }}
+          />
+          {/* Fallback yazı — logo.png yoksa */}
           <div style={{
-            fontFamily: "'Bebas Neue', sans-serif",
-            fontSize: "clamp(64px, 18vw, 108px)",
+            display: "none",
+            fontFamily: "'Bebas Neue', 'Arial Narrow', 'Impact', sans-serif",
+            fontSize: "clamp(56px, 16vw, 96px)",
             letterSpacing: "0.14em",
             background: "linear-gradient(135deg, #D4AF37 0%, #F2D46F 40%, #A8892A 70%, #D4AF37 100%)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -128,7 +145,7 @@ function SplashScreen({ onDone }) {
             SCRIPTIFY
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", margin: "14px 0 10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", margin: "16px 0 10px" }}>
             <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, #D4AF37)" }} />
             <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4AF37" }} />
             <div style={{ width: 5, height: 5, transform: "rotate(45deg)", background: "#D4AF37" }} />
@@ -138,9 +155,9 @@ function SplashScreen({ onDone }) {
 
           {phase >= 3 && (
             <p style={{
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'DM Sans', system-ui, sans-serif",
               fontSize: 11, fontWeight: 600,
-              letterSpacing: "0.2em", textTransform: "uppercase",
+              letterSpacing: "0.22em", textTransform: "uppercase",
               color: "#A8A9AD",
               animation: "tagIn 0.7s ease forwards",
             }}>
