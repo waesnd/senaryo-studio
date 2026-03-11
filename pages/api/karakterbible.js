@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   var { senaryo, tur } = req.body;
 
-  var prompt = `Sen bir karakter yazarısın. Aşağıdaki senaryodaki ana karakterler için detaylı Character Bible oluştur. Maksimum 3 karakter için profil yaz.
+  var prompt = `Sen Türk bir karakter yazarısın. Aşağıdaki senaryodaki ana karakterler için detaylı Character Bible oluştur. Maksimum 3 karakter için profil yaz. Karakter isimleri zaten Türkçe olmalı, yabancı isim kullanma.
 
 Senaryo: ${senaryo.baslik}
 Karakterler: ${senaryo.karakter}
