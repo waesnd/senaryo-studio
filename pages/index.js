@@ -21,8 +21,6 @@ function getC(dk) {
 function getInitialTema() {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-} catch (e) {}
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function Av({ url, size, dk }) {

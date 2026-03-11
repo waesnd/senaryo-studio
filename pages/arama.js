@@ -105,7 +105,7 @@ export default function Arama() {
   useEffect(() => {
     setTema(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     var _mq = window.matchMedia("(prefers-color-scheme: dark)");
-    function _onMq(e) { setTema(e.matches ? "dark" : "light"); } catch (_) {} }
+    function _onMq(e) { setTema(e.matches ? "dark" : "light"); }
     _mq.addEventListener("change", _onMq);
     supabase.auth.getSession().then(({ data }) => {
       setLoaded(true);
