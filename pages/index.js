@@ -58,13 +58,28 @@ function AltNav({ C }) {
 }
 
 function Drawer({ dk, C, user, username, avatarUrl, onClose, onTema }) {
+  var [cikisOnay, setCikisOnay] = useState(false);
+
+  var SVGS = {
+    home: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>,
+    film: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/></svg>,
+    kesfet: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>,
+    topluluk: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+    mesaj: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+    profil: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+    gunes: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
+    ay: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
+    cikis: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  };
+
   var MENU = [
-    { href: "/", icon: "🏠", label: "Ana Sayfa" },
-    { href: "/uret", icon: "🎬", label: "Senaryo Üret", badge: "AI" },
-    { href: "/kesfet", icon: "🔭", label: "Keşfet" },
-    { href: "/topluluk", icon: "🎭", label: "Topluluk" },
-    { href: "/mesajlar", icon: "💬", label: "Mesajlar" },
+    { href: "/", icon: SVGS.home, label: "Ana Sayfa" },
+    { href: "/uret", icon: SVGS.film, label: "Senaryo Üret", badge: "AI" },
+    { href: "/kesfet", icon: SVGS.kesfet, label: "Keşfet" },
+    { href: "/topluluk", icon: SVGS.topluluk, label: "Topluluk" },
+    { href: "/mesajlar", icon: SVGS.mesaj, label: "Mesajlar" },
   ];
+
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} />
@@ -84,22 +99,25 @@ function Drawer({ dk, C, user, username, avatarUrl, onClose, onTema }) {
         </div>
         <nav style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
           {MENU.map(item => (
-            <a key={item.href} href={item.href} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, marginBottom: 2, textDecoration: "none" }}>
-              <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>{item.icon}</span>
-              <span style={{ flex: 1 }}>{item.label}</span>
+            <a key={item.href} href={item.href} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, marginBottom: 2, textDecoration: "none" }}>
+              <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", color: TEAL, flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ flex: 1, fontWeight: 500 }}>{item.label}</span>
               {item.badge && <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 20, background: ACCENT, color: "#fff" }}>{item.badge}</span>}
             </a>
           ))}
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.border }}>
-            <a href="/profil" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, marginBottom: 2, textDecoration: "none" }}>
-              <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>👤</span> Profil & Ayarlar
+            <a href="/profil" style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, marginBottom: 2, textDecoration: "none" }}>
+              <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", color: TEAL }}>{SVGS.profil}</span>
+              <span style={{ fontWeight: 500 }}>Profil & Ayarlar</span>
             </a>
-            <button onClick={onTema} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, background: "none", border: "none", width: "100%", textAlign: "left", marginBottom: 2 }}>
-              <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>{dk ? "☀️" : "🌙"}</span> {dk ? "Açık Tema" : "Koyu Tema"}
+            <button onClick={onTema} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: C.text, fontSize: 15, background: "none", border: "none", width: "100%", textAlign: "left", marginBottom: 2 }}>
+              <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", color: dk ? "#f59e0b" : "#6366f1" }}>{dk ? SVGS.gunes : SVGS.ay}</span>
+              <span style={{ fontWeight: 500 }}>{dk ? "Açık Tema" : "Koyu Tema"}</span>
             </button>
             {user && (
-              <button onClick={() => { supabase.auth.signOut(); onClose(); window.location.href = "/"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, color: ACCENT, fontSize: 15, background: ACCENT + "10", border: "none", width: "100%", textAlign: "left" }}>
-                <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>🚪</span> Çıkış Yap
+              <button onClick={() => setCikisOnay(true)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 14, color: ACCENT, fontSize: 15, background: ACCENT + "10", border: "none", width: "100%", textAlign: "left" }}>
+                <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", color: ACCENT }}>{SVGS.cikis}</span>
+                <span style={{ fontWeight: 600 }}>Çıkış Yap</span>
               </button>
             )}
           </div>
@@ -108,6 +126,30 @@ function Drawer({ dk, C, user, username, avatarUrl, onClose, onTema }) {
           <p style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>© 2025 Scriptify</p>
         </div>
       </div>
+
+      {/* Çıkış onay modalı */}
+      {cikisOnay && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} />
+          <div style={{ position: "fixed", inset: 0, zIndex: 301, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <div style={{ background: dk ? "#0f1829" : "#fff", borderRadius: 24, padding: "28px 24px", width: "100%", maxWidth: 320, textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: ACCENT + "15", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <svg width="26" height="26" fill="none" stroke={ACCENT} strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 8 }}>Çıkış Yap</h3>
+              <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 24 }}>Hesabından çıkış yapmak istediğine emin misin?</p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setCikisOnay(false)} style={{ flex: 1, padding: "12px", borderRadius: 14, background: C.input, border: "1px solid " + C.border, color: C.text, fontSize: 14, fontWeight: 600 }}>
+                  İptal
+                </button>
+                <button onClick={() => { supabase.auth.signOut(); onClose(); window.location.href = "/"; }} style={{ flex: 1, padding: "12px", borderRadius: 14, background: "linear-gradient(135deg," + ACCENT + ",#c5180a)", border: "none", color: "#fff", fontSize: 14, fontWeight: 700 }}>
+                  Çıkış Yap
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
