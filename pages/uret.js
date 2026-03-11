@@ -111,6 +111,7 @@ export default function Uret() {
   var [sequelYukleniyor, setSequelYukleniyor] = useState(false);
   var [sequel, setSequel] = useState(null);
   var [pdfYukleniyor, setPdfYukleniyor] = useState(false);
+  var [kartModal, setKartModal] = useState(false);
   var [tema, setTema] = useState("light");
   var [drawer, setDrawer] = useState(false);
   var [loaded, setLoaded] = useState(false);
@@ -251,14 +252,157 @@ export default function Uret() {
 
   function sosyalPaylas() {
     if (!senaryo) return;
-    var metin = `🎬 "${senaryo.baslik}" — ${tur} ${tip}\n\n"${senaryo.tagline}"\n\n#Scriptify #${tur.replace(/\s/g,"")} #Senaryo`;
-    var url = window.location.origin + "/uret";
-    if (navigator.share) {
-      navigator.share({ title: senaryo.baslik, text: metin, url }).catch(() => {});
-    } else {
-      navigator.clipboard?.writeText(metin + "\n" + url);
-      alert("Kopyalandı! Sosyal medyada paylaşabilirsin.");
-    }
+    setKartModal(true);
+  }
+
+  function kartIndir() {
+    var canvas = document.getElementById("paylasim-karti");
+    if (!canvas) return;
+    var link = document.createElement("a");
+    link.download = (senaryo.baslik || "senaryo").replace(/\s+/g, "_") + "_scriptify.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  function KartModal() {
+    var canvasRef = require !== undefined ? null : null;
+    useEffect(() => {
+      var canvas = document.getElementById("paylasim-karti");
+      if (!canvas || !senaryo) return;
+      var ctx = canvas.getContext("2d");
+      var W = 1080, H = 1080;
+      canvas.width = W; canvas.height = H;
+
+      // Arka plan gradient
+      var grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, "#080f1c");
+      grad.addColorStop(0.5, "#0d1a2e");
+      grad.addColorStop(1, "#080f1c");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Dekoratif daireler
+      ctx.beginPath(); ctx.arc(W, 0, 400, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(8,145,178,0.08)"; ctx.fill();
+      ctx.beginPath(); ctx.arc(0, H, 350, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(232,35,10,0.06)"; ctx.fill();
+
+      // Üst çizgi
+      var lineGrad = ctx.createLinearGradient(60, 0, W - 60, 0);
+      lineGrad.addColorStop(0, "#e8230a");
+      lineGrad.addColorStop(0.5, "#0891b2");
+      lineGrad.addColorStop(1, "#06b6d4");
+      ctx.fillStyle = lineGrad;
+      ctx.fillRect(60, 70, W - 120, 5);
+
+      // Logo
+      ctx.font = "bold 28px -apple-system, sans-serif";
+      ctx.fillStyle = "#06b6d4";
+      ctx.letterSpacing = "3px";
+      ctx.fillText("SCRIPTIFY", 60, 140);
+
+      // AI badge
+      ctx.fillStyle = "rgba(232,35,10,0.9)";
+      ctx.beginPath();
+      ctx.roundRect(270, 110, 60, 30, 15);
+      ctx.fill();
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("AI", 293, 130);
+
+      // Tür badge
+      ctx.fillStyle = "rgba(8,145,178,0.25)";
+      ctx.beginPath(); ctx.roundRect(60, 170, 140, 36, 18); ctx.fill();
+      ctx.fillStyle = "#06b6d4";
+      ctx.font = "bold 16px sans-serif";
+      ctx.fillText((tip || "") + " · " + (tur || ""), 78, 193);
+
+      // Başlık
+      ctx.fillStyle = "#f1f5f9";
+      ctx.font = "bold 72px -apple-system, sans-serif";
+      var baslik = senaryo.baslik || "";
+      // Uzun başlıkları böl
+      var words = baslik.split(" ");
+      var lines = []; var line = "";
+      words.forEach(w => {
+        var test = line + (line ? " " : "") + w;
+        if (ctx.measureText(test).width > W - 120) { lines.push(line); line = w; }
+        else line = test;
+      });
+      lines.push(line);
+      lines.slice(0, 3).forEach((l, i) => ctx.fillText(l, 60, 320 + i * 85));
+
+      // Tagline
+      if (senaryo.tagline) {
+        ctx.font = "italic 32px -apple-system, sans-serif";
+        ctx.fillStyle = "#0891b2";
+        var tl = '"' + senaryo.tagline.slice(0, 80) + (senaryo.tagline.length > 80 ? "..." : "") + '"';
+        ctx.fillText(tl, 60, 570);
+      }
+
+      // Ana fikir
+      if (senaryo.ana_fikir) {
+        ctx.font = "24px -apple-system, sans-serif";
+        ctx.fillStyle = "rgba(241,245,249,0.65)";
+        var af = senaryo.ana_fikir.slice(0, 160) + (senaryo.ana_fikir.length > 160 ? "..." : "");
+        // Satır satır yaz
+        var afWords = af.split(" "); var afLine = ""; var afY = 650;
+        afWords.forEach(w => {
+          var test = afLine + (afLine ? " " : "") + w;
+          if (ctx.measureText(test).width > W - 120) {
+            ctx.fillText(afLine, 60, afY); afY += 38; afLine = w;
+          } else afLine = test;
+        });
+        ctx.fillText(afLine, 60, afY);
+      }
+
+      // Alt çizgi
+      ctx.fillStyle = lineGrad;
+      ctx.fillRect(60, H - 120, W - 120, 3);
+
+      // Alt logo
+      ctx.font = "bold 22px sans-serif";
+      ctx.fillStyle = "rgba(241,245,249,0.4)";
+      ctx.fillText("scriptify.app", 60, H - 75);
+
+      // Alt sağ kullanıcı
+      if (username) {
+        ctx.font = "22px sans-serif";
+        ctx.fillStyle = "rgba(8,145,178,0.8)";
+        ctx.textAlign = "right";
+        ctx.fillText("@" + username, W - 60, H - 75);
+        ctx.textAlign = "left";
+      }
+    }, []);
+
+    return (
+      <>
+        <div onClick={() => setKartModal(false)} style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }} />
+        <div style={{ position: "fixed", inset: 0, zIndex: 501, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, gap: 16 }}>
+          <canvas id="paylasim-karti" style={{ maxWidth: "100%", maxHeight: "65vh", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={kartIndir} style={{ padding: "13px 28px", borderRadius: 14, background: "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")", border: "none", color: "#fff", fontSize: 15, fontWeight: 700 }}>
+              📥 İndir
+            </button>
+            <button onClick={() => {
+              var canvas = document.getElementById("paylasim-karti");
+              if (!canvas) return;
+              canvas.toBlob(blob => {
+                var file = new File([blob], "scriptify.png", { type: "image/png" });
+                if (navigator.share && navigator.canShare({ files: [file] })) {
+                  navigator.share({ files: [file], title: senaryo.baslik, text: "Scriptify'da ürettiğim senaryo 🎬" });
+                } else { alert("Önce indirip paylaşabilirsin!"); }
+              });
+            }} style={{ padding: "13px 28px", borderRadius: 14, background: "linear-gradient(135deg," + ACCENT + ",#c5180a)", border: "none", color: "#fff", fontSize: 15, fontWeight: 700 }}>
+              📤 Paylaş
+            </button>
+            <button onClick={() => setKartModal(false)} style={{ padding: "13px 20px", borderRadius: 14, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: 15 }}>
+              ✕
+            </button>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
@@ -499,6 +643,7 @@ export default function Uret() {
       </div>
 
       {drawer && <Drawer dk={dk} C={C} user={user} username={username} avatarUrl={avatarUrl} onClose={function () { setDrawer(false); }} onTema={temaToggle} />}
+      {kartModal && <KartModal />}
     </div>
   );
 }

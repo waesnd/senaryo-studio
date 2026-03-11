@@ -235,6 +235,16 @@ export default function Profil() {
   );
 
   var username = profil?.username || "";
+
+  // Profil tamamlama yüzdesi
+  var profilAdimlar = [
+    { label: "Kullanıcı adı", tamam: !!profil?.username },
+    { label: "Profil fotoğrafı", tamam: !!profil?.avatar_url },
+    { label: "Hakkında", tamam: !!profil?.bio },
+    { label: "Banner", tamam: !!profil?.banner_url },
+    { label: "Website", tamam: !!profil?.website },
+  ];
+  var profilYuzde = Math.round(profilAdimlar.filter(a => a.tamam).length / profilAdimlar.length * 100);
   var TABS = [
     { id: "gonderiler", label: "Gönderiler", count: gonderiler.length },
     { id: "senaryolar", label: "Senaryolar", count: senaryolar.length },
@@ -313,6 +323,23 @@ export default function Profil() {
             </div>
           </div>
 
+          {/* Profil tamamlama */}
+          {profilYuzde < 100 && (
+            <div onClick={() => setDuzenle(true)} style={{ margin: "0 16px 12px", background: "linear-gradient(135deg," + TEAL + "10," + TEAL_L + "08)", border: "1px solid " + TEAL + "25", borderRadius: 16, padding: "14px 16px", cursor: "pointer" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Profili Tamamla</p>
+                <p style={{ fontSize: 13, fontWeight: 800, color: TEAL }}>{profilYuzde}%</p>
+              </div>
+              <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: profilYuzde + "%", background: "linear-gradient(90deg," + TEAL + "," + TEAL_L + ")", borderRadius: 3, transition: "width 0.5s ease" }} />
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                {profilAdimlar.filter(a => !a.tamam).map(a => (
+                  <span key={a.label} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: TEAL + "15", color: TEAL, fontWeight: 600 }}>+ {a.label}</span>
+                ))}
+              </div>
+            </div>
+          )}
           {/* İsim & bilgi */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
             <p style={{ fontSize: 17, fontWeight: 800, color: C.text }}>

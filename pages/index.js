@@ -273,8 +273,54 @@ function GonderiModal({ dk, C, user, avatarUrl, onClose, onPaylas }) {
   );
 }
 
+function Onboarding({ onClose, dk }) {
+  var [slayt, setSlayt] = useState(0);
+  var SLAYTLAR = [
+    { emoji: "🎬", baslik: "Scriptify'a Hoş Geldin!", aciklama: "AI ile saniyeler içinde özgün film ve dizi senaryoları üret. Gerilimden komediye, her türde senaryo seni bekliyor." },
+    { emoji: "🌍", baslik: "Toplulukla Paylaş", aciklama: "Senaryolarını topluluğa paylaş, diğer yazarları takip et, beğen, yorum yap. Yaratıcılarla bağlantı kur." },
+    { emoji: "✨", baslik: "Hemen Başla!", aciklama: "Google hesabınla saniyeler içinde giriş yap. Ücretsiz, reklamsız, sadece yaratıcılık." },
+  ];
+  var s = SLAYTLAR[slayt];
+  var C = getC(dk);
+
+  function bitir() {
+    try { localStorage.setItem("sf_onboarded", "1"); } catch (e) {}
+    onClose();
+  }
+
+  return (
+    <>
+      <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(12px)" }} />
+      <div style={{ position: "fixed", inset: 0, zIndex: 601, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom,0)" }}>
+        <div style={{ background: dk ? "#0f1829" : "#fff", borderRadius: "28px 28px 0 0", padding: "32px 28px 40px", width: "100%", maxWidth: 480, textAlign: "center" }}>
+          {/* Dots */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 32 }}>
+            {SLAYTLAR.map((_, i) => (
+              <div key={i} onClick={() => setSlayt(i)} style={{ width: i === slayt ? 24 : 8, height: 8, borderRadius: 4, background: i === slayt ? TEAL : C.border, transition: "all 0.3s", cursor: "pointer" }} />
+            ))}
+          </div>
+          <div style={{ fontSize: 72, marginBottom: 20 }}>{s.emoji}</div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 12, letterSpacing: "-0.02em" }}>{s.baslik}</h2>
+          <p style={{ fontSize: 15, color: C.muted, lineHeight: 1.7, marginBottom: 36 }}>{s.aciklama}</p>
+          {slayt < SLAYTLAR.length - 1 ? (
+            <button onClick={() => setSlayt(s => s + 1)} style={{ width: "100%", padding: "15px", borderRadius: 16, background: "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")", border: "none", color: "#fff", fontSize: 16, fontWeight: 800 }}>
+              Devam →
+            </button>
+          ) : (
+            <button onClick={bitir} style={{ width: "100%", padding: "15px", borderRadius: 16, background: "linear-gradient(135deg," + ACCENT + ",#c5180a)", border: "none", color: "#fff", fontSize: 16, fontWeight: 800, boxShadow: "0 6px 20px " + ACCENT + "40" }}>
+              🚀 Başlayalım!
+            </button>
+          )}
+          <button onClick={bitir} style={{ marginTop: 14, background: "none", border: "none", color: C.muted, fontSize: 13, padding: "8px" }}>Geç</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function Home() {
   var [user, setUser] = useState(null);
+  var [onboarding, setOnboarding] = useState(false);
   var [profil, setProfil] = useState(null);
   var [gonderiler, setGonderiler] = useState([]);
   var [begeniler, setBegeniler] = useState([]);
@@ -317,6 +363,11 @@ export default function Home() {
         loadBegeniler(data.session.user.id);
         loadKaydedilenler(data.session.user.id);
         loadBildirimSayisi(data.session.user.id);
+      } else {
+        // Giriş yapmamış — ilk kez mi?
+        try {
+          if (!localStorage.getItem("sf_onboarded")) setOnboarding(true);
+        } catch (e) {}
       }
       loadFeed("son", 0, []);
       setLoaded(true);
@@ -770,6 +821,7 @@ export default function Home() {
           </div>
         </>
       )}
+      {onboarding && <Onboarding dk={dk} onClose={() => setOnboarding(false)} />}
     </div>
   );
 }
