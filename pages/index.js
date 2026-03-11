@@ -518,12 +518,63 @@ export default function Home() {
     return Math.floor(d / 86400) + "g";
   }
 
-  if (!loaded) return (
-    <div style={{ minHeight: "100vh", background: "#f4f6fb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid " + TEAL + "30", borderTopColor: TEAL, animation: "spin 0.8s linear infinite" }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
+  if (!loaded) {
+    var skBg = getInitialTema() === "dark" ? "#080f1c" : "#f4f6fb";
+    var skSurface = getInitialTema() === "dark" ? "#0f1829" : "#ffffff";
+    var skShimmer = getInitialTema() === "dark" ? "#1a2740" : "#e8eef5";
+    return (
+      <div style={{ minHeight: "100vh", background: skBg, fontFamily: "-apple-system,sans-serif" }}>
+        <style>{`@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}@keyframes spin{to{transform:rotate(360deg)}}.sk{background:linear-gradient(90deg,${skShimmer} 25%,${skSurface} 50%,${skShimmer} 75%);background-size:800px 100%;animation:shimmer 1.2s infinite linear;border-radius:8px;}`}</style>
+        {/* Topbar skeleton */}
+        <div style={{ height: 56, background: skSurface, borderBottom: "1px solid rgba(0,0,0,0.07)", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="sk" style={{ width: 36, height: 36, borderRadius: "50%" }} />
+            <div>
+              <div className="sk" style={{ width: 80, height: 14, marginBottom: 4 }} />
+              <div className="sk" style={{ width: 55, height: 10 }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div className="sk" style={{ width: 36, height: 36, borderRadius: "50%" }} />
+            <div className="sk" style={{ width: 68, height: 36, borderRadius: 20 }} />
+          </div>
+        </div>
+        {/* Story bar skeleton */}
+        <div style={{ background: skSurface, borderBottom: "1px solid rgba(0,0,0,0.07)", padding: "14px 16px", display: "flex", gap: 14 }}>
+          {[0,1,2,3,4].map(i => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+              <div className="sk" style={{ width: 60, height: 60, borderRadius: "50%" }} />
+              <div className="sk" style={{ width: 44, height: 9 }} />
+            </div>
+          ))}
+        </div>
+        {/* Feed skeleton */}
+        {[0,1,2,3].map(i => (
+          <div key={i} style={{ background: skSurface, borderBottom: "1px solid rgba(0,0,0,0.07)", padding: "14px 16px" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <div className="sk" style={{ width: 40, height: 40, borderRadius: "50%", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div className="sk" style={{ width: "40%", height: 13, marginBottom: 6 }} />
+                <div className="sk" style={{ width: "25%", height: 10 }} />
+              </div>
+            </div>
+            <div className="sk" style={{ width: "90%", height: 13, marginBottom: 8 }} />
+            <div className="sk" style={{ width: "70%", height: 13, marginBottom: 12 }} />
+            {i % 2 === 0 && <div className="sk" style={{ width: "100%", height: 200, borderRadius: 14, marginBottom: 12 }} />}
+            <div style={{ display: "flex", gap: 8 }}>
+              <div className="sk" style={{ width: 50, height: 28, borderRadius: 20 }} />
+              <div className="sk" style={{ width: 50, height: 28, borderRadius: 20 }} />
+              <div className="sk" style={{ width: 50, height: 28, borderRadius: 20 }} />
+            </div>
+          </div>
+        ))}
+        {/* Alt nav skeleton */}
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, height: 60, background: skSurface, borderTop: "1px solid rgba(0,0,0,0.07)", display: "flex", justifyContent: "space-around", alignItems: "center", padding: "0 8px" }}>
+          {[0,1,2,3,4].map(i => <div key={i} className="sk" style={{ width: 28, height: 28, borderRadius: 8 }} />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif", paddingBottom: 90 }}>
