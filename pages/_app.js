@@ -112,54 +112,49 @@ function SplashScreen({ onDone }) {
         {Array(14).fill(0).map((_,i) => <div key={i} style={{ width: 10, height: 14, borderRadius: 3, background: "#181818", border: "1px solid #2a2a2a" }} />)}
       </div>
 
-      {/* Logo */}
+      {/* Logo — saf CSS, font bağımlılığı yok */}
       {phase >= 2 && (
-        <div style={{ textAlign: "center", animation: "logoIn 0.8s cubic-bezier(0.16,1,0.3,1) forwards" }}>
-          {/* Önce logo.png dene, yoksa yazı göster */}
-          <img
-            src="/logo.png"
-            alt="Scriptify"
-            onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "block"; }}
-            style={{
-              height: "clamp(60px, 14vw, 90px)",
-              objectFit: "contain",
-              maxWidth: 320,
-              filter: "drop-shadow(0 0 20px rgba(212,175,55,0.4)) drop-shadow(0 0 40px rgba(212,175,55,0.15))",
-              animation: "flicker 3s ease 1s infinite",
-              display: "block",
-              margin: "0 auto",
-            }}
-          />
-          {/* Fallback yazı — logo.png yoksa */}
-          <div style={{
-            display: "none",
-            fontFamily: "'Bebas Neue', 'Arial Narrow', 'Impact', sans-serif",
-            fontSize: "clamp(56px, 16vw, 96px)",
-            letterSpacing: "0.14em",
-            background: "linear-gradient(135deg, #D4AF37 0%, #F2D46F 40%, #A8892A 70%, #D4AF37 100%)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            animation: "flicker 3s ease 1s infinite",
-            lineHeight: 1,
-          }}>
-            SCRIPTIFY
-          </div>
+        <div style={{ textAlign: "center", animation: "logoIn 0.8s cubic-bezier(0.16,1,0.3,1) forwards", padding: "0 24px" }}>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", margin: "16px 0 10px" }}>
+          {/* SVG ile çizilmiş SCRIPTIFY — anında render, font gerekmez */}
+          <svg viewBox="0 0 420 80" width="min(380px, 85vw)" height="auto" style={{ display: "block", margin: "0 auto", filter: "drop-shadow(0 0 18px rgba(212,175,55,0.35))", animation: "flicker 4s ease 1.2s infinite" }}>
+            <defs>
+              <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stopColor="#D4AF37"/>
+                <stop offset="35%"  stopColor="#F2D46F"/>
+                <stop offset="65%"  stopColor="#A8892A"/>
+                <stop offset="100%" stopColor="#D4AF37"/>
+              </linearGradient>
+            </defs>
+            <text
+              x="210" y="68"
+              textAnchor="middle"
+              fontFamily="'Arial Black','Arial Narrow','Impact',sans-serif"
+              fontWeight="900"
+              fontSize="72"
+              letterSpacing="6"
+              fill="url(#goldGrad)"
+            >
+              SCRIPTIFY
+            </text>
+          </svg>
+
+          {/* Altın ayırıcı çizgi */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", margin: "14px 0 10px" }}>
             <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, #D4AF37)" }} />
             <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4AF37" }} />
-            <div style={{ width: 5, height: 5, transform: "rotate(45deg)", background: "#D4AF37" }} />
+            <div style={{ width: 4, height: 4, transform: "rotate(45deg)", background: "#D4AF37" }} />
             <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4AF37" }} />
             <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #D4AF37, transparent)" }} />
           </div>
 
           {phase >= 3 && (
             <p style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 11, fontWeight: 600,
-              letterSpacing: "0.22em", textTransform: "uppercase",
+              fontFamily: "system-ui, sans-serif",
+              fontSize: 11, fontWeight: 700,
+              letterSpacing: "0.25em", textTransform: "uppercase",
               color: "#A8A9AD",
-              animation: "tagIn 0.7s ease forwards",
+              animation: "tagIn 0.6s ease forwards",
             }}>
               AI Senaryo Stüdyosu
             </p>
