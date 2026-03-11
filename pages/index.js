@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 
 var ACCENT = "#e8230a";
@@ -564,7 +564,7 @@ export default function Home() {
         {/* Feed sekmeleri */}
         <div style={{ display: "flex", background: C.surface, borderBottom: "1px solid " + C.border, position: "sticky", top: 56, zIndex: 40 }}>
           {[{ id: "son", label: "En Son" }, { id: "trend", label: "Trend 🔥" }].map(s => (
-            <button key={s.id} onClick={() => { setSayfa(0); setDahaVar(true); loadFeed(s.id, 0, []); }} style={{ flex: 1, padding: "14px 8px", background: "none", border: "none", borderBottom: feedSekme === s.id ? "2px solid " + TEAL : "2px solid transparent", color: feedSekme === s.id ? TEAL : C.muted, fontSize: 14, fontWeight: feedSekme === s.id ? 700 : 500, marginBottom: -1 }}>
+            <button key={s.id} onClick={() => { setFeedSekme(s.id); setSayfa(0); setDahaVar(true); loadFeed(s.id, 0, []); }} style={{ flex: 1, padding: "14px 8px", background: "none", border: "none", borderBottom: feedSekme === s.id ? "2px solid " + TEAL : "2px solid transparent", color: feedSekme === s.id ? TEAL : C.muted, fontSize: 14, fontWeight: feedSekme === s.id ? 700 : 500, marginBottom: -1 }}>
               {s.label}
             </button>
           ))}
