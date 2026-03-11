@@ -222,15 +222,8 @@ Karakterler: ${senaryo.karakter}
 Açılış: ${senaryo.acilis_sahnesi}
 
 Sadece JSON döndür, başka hiçbir şey yazma.`;
-      var res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] })
-      });
-      var data = await res.json();
-      var text = data.content?.map(i => i.text || "").join("") || "";
-      var clean = text.replace(/```json|```/g, "").trim();
-      var parsed = JSON.parse(clean);
+      var res = await fetch("/api/beatsheet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senaryo, tip, tur }) });
+      var parsed = await res.json();
       setBeatler(parsed);
     } catch (e) { alert("Beat Sheet oluşturulamadı."); }
     setBeatYukleniyor(false);
@@ -249,15 +242,8 @@ Ana Fikir: ${senaryo.ana_fikir}
 Tür: ${tur}
 
 Sadece JSON döndür.`;
-      var res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] })
-      });
-      var data = await res.json();
-      var text = data.content?.map(i => i.text || "").join("") || "";
-      var clean = text.replace(/```json|```/g, "").trim();
-      var parsed = JSON.parse(clean);
+      var res = await fetch("/api/karakterbible", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senaryo, tur }) });
+      var parsed = await res.json();
       setKarakterBible(parsed);
     } catch (e) { alert("Character Bible oluşturulamadı."); }
     setBibleYukleniyor(false);
@@ -278,15 +264,8 @@ Büyük Soru: ${senaryo.buyuk_soru}
 
 Türk televizyon sektörüne özel analiz yap. Türk izleyici alışkanlıklarını, dizi formatlarını göz önünde bulundur.
 Sadece JSON döndür.`;
-      var res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] })
-      });
-      var data = await res.json();
-      var text = data.content?.map(i => i.text || "").join("") || "";
-      var clean = text.replace(/```json|```/g, "").trim();
-      var parsed = JSON.parse(clean);
+      var res = await fetch("/api/dramaturg", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senaryo, tip, tur }) });
+      var parsed = await res.json();
       setDraturagAnaliz(parsed);
     } catch (e) { alert("Dramaturg analizi yapılamadı."); }
     setDraturagYukleniyor(false);
@@ -304,15 +283,8 @@ Tagline: ${senaryo.tagline}
 Ana Fikir: ${senaryo.ana_fikir}
 
 Sadece JSON döndür.`;
-      var res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
-      });
-      var data = await res.json();
-      var text = data.content?.map(i => i.text || "").join("") || "";
-      var clean = text.replace(/```json|```/g, "").trim();
-      var parsed = JSON.parse(clean);
+      var res = await fetch("/api/puan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senaryo, tip, tur }) });
+      var parsed = await res.json();
       setPuan(parsed);
     } catch (e) { alert("Puanlama yapılamadı."); }
     setPuanYukleniyor(false);
