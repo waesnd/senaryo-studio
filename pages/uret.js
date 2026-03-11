@@ -424,10 +424,7 @@ export default function Uret() {
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid " + TEAL + "40" }}>
             {avatarUrl ? <img src={avatarUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : "👤"}
           </div>
-          <div style={{ textAlign: "left" }}>
-            <p style={{ fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1 }}>Scriptify</p>
-            <p style={{ fontSize: 10, color: TEAL, fontWeight: 600, marginTop: 1 }}>Senaryo Üret</p>
-          </div>
+          <img src="/logo.png" alt="Scriptify" style={{ height: 26, objectFit: "contain", maxWidth: 100 }} />
         </button>
         <button onClick={temaToggle} style={{ background: C.input, border: "1px solid " + C.border, borderRadius: 10, padding: "7px 10px", color: C.muted, fontSize: 13, cursor: "pointer" }}>{dk ? "☀️" : "🌙"}</button>
       </div>

@@ -677,10 +677,7 @@ export default function Home() {
       <div style={{ position: "sticky", top: 0, zIndex: 50, background: dk ? "rgba(8,15,28,0.96)" : "rgba(244,246,251,0.96)", backdropFilter: "blur(20px)", borderBottom: "1px solid " + C.border, padding: "0 16px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button onClick={() => setDrawer(true)} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", padding: 0 }}>
           <Av url={avatarUrl} size={36} dk={dk} />
-          <div>
-            <p style={{ fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1 }}>Scriptify</p>
-            <p style={{ fontSize: 10, color: TEAL, fontWeight: 600 }}>Ana Sayfa</p>
-          </div>
+          <img src="/logo.png" alt="Scriptify" style={{ height: 28, objectFit: "contain", maxWidth: 110 }} />
         </button>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <a href="/bildirimler" style={{ position: "relative", width: 36, height: 36, borderRadius: "50%", background: C.input, border: "1px solid " + C.border, display: "flex", alignItems: "center", justifyContent: "center" }}>

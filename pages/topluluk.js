@@ -344,10 +344,7 @@ export default function Topluluk() {
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg," + TEAL + "," + TEAL_L + ")", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid " + TEAL + "40" }}>
             {avatarUrl ? <img src={avatarUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : "👤"}
           </div>
-          <div>
-            <p style={{ fontSize: 15, fontWeight: 800, color: C.text, lineHeight: 1 }}>Scriptify</p>
-            <p style={{ fontSize: 10, color: TEAL, fontWeight: 600, marginTop: 1 }}>Topluluk</p>
-          </div>
+          <img src="/logo.png" alt="Scriptify" style={{ height: 26, objectFit: "contain", maxWidth: 100 }} />
         </button>
         <a href="/uret" style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 20, background: "linear-gradient(135deg," + ACCENT + ",#c5180a)", boxShadow: "0 3px 12px " + ACCENT + "35" }}>
           <span style={{ fontSize: 14 }}>🎬</span><span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>Üret</span>
