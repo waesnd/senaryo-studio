@@ -300,7 +300,7 @@ export default function Topluluk(){
                   {i<3&&<FilmCorners color={madalyaRenk[i]} size={8}/>}
                   {/* Sıra */}
                   <div style={{width:32,textAlign:"center",flexShrink:0}}>
-                    {i<3?<span style={{fontSize:18}}>{"🥇🥈🥉"[i]}}</span>:<span style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim}}>#{i+1}</span>}
+                    {i<3?<span style={{fontSize:18}}>{["🥇","🥈","🥉"][i]}</span>:<span style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim}}>#{i+1}</span>}
                   </div>
                   <Av url={p.avatar_url} size={44}/>
                   <div style={{flex:1,minWidth:0}}>
