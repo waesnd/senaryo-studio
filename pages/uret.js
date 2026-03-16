@@ -208,6 +208,8 @@ export default function Uret(){
   var [sequelYukleniyor,setSequelYukleniyor]=useState(false);
   var [kartModal,setKartModal]=useState(false);
   var [drawer,setDrawer]=useState(false);
+  var [kalanUretim,setKalanUretim]=useState(null); // null = bilinmiyor, sayı = kalan hak
+  var [limitDoldu,setLimitDoldu]=useState(false);
   var [sahneSayisi,setSahneSayisi]=useState(5);
   var [karakterSayisi,setKarakterSayisi]=useState(3);
   var [revizeYukleniyor,setRevizeYukleniyor]=useState(false);
@@ -251,9 +253,23 @@ export default function Uret(){
   }
 
   async function senaryoUret(){
+    if(limitDoldu) return;
     setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);
-    try{var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi}));var data=await res.json();if(data.senaryo)setSenaryo(data.senaryo);else alert("Senaryo oluşturulamadı.");}
-    catch(e){alert("Hata: "+e.message);}
+    try{
+      var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi});
+      // Kalan üretim hakkını header'dan oku
+      var kalan=res.headers.get("X-Kalan-Uretim");
+      if(kalan!==null) setKalanUretim(parseInt(kalan));
+      var data=await res.json();
+      if(res.status===429){
+        setLimitDoldu(true);
+        setKalanUretim(0);
+      }else if(data.senaryo){
+        setSenaryo(data.senaryo);
+      }else{
+        alert("Senaryo oluşturulamadı.");
+      }
+    }catch(e){alert("Hata: "+e.message);}
     setYukleniyor(false);
   }
   async function beatUret(){if(!senaryo)return;setBeatYukleniyor(true);try{var res=await authFetch("/api/beatsheet", {senaryo,tip,tur}));setBeatler(await res.json());}catch(e){}setBeatYukleniyor(false);}
@@ -608,7 +624,20 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
           <SecBaslik label="Özel İstek" info="İstanbul'da geçsin, güçlü kadın karakter..."/>
           <textarea value={ozelIstek} onChange={e=>setOzelIstek(e.target.value)} rows={3} placeholder="İstanbul geceleri, karanlık atmosfer, twist ending..." style={{marginBottom:20,resize:"none",lineHeight:1.6}}/>
 
-          <button onClick={senaryoUret} disabled={yukleniyor} style={{width:"100%",padding:"15px",borderRadius:14,background:yukleniyor?G.surface:G.blueGrad,border:`1px solid ${yukleniyor?G.border:"transparent"}`,color:yukleniyor?G.textMuted:G.black,fontSize:15,fontWeight:800,cursor:yukleniyor?"default":"pointer",transition:"all 0.2s",letterSpacing:"0.06em",textTransform:"uppercase",boxShadow:yukleniyor?"none":G.glowBlue}}>
+          {/* Kalan üretim hakkı göstergesi */}
+          {kalanUretim!==null&&kalanUretim<=10&&!limitDoldu&&(
+            <div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:10,background:`${kalanUretim<=3?G.red:G.amber}10`,border:`1px solid ${kalanUretim<=3?G.red:G.amber}25`,marginBottom:10}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={kalanUretim<=3?G.red:G.amber} strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style={{fontSize:11,color:kalanUretim<=3?G.red:G.amber,fontWeight:700}}>Bugün {kalanUretim} üretim hakkın kaldı</span>
+            </div>
+          )}
+          {limitDoldu&&(
+            <div style={{padding:"12px 16px",borderRadius:12,background:`${G.red}10`,border:`1px solid ${G.red}25`,marginBottom:10,textAlign:"center"}}>
+              <p style={{fontSize:13,fontWeight:700,color:G.red,marginBottom:4}}>🎬 Günlük limit doldu</p>
+              <p style={{fontSize:11,color:G.textMuted}}>24 saat sonra yeniden üretebilirsin.</p>
+            </div>
+          )}
+          <button onClick={senaryoUret} disabled={yukleniyor||limitDoldu} style={{width:"100%",padding:"15px",borderRadius:14,background:yukleniyor||limitDoldu?G.surface:G.blueGrad,border:`1px solid ${yukleniyor||limitDoldu?G.border:"transparent"}`,color:yukleniyor||limitDoldu?G.textMuted:G.black,fontSize:15,fontWeight:800,cursor:yukleniyor||limitDoldu?"not-allowed":"pointer",transition:"all 0.2s",letterSpacing:"0.06em",textTransform:"uppercase",boxShadow:yukleniyor||limitDoldu?"none":G.glowBlue}}>
             {yukleniyor
               ?<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><span style={{display:"inline-block",width:18,height:18,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>Üretiliyor...</span>
               :<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Icon id="zap" size={16} color={G.black} strokeWidth={2}/>SENARYO ÜRET</span>
