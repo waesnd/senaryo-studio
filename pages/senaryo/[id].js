@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../_app";
 
 var G = {
   black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
@@ -123,14 +124,13 @@ function IcerikKart({label,val,icon,accent}){
 export default function SenaryoDetay(){
   var router=useRouter();
   var {id}=router.query;
-  var [user,setUser]=useState(null);
+  var {user, profil, authHazir} = useAuth();
   var [senaryo,setSenaryo]=useState(null);
   var [versiyonlar,setVersiyonlar]=useState([]);
   var [yorumlar,setYorumlar]=useState([]);
   var [yeniYorum,setYeniYorum]=useState("");
   var [begendi,setBegendi]=useState(false);
   var [kaydetti,setKaydetti]=useState(false);
-  var [loaded,setLoaded]=useState(false);
   var [paylasModal,setPaylasModal]=useState(false);
   var [versiyonModal,setVersiyonModal]=useState(false);
   var [raporModal,setRaporModal]=useState(false);
@@ -142,10 +142,6 @@ export default function SenaryoDetay(){
   var turRenk=TURLER_RENK[senaryo?.tur]||G.blue;
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data})=>{
-      if(data?.session)setUser(data.session.user);
-      setLoaded(true);
-    });
   },[]);
 
   useEffect(()=>{if(id)yukle();},[id,user]);
