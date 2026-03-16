@@ -401,9 +401,26 @@ export default function Profil(){
     setProfil(p=>({...p,banner_url:null}));
     setBannerModal(false);
   }
+  // URL güvenlik kontrolü — sadece http/https kabul et
+  function guvenliUrl(url){
+    if(!url) return null;
+    try{
+      var u = new URL(url);
+      if(u.protocol !== "http:" && u.protocol !== "https:") return null;
+      return u.href;
+    }catch(e){
+      // protokol yoksa https ekleyip tekrar dene
+      try{
+        var u2 = new URL("https://" + url);
+        return u2.href;
+      }catch(e2){ return null; }
+    }
+  }
+
   async function profilKaydet(){
     if(!user)return;
-    await supabase.from("profiles").update({bio:editData.bio,website:editData.website,nickname:editData.nickname}).eq("id",user.id);
+    var temizWebsite = editData.website ? guvenliUrl(editData.website) : null;
+    await supabase.from("profiles").update({bio:editData.bio,website:temizWebsite,nickname:editData.nickname}).eq("id",user.id);
     setProfilLokal(p=>({...p,...editData}));
     setEditMode(false);
   }
@@ -499,9 +516,17 @@ export default function Profil(){
             </div>
             {profil?.bio&&!editMode&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.6}}>{profil.bio}</p>}
             {profil?.website&&!editMode&&(
-              <a href={profil.website} target="_blank" style={{display:"flex",alignItems:"center",gap:5,marginTop:6,fontSize:12,color:G.blue}}>
-                <Icon id="link" size={12} color={G.blue}/>{profil.website.replace(/https?:\/\//,"")}
-              </a>
+              {(()=>{
+                var safeUrl = guvenliUrl(profil.website);
+                if(!safeUrl) return null;
+                return(
+                  <a href={safeUrl} target="_blank" rel="noopener noreferrer"
+                    style={{display:"flex",alignItems:"center",gap:5,marginTop:6,fontSize:12,color:G.blue}}>
+                    <Icon id="link" size={12} color={G.blue}/>
+                    {safeUrl.replace(/https?:\/\//,"")}
+                  </a>
+                );
+              })()}
             )}
           </div>
         </div>
