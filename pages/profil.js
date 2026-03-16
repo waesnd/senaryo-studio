@@ -318,7 +318,7 @@ function SenaryoKarti({s}){
 
 // ── ANA SAYFA ─────────────────────────────────────────────────────────────────
 export default function Profil(){
-  var {user, profil: authProfil, authHazir, setProfil} = useAuth();
+  var {user, profil: authProfil, authHazir, setProfil, okunmayanBildirim=0} = useAuth();
   var [profil, setProfilLokal] = useState(null);
   var [senaryolar,setSenaryolar]=useState([]);
   var [kaydedilenler,setKaydedilenler]=useState([]);

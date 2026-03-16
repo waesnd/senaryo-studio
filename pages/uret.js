@@ -187,7 +187,7 @@ function AIBtn({onClick,loading,loadLabel,label,color=G.blueGrad,glow=G.glowBlue
 var KART={background:`linear-gradient(145deg,#1E293B,#162032)`,border:`1px solid rgba(56,189,248,0.12)`,borderRadius:20,padding:"22px",marginBottom:16,position:"relative"};
 
 export default function Uret(){
-  var {user, profil, authHazir} = useAuth();
+  var {user, profil, authHazir, okunmayanBildirim} = useAuth();
   var [tip,setTip]=useState("Dizi");
   var [tur,setTur]=useState("Gerilim");
   var [ozelIstek,setOzelIstek]=useState("");

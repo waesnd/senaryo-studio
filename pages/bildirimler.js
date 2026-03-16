@@ -54,6 +54,52 @@ function NeonCorners({color=G.blue,size=10,thickness=1.5}){
   </>);
 }
 
+function Av({url,size}){
+  return(
+    <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${G.deep},${G.surface})`,border:`1.5px solid rgba(56,189,248,0.25)`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+      {url?<img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={size*0.4} color="rgba(56,189,248,0.4)"/>}
+    </div>
+  );
+}
+
+
+function SimpleDrawer({user,username,avatarUrl,onClose}){
+  var LINKS=[
+    {href:"/",label:"Ana Sayfa",icon:"home"},
+    {href:"/uret",label:"Senaryo Üret",icon:"film",badge:"AI"},
+    {href:"/kesfet",label:"Keşfet",icon:"compass"},
+    {href:"/topluluk",label:"Topluluk",icon:"users"},
+    {href:"/mesajlar",label:"Mesajlar",icon:"chat"},
+    {href:"/profil",label:"Profil",icon:"user"},
+  ];
+  return(<>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(8px)"}}/>
+    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:280,background:`linear-gradient(180deg,${G.black},${G.deep})`,borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column"}}>
+      <div style={{height:2,background:G.blueGrad,boxShadow:"0 0 20px rgba(56,189,248,0.5)"}}/>
+      <div style={{padding:"18px 18px 14px",borderBottom:`1px solid ${G.border}`}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <Av url={avatarUrl} size={44}/>
+          <button onClick={onClose} style={{background:`${G.blue}08`,border:`1px solid ${G.border}`,borderRadius:8,padding:"5px 10px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
+        </div>
+        {user?<p style={{fontSize:14,fontWeight:800,color:G.text}}>@{username}</p>
+          :<a href="/" style={{display:"block",padding:"9px",borderRadius:10,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,textTransform:"uppercase",textAlign:"center",textDecoration:"none"}}>Giriş Yap</a>}
+      </div>
+      <nav style={{flex:1,overflowY:"auto",padding:"10px"}}>
+        {LINKS.map(item=>{
+          var active=typeof window!=="undefined"&&window.location.pathname===item.href;
+          return(
+            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",borderRadius:10,marginBottom:2,color:active?G.blue:G.textMuted,background:active?`${G.blue}08`:"transparent",fontWeight:active?700:500,fontSize:13,textDecoration:"none"}}>
+              <Icon id={item.icon} size={16} color={active?G.blue:G.textMuted}/>
+              <span style={{flex:1}}>{item.label}</span>
+              {item.badge&&<span style={{fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:20,background:G.purple,color:"#fff"}}>{item.badge}</span>}
+            </a>
+          );
+        })}
+      </nav>
+    </div>
+  </>);
+}
+
 function AltNav(){
   var items=[{href:"/",id:"home"},{href:"/kesfet",id:"compass"},{href:"/topluluk",id:"users"},{href:"/mesajlar",id:"chat"},{href:"/profil",id:"user"}];
   return(
@@ -78,13 +124,17 @@ function zaman(ts){
 }
 
 export default function Bildirimler(){
+  var [drawer,setDrawer]=useState(false);
   var {user, profil, authHazir} = useAuth();
   var [bildirimler,setBildirimler]=useState([]);
   var [tab,setTab]=useState("hepsi");
   var [silOnay,setSilOnay]=useState(false);
 
   useEffect(()=>{
-    if(user) yukle(user);
+    if(!user) return;
+    var kanal;
+    yukle(user).then(k=>{ kanal=k; });
+    return ()=>{ if(kanal) supabase.removeChannel(kanal); };
   },[user]);
 
   async function yukle(u){
@@ -93,14 +143,32 @@ export default function Bildirimler(){
       .eq("alici_id",u.id)
       .order("created_at",{ascending:false})
       .limit(80);
-    if(data)setBildirimler(data);
+    if(data) setBildirimler(data);
 
-    supabase.channel("bildirimleri_"+u.id)
+    // Realtime — yeni bildirim gelince listeye ekle + okundu işaretle
+    var kanal = supabase.channel("bildirimleri_"+u.id)
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"bildirimler",filter:"alici_id=eq."+u.id},
-        payload=>setBildirimler(prev=>[payload.new,...prev]))
+        async payload=>{
+          // Gönderen profili çek
+          var {data:gnd} = await supabase.from("profiles")
+            .select("username,avatar_url,dogrulandi")
+            .eq("id", payload.new.gonderen_id)
+            .single();
+          var yeni = {...payload.new, gonderen: gnd||null};
+          setBildirimler(prev=>[yeni,...prev]);
+        })
       .subscribe();
 
-    await supabase.from("bildirimler").update({okundu:true}).eq("alici_id",u.id).eq("okundu",false);
+    // Sayfa açılınca okundu işaretle (küçük gecikme — listeyi görsün önce)
+    setTimeout(async ()=>{
+      await supabase.from("bildirimler")
+        .update({okundu:true})
+        .eq("alici_id",u.id)
+        .eq("okundu",false);
+      setBildirimler(prev=>prev.map(b=>({...b,okundu:true})));
+    }, 1500);
+
+    return kanal;
   }
 
   async function tumunuSil(){
@@ -142,7 +210,7 @@ export default function Bildirimler(){
       {/* TOPBAR */}
       <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:12}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
-        <a href="/" style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,flexShrink:0}}>
+        <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}><Av url={profil?.avatar_url||null} size={34}/><img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:140}}/></button>,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,flexShrink:0}}>
           <Icon id="arrow-left" size={16} color={G.blue}/>
         </a>
         <div style={{flex:1}}>
@@ -234,6 +302,7 @@ export default function Bildirimler(){
       </>}
 
       <AltNav/>
+      {drawer&&<SimpleDrawer user={user} username={profil?.username||(user?.email?.split("@")[0]||"")} avatarUrl={profil?.avatar_url||null} onClose={()=>setDrawer(false)}/>}
     </div>
   );
 }

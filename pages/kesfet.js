@@ -222,7 +222,7 @@ function KisiKarti({profil}){
 }
 
 export default function Kesfet(){
-  var {user, profil, authHazir} = useAuth();
+  var {user, profil, authHazir, okunmayanBildirim} = useAuth();
   var [gonderiler,setGonderiler]=useState([]);
   var [kisiler,setKisiler]=useState([]);
   var [hashtagler,setHashtagler]=useState([]);
@@ -296,8 +296,13 @@ export default function Kesfet(){
             <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
           </button>
           <div style={{flex:1}}/>
-          <a href="/bildirimler" style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <Icon id="bell" size={15} color={G.textMuted}/>
+          <a href="/bildirimler" style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+            <Icon id="bell" size={15} color={okunmayanBildirim>0?G.blue:G.textMuted}/>
+            {okunmayanBildirim>0&&(
+              <span style={{position:"absolute",top:-3,right:-3,minWidth:16,height:16,borderRadius:8,background:G.red,color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:`0 0 6px ${G.red}80`,border:`1.5px solid ${G.black}`}}>
+                {okunmayanBildirim>99?"99+":okunmayanBildirim}
+              </span>
+            )}
           </a>
           <a href="/uret" style={{height:34,padding:"0 14px",borderRadius:10,background:G.blueGrad,display:"flex",alignItems:"center",gap:6,fontSize:11,fontWeight:800,color:G.black,letterSpacing:"0.06em",textTransform:"uppercase",boxShadow:G.glowBlue}}>
             <Icon id="zap" size={11} color={G.black} strokeWidth={2.5}/>Üret

@@ -148,7 +148,7 @@ function AltNav(){
 }
 
 export default function Topluluk(){
-  var {user, profil, authHazir} = useAuth();
+  var {user, profil, authHazir, okunmayanBildirim} = useAuth();
   var [challengelar,setChallenglar]=useState([]);
   var [topSenaristler,setTopSenaristler]=useState([]);
   var [yukleniyorC,setYukleniyorC]=useState(true);
@@ -199,7 +199,7 @@ export default function Topluluk(){
         <div style={{padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
             <Av url={avatarUrl} size={34}/>
-            <img src="/logo.png" alt="Scriptify" style={{height:36,objectFit:"contain",maxWidth:130}}/>
+            <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
           </button>
           <span style={{fontFamily:G.fontDisp,fontSize:13,letterSpacing:"0.12em",color:G.blue,background:`${G.blue}12`,border:`1px solid ${G.blue}25`,borderRadius:20,padding:"4px 12px",boxShadow:G.glowBlue}}>TOPLULUK</span>
         </div>
