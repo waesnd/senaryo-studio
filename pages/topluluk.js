@@ -2,24 +2,30 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
 var G = {
-  black:"#080808",deep:"#0d0d0d",surface:"#111",card:"#141414",
-  border:"rgba(212,175,55,0.12)",borderHov:"rgba(212,175,55,0.35)",
-  gold:"#D4AF37",goldL:"#F2D46F",goldD:"#A8892A",
-  goldGrad:"linear-gradient(135deg,#D4AF37 0%,#F2D46F 40%,#A8892A 70%,#D4AF37 100%)",
-  red:"#C0392B",redL:"#E74C3C",
-  silver:"#A8A9AD",
-  text:"#F5F0E8",textMuted:"rgba(245,240,232,0.42)",textDim:"rgba(245,240,232,0.2)",
-  shadow:"0 8px 40px rgba(0,0,0,0.85)",glow:"0 0 30px rgba(212,175,55,0.18)",
+  black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
+  border:"rgba(56,189,248,0.12)", borderHov:"rgba(56,189,248,0.4)",
+  blue:"#38BDF8", blueL:"#7DD3FC", blueD:"#0EA5E9",
+  blueGrad:"linear-gradient(135deg,#0EA5E9 0%,#38BDF8 40%,#7DD3FC 70%,#0EA5E9 100%)",
+  purple:"#8B5CF6", purpleL:"#A78BFA",
+  purpleGrad:"linear-gradient(135deg,#7C3AED 0%,#8B5CF6 50%,#A78BFA 100%)",
+  red:"#EF4444", redL:"#F87171",
+  green:"#22C55E",
+  amber:"#F59E0B",
+  text:"#F1F5F9", textMuted:"rgba(241,245,249,0.5)", textDim:"rgba(241,245,249,0.25)",
+  shadow:"0 8px 40px rgba(0,0,0,0.7)",
+  glowBlue:"0 0 24px rgba(56,189,248,0.25)",
+  glowPurple:"0 0 24px rgba(139,92,246,0.25)",
+  glowRed:"0 0 16px rgba(239,68,68,0.3)",
   fontDisp:"'Bebas Neue','Arial Narrow',sans-serif",
   fontBody:"'DM Sans',system-ui,sans-serif",
 };
 
 var ROZETLER=[
-  {label:"Yeni Kalem",   icon:"✏️",color:G.silver,min:0},
-  {label:"Aday Senarist",icon:"📝",color:"#A8A9AD",min:5},
-  {label:"Senarist",     icon:"🎬",color:G.gold,  min:20},
-  {label:"Usta Senarist",icon:"🏆",color:G.goldL, min:50},
-  {label:"Efsane",       icon:"👑",color:G.red,   min:100},
+  {label:"Yeni Kalem",    icon:"✏️", color:"#94A3B8", min:0},
+  {label:"Aday Senarist", icon:"📝", color:G.blue,    min:5},
+  {label:"Senarist",      icon:"🎬", color:G.purple,  min:20},
+  {label:"Usta Senarist", icon:"🏆", color:G.blueL,   min:50},
+  {label:"Efsane",        icon:"👑", color:G.red,      min:100},
 ];
 function getRozet(n){return[...ROZETLER].reverse().find(r=>(n||0)>=r.min)||ROZETLER[0];}
 
@@ -38,9 +44,9 @@ function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
   return null;
 }
 
-function FilmCorners({color=G.goldD,size=10,thickness=2}){
+function NeonCorners({color=G.blue,size=10,thickness=1.5}){
   var s={position:"absolute",width:size,height:size};
-  var l={background:color,position:"absolute"};
+  var l={background:color,position:"absolute",boxShadow:`0 0 5px ${color}80`};
   return(<>
     <div style={{...s,top:0,left:0}}><div style={{...l,top:0,left:0,width:thickness,height:size}}/><div style={{...l,top:0,left:0,width:size,height:thickness}}/></div>
     <div style={{...s,top:0,right:0}}><div style={{...l,top:0,right:0,width:thickness,height:size}}/><div style={{...l,top:0,right:0,width:size,height:thickness}}/></div>
@@ -51,14 +57,14 @@ function FilmCorners({color=G.goldD,size=10,thickness=2}){
 
 function Av({url,size}){
   return(
-    <div style={{width:size,height:size,borderRadius:"50%",background:"linear-gradient(135deg,#1a1500,#2a2000)",border:`1.5px solid rgba(212,175,55,0.25)`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-      {url?<img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={size*0.4} color="rgba(212,175,55,0.4)"/>}
+    <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${G.deep},${G.surface})`,border:`1.5px solid rgba(56,189,248,0.25)`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+      {url?<img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={size*0.4} color="rgba(56,189,248,0.4)"/>}
     </div>
   );
 }
 
 function Skeleton({w,h,r}){
-  return<div style={{width:w||"100%",height:h||16,borderRadius:r||8,background:"linear-gradient(90deg,rgba(212,175,55,0.04) 25%,rgba(212,175,55,0.08) 50%,rgba(212,175,55,0.04) 75%)",backgroundSize:"200% 100%",animation:"skeletonAnim 1.5s infinite"}}/>;
+  return<div style={{width:w||"100%",height:h||16,borderRadius:r||8,background:`linear-gradient(90deg,${G.surface} 25%,${G.card} 50%,${G.surface} 75%)`,backgroundSize:"200% 100%",animation:"skeletonAnim 1.5s infinite"}}/>;
 }
 
 function Drawer({onClose,user,username,avatarUrl}){
@@ -71,25 +77,25 @@ function Drawer({onClose,user,username,avatarUrl}){
     {href:"/mesajlar",label:"Mesajlar",id:"chat"},
   ];
   return(<>
-    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)"}}/>
-    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:290,background:"#0a0a0a",borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",boxShadow:"12px 0 80px rgba(0,0,0,0.9)"}}>
-      <div style={{height:3,background:G.goldGrad,flexShrink:0}}/>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(8px)"}}/>
+    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:290,background:`linear-gradient(180deg,${G.black},${G.deep})`,borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",boxShadow:"12px 0 80px rgba(0,0,0,0.9)"}}>
+      <div style={{height:2,background:G.blueGrad,flexShrink:0,boxShadow:`0 0 20px rgba(56,189,248,0.5)`}}/>
       <div style={{padding:"22px 18px 16px",borderBottom:`1px solid ${G.border}`,flexShrink:0}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
           <Av url={avatarUrl} size={50}/>
-          <button onClick={onClose} style={{background:`rgba(212,175,55,0.06)`,border:`1px solid ${G.border}`,borderRadius:10,padding:"6px 11px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
+          <button onClick={onClose} style={{background:`${G.blue}08`,border:`1px solid ${G.border}`,borderRadius:10,padding:"6px 11px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
         </div>
         {user?<><p style={{fontSize:15,fontWeight:800,color:G.text}}>@{username}</p><p style={{fontSize:11,color:G.textDim,marginTop:3}}>{user.email}</p></>
-          :<button onClick={()=>{onClose();window.location.href="/";}} style={{width:"100%",padding:"10px",borderRadius:12,background:G.goldGrad,border:"none",color:"#0d0d0d",fontSize:13,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",cursor:"pointer"}}>Giriş Yap</button>}
+          :<button onClick={()=>{onClose();window.location.href="/";}} style={{width:"100%",padding:"10px",borderRadius:12,background:G.blueGrad,border:"none",color:G.black,fontSize:13,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",cursor:"pointer",boxShadow:G.glowBlue}}>Giriş Yap</button>}
       </div>
       <nav style={{flex:1,overflowY:"auto",padding:"10px"}}>
         {LINKS.map(item=>{
           var active=typeof window!=="undefined"&&window.location.pathname===item.href;
           return(
-            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:13,padding:"11px 12px",borderRadius:11,marginBottom:2,color:active?G.gold:G.textMuted,background:active?`${G.gold}08`:"transparent",border:`1px solid ${active?G.border:"transparent"}`,fontWeight:active?700:500,fontSize:14,textDecoration:"none"}}>
-              <Icon id={item.id} size={18} color={active?G.gold:G.textDim}/>
+            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:13,padding:"11px 12px",borderRadius:11,marginBottom:2,color:active?G.blue:G.textMuted,background:active?`${G.blue}08`:"transparent",border:`1px solid ${active?G.border:"transparent"}`,fontWeight:active?700:500,fontSize:14,textDecoration:"none"}}>
+              <Icon id={item.id} size={18} color={active?G.blue:G.textDim}/>
               <span style={{flex:1}}>{item.label}</span>
-              {item.badge&&<span style={{fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:20,background:G.red,color:"#fff"}}>{item.badge}</span>}
+              {item.badge&&<span style={{fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:20,background:G.purple,color:"#fff"}}>{item.badge}</span>}
             </a>
           );
         })}
@@ -103,14 +109,14 @@ function Drawer({onClose,user,username,avatarUrl}){
       </div>
     </div>
     {cikisOnay&&<>
-      <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)"}}/>
+      <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)"}}/>
       <div style={{position:"fixed",inset:0,zIndex:301,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-        <div style={{background:"#111",border:`1px solid ${G.border}`,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:300,textAlign:"center",position:"relative"}}>
-          <FilmCorners/>
-          <div style={{fontFamily:G.fontDisp,fontSize:22,letterSpacing:"0.05em",color:G.text,marginBottom:8}}>ÇIKIŞ YAP</div>
+        <div style={{background:G.surface,border:`1px solid ${G.borderHov}`,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:300,textAlign:"center",position:"relative",boxShadow:G.glowRed}}>
+          <NeonCorners color={G.red}/>
+          <div style={{fontFamily:G.fontDisp,fontSize:22,color:G.text,marginBottom:8}}>ÇIKIŞ YAP</div>
           <p style={{fontSize:13,color:G.textMuted,marginBottom:22}}>Emin misin?</p>
           <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>setCikisOnay(false)} style={{flex:1,padding:"12px",borderRadius:12,background:"rgba(245,240,232,0.05)",border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600,cursor:"pointer"}}>İptal</button>
+            <button onClick={()=>setCikisOnay(false)} style={{flex:1,padding:"12px",borderRadius:12,background:"rgba(241,245,249,0.05)",border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600,cursor:"pointer"}}>İptal</button>
             <button onClick={()=>{supabase.auth.signOut();window.location.href="/";}} style={{flex:1,padding:"12px",borderRadius:12,background:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Çıkış</button>
           </div>
         </div>
@@ -122,14 +128,17 @@ function Drawer({onClose,user,username,avatarUrl}){
 function AltNav(){
   var items=[{href:"/",id:"home"},{href:"/kesfet",id:"compass"},{href:"/topluluk",id:"users"},{href:"/mesajlar",id:"chat"},{href:"/profil",id:"user"}];
   return(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:"rgba(8,8,8,0.97)",backdropFilter:"blur(20px)",borderTop:`1px solid ${G.border}`,padding:"8px 0 env(safe-area-inset-bottom,10px)",display:"flex",justifyContent:"space-around",alignItems:"center"}}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.gold}25,transparent)`}}/>
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderTop:`1px solid ${G.border}`,padding:"8px 0 env(safe-area-inset-bottom,10px)",display:"flex",justifyContent:"space-around",alignItems:"center"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}30,transparent)`,pointerEvents:"none"}}/>
       {items.map(item=>{
         var active=item.href==="/topluluk";
         return(
-          <a key={item.href} href={item.href} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 16px",borderRadius:12,position:"relative",opacity:active?1:0.4,transition:"opacity 0.2s"}}>
-            <Icon id={item.id} size={22} color={active?G.gold:G.silver}/>
-            {active&&<div style={{position:"absolute",bottom:2,width:20,height:2,borderRadius:1,background:G.goldGrad}}/>}
+          <a key={item.href} href={item.href} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 16px",borderRadius:12,position:"relative",opacity:active?1:0.35,transition:"all 0.2s"}}>
+            <Icon id={item.id} size={22} color={active?G.blue:"#94A3B8"}/>
+            {active&&<>
+              <div style={{position:"absolute",bottom:0,width:20,height:2,borderRadius:1,background:G.blueGrad,boxShadow:`0 0 8px ${G.blue}`}}/>
+              <div style={{position:"absolute",inset:0,borderRadius:12,background:`radial-gradient(circle at 50% 100%,${G.blue}12,transparent 70%)`}}/>
+            </>}
           </a>
         );
       })}
@@ -181,37 +190,33 @@ export default function Topluluk(){
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        a{text-decoration:none;color:inherit;} button{font-family:inherit;}
+        a{text-decoration:none;color:inherit;} button{font-family:inherit;cursor:pointer;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes skeletonAnim{0%{background-position:-200% 0}100%{background-position:200% 0}}
-        @keyframes filmRoll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-        ::-webkit-scrollbar{width:2px;} ::-webkit-scrollbar-thumb{background:${G.goldD};border-radius:2px;}
-        ::selection{background:rgba(212,175,55,0.2);color:${G.goldL};}
+        @keyframes neonPulse{0%,100%{opacity:0.6}50%{opacity:1}}
+        ::-webkit-scrollbar{width:2px;} ::-webkit-scrollbar-thumb{background:${G.blueD};border-radius:2px;}
+        ::selection{background:rgba(56,189,248,0.2);color:${G.blueL};}
       `}</style>
 
       {/* TOPBAR */}
-      <div style={{position:"sticky",top:0,zIndex:50,background:"rgba(8,8,8,0.97)",backdropFilter:"blur(24px)",borderBottom:`1px solid ${G.border}`}}>
-        {/* Film şeridi animasyonu */}
-        <div style={{overflow:"hidden",height:16,background:"#050505",borderBottom:`1px solid ${G.border}`}}>
-          <div style={{display:"flex",animation:"filmRoll 6s linear infinite",width:"200%"}}>
-            {[...Array(60)].map((_,i)=><div key={i} style={{width:12,height:9,margin:"3px 4px",border:`1px solid rgba(212,175,55,0.07)`,borderRadius:1,flexShrink:0}}/>)}
-          </div>
-        </div>
+      <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(24px)",borderBottom:`1px solid ${G.border}`}}>
+        {/* Siber üst çizgi */}
+        <div style={{height:2,background:G.blueGrad,boxShadow:`0 0 12px rgba(56,189,248,0.4)`}}/>
         <div style={{padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
             <Av url={avatarUrl} size={34}/>
-            <span style={{fontFamily:G.fontDisp,fontSize:20,letterSpacing:"0.12em",background:G.goldGrad,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>SCRIPTIFY</span>
+            <img src="/logo.png" alt="Scriptify" style={{height:36,objectFit:"contain",maxWidth:130}}/>
           </button>
-          <span style={{fontFamily:G.fontDisp,fontSize:13,letterSpacing:"0.12em",color:G.gold,background:`${G.gold}12`,border:`1px solid ${G.gold}25`,borderRadius:20,padding:"4px 12px"}}>TOPLULUK</span>
+          <span style={{fontFamily:G.fontDisp,fontSize:13,letterSpacing:"0.12em",color:G.blue,background:`${G.blue}12`,border:`1px solid ${G.blue}25`,borderRadius:20,padding:"4px 12px",boxShadow:G.glowBlue}}>TOPLULUK</span>
         </div>
         {/* Sekmeler */}
         <div style={{display:"flex",borderTop:`1px solid ${G.border}`,padding:"0 16px"}}>
           {[{id:"challenge",label:"CHALLENGELAR",icon:"target"},{id:"senaristler",label:"TOP SENARİSTLER",icon:"trophy"}].map(s=>(
-            <button key={s.id} onClick={()=>setSekme(s.id)} style={{flex:1,padding:"11px 0",fontSize:11,fontWeight:800,letterSpacing:"0.1em",color:sekme===s.id?G.gold:G.textDim,background:"none",border:"none",position:"relative",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"color 0.2s"}}>
-              <Icon id={s.icon} size={12} color={sekme===s.id?G.gold:G.textDim}/>
+            <button key={s.id} onClick={()=>setSekme(s.id)} style={{flex:1,padding:"11px 0",fontSize:11,fontWeight:800,letterSpacing:"0.1em",color:sekme===s.id?G.blue:G.textDim,background:"none",border:"none",position:"relative",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"color 0.2s"}}>
+              <Icon id={s.icon} size={12} color={sekme===s.id?G.blue:G.textDim}/>
               {s.label}
-              {sekme===s.id&&<div style={{position:"absolute",bottom:0,left:"20%",right:"20%",height:2,background:`linear-gradient(90deg,transparent,${G.gold},transparent)`,borderRadius:1}}/>}
+              {sekme===s.id&&<div style={{position:"absolute",bottom:0,left:"20%",right:"20%",height:2,background:G.blueGrad,borderRadius:1,boxShadow:`0 0 8px ${G.blue}`}}/>}
             </button>
           ))}
         </div>
@@ -223,9 +228,9 @@ export default function Topluluk(){
         {sekme==="challenge"&&(
           <div style={{animation:"fadeUp 0.35s ease"}}>
             {/* Banner */}
-            <div style={{background:`linear-gradient(135deg,${G.gold}08,${G.red}05)`,border:`1px solid ${G.gold}15`,borderRadius:16,padding:"18px",marginBottom:16,position:"relative",overflow:"hidden"}}>
-              <FilmCorners color={G.goldD}/>
-              <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:`radial-gradient(circle,${G.gold}06,transparent)`}}/>
+            <div style={{background:`linear-gradient(135deg,${G.blue}08,${G.purple}06)`,border:`1px solid ${G.blue}18`,borderRadius:16,padding:"18px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+              <NeonCorners color={G.blue}/>
+              <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:`radial-gradient(circle,${G.blue}08,transparent)`,pointerEvents:"none"}}/>
               <p style={{fontSize:11,fontWeight:800,color:G.textDim,letterSpacing:"0.15em",marginBottom:6}}>HAFTALIK</p>
               <h2 style={{fontFamily:G.fontDisp,fontSize:22,letterSpacing:"0.06em",color:G.text,marginBottom:4}}>SENARYO CHALLENGELARı</h2>
               <p style={{fontSize:12,color:G.textMuted}}>Konuya katıl, senaryo üret, topluluğu şaşırt</p>
@@ -245,16 +250,16 @@ export default function Topluluk(){
                 <p style={{fontSize:13,color:G.textMuted}}>Yeni challenge geliyor!</p>
               </div>
             ):challengelar.map((ch,i)=>(
-              <div key={ch.id} style={{background:`linear-gradient(135deg,${G.card},${G.surface})`,border:`1px solid ${G.border}`,borderRadius:14,padding:"16px",marginBottom:10,animation:"fadeUp 0.3s ease",animationDelay:`${i*0.05}s`,animationFillMode:"both",position:"relative",overflow:"hidden"}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor=G.borderHov;e.currentTarget.style.boxShadow=G.glow;}}
+              <div key={ch.id} style={{background:`linear-gradient(135deg,${G.card},${G.surface})`,border:`1px solid ${G.border}`,borderRadius:14,padding:"16px",marginBottom:10,animation:"fadeUp 0.3s ease",animationDelay:`${i*0.05}s`,animationFillMode:"both",position:"relative",overflow:"hidden",transition:"all 0.2s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=G.borderHov;e.currentTarget.style.boxShadow=G.glowBlue;}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.boxShadow="none";}}>
-                <FilmCorners color={G.goldD} size={8}/>
+                <NeonCorners color={G.blue} size={8}/>
                 {/* Sıra numarası */}
-                <div style={{position:"absolute",top:12,right:12,width:30,height:30,borderRadius:"50%",background:`${G.gold}08`,border:`1px solid ${G.gold}18`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <div style={{position:"absolute",top:12,right:12,width:30,height:30,borderRadius:"50%",background:`${G.blue}08`,border:`1px solid ${G.blue}18`,display:"flex",alignItems:"center",justifyContent:"center"}}>
                   <span style={{fontFamily:G.fontDisp,fontSize:12,color:G.textDim}}>#{i+1}</span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                  <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,background:`${G.red}10`,color:G.red,border:`1px solid ${G.red}20`,letterSpacing:"0.06em"}}>
+                  <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,background:`${G.purple}12`,color:G.purple,border:`1px solid ${G.purple}25`,letterSpacing:"0.06em"}}>
                     {ch.tur||"DRAMA"} · {ch.tip||"DİZİ"}
                   </span>
                   {ch.katilimci_sayisi>0&&<span style={{fontSize:10,color:G.textDim}}>👥 {ch.katilimci_sayisi} katılımcı</span>}
@@ -262,8 +267,8 @@ export default function Topluluk(){
                 <h3 style={{fontSize:15,fontWeight:800,color:G.text,marginBottom:6,lineHeight:1.3}}>{ch.konu}</h3>
                 {ch.aciklama&&<p style={{fontSize:12,color:G.textMuted,lineHeight:1.55,marginBottom:12}}>{ch.aciklama}</p>}
                 <a href={`/uret?challenge=${encodeURIComponent(ch.konu)}&tur=${ch.tur||""}&tip=${ch.tip||""}`}
-                  style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:10,background:G.goldGrad,border:"none",color:"#0d0d0d",fontSize:11,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase"}}>
-                  <Icon id="zap" size={11} color="#0d0d0d" strokeWidth={2.5}/>
+                  style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:10,background:G.blueGrad,border:"none",color:G.black,fontSize:11,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",boxShadow:G.glowBlue}}>
+                  <Icon id="zap" size={11} color={G.black} strokeWidth={2.5}/>
                   Katıl & Üret
                 </a>
               </div>
@@ -275,8 +280,8 @@ export default function Topluluk(){
         {sekme==="senaristler"&&(
           <div style={{animation:"fadeUp 0.35s ease"}}>
             {/* Banner */}
-            <div style={{background:`linear-gradient(135deg,${G.gold}08,${G.red}05)`,border:`1px solid ${G.gold}15`,borderRadius:16,padding:"18px",marginBottom:16,position:"relative"}}>
-              <FilmCorners color={G.goldD}/>
+            <div style={{background:`linear-gradient(135deg,${G.purple}08,${G.blue}06)`,border:`1px solid ${G.purple}18`,borderRadius:16,padding:"18px",marginBottom:16,position:"relative"}}>
+              <NeonCorners color={G.purple}/>
               <p style={{fontSize:11,fontWeight:800,color:G.textDim,letterSpacing:"0.15em",marginBottom:6}}>LIDERBOARD</p>
               <h2 style={{fontFamily:G.fontDisp,fontSize:22,letterSpacing:"0.06em",color:G.text}}>EN İYİ SENARİSTLER</h2>
             </div>
@@ -292,12 +297,13 @@ export default function Topluluk(){
             ):topSenaristler.map((p,i)=>{
               var rozet=getRozet(p.senaryo_sayisi||0);
               var madalyaRenk=["#F2D46F","#C0C0C0","#cd7f32"];
+              var madalyaNeon=[G.glowBlue,`0 0 16px rgba(192,192,192,0.3)`,`0 0 16px rgba(205,127,50,0.3)`];
               return(
                 <a key={p.id} href={`/@${p.username||p.id}`}
                   style={{display:"flex",alignItems:"center",gap:12,padding:"14px",background:`linear-gradient(135deg,${G.card},${G.surface})`,border:`1px solid ${G.border}`,borderRadius:14,marginBottom:8,animation:"fadeUp 0.3s ease",animationDelay:`${i*0.04}s`,animationFillMode:"both",textDecoration:"none",transition:"all 0.2s",position:"relative"}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=G.borderHov;e.currentTarget.style.boxShadow=G.glow;}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=G.borderHov;e.currentTarget.style.boxShadow=G.glowBlue;}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.boxShadow="none";}}>
-                  {i<3&&<FilmCorners color={madalyaRenk[i]} size={8}/>}
+                  {i<3&&<NeonCorners color={madalyaRenk[i]} size={8}/>}
                   {/* Sıra */}
                   <div style={{width:32,textAlign:"center",flexShrink:0}}>
                     {i<3?<span style={{fontSize:18}}>{["🥇","🥈","🥉"][i]}</span>:<span style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim}}>#{i+1}</span>}
@@ -306,14 +312,14 @@ export default function Topluluk(){
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <p style={{fontSize:14,fontWeight:700,color:G.text}}>@{p.username||"kullanıcı"}</p>
-                      {p.dogrulandi&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:20,background:`${G.gold}15`,color:G.gold,fontWeight:800}}>✓</span>}
+                      {p.dogrulandi&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:20,background:`${G.blue}15`,color:G.blue,fontWeight:800,boxShadow:`0 0 6px ${G.blue}25`}}>✓</span>}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>
                       <span style={{fontSize:10,padding:"1px 7px",borderRadius:20,background:`${rozet.color}15`,color:rozet.color,border:`1px solid ${rozet.color}22`,fontWeight:700}}>{rozet.icon} {rozet.label}</span>
                     </div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{fontFamily:G.fontDisp,fontSize:20,color:i===0?G.goldL:i===1?G.silver:i===2?"#cd7f32":G.gold}}>{p.senaryo_sayisi||0}</div>
+                    <div style={{fontFamily:G.fontDisp,fontSize:20,color:i===0?G.blueL:i===1?"#C0C0C0":i===2?"#cd7f32":G.blue,textShadow:i<3?madalyaNeon[i]:"none"}}>{p.senaryo_sayisi||0}</div>
                     <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.08em"}}>SENARYO</p>
                   </div>
                 </a>
