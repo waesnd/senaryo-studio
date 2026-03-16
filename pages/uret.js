@@ -1074,43 +1074,6 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                 ):null)}
               </div>
             )}
-                </div>
-
-                {!heroJourney&&!heroYukleniyor&&(
-                  <div style={{textAlign:"center",padding:"40px 0"}}>
-                    <div style={{fontFamily:G.fontDisp,fontSize:32,color:G.textDim,marginBottom:8}}>KAHRAMANIN YOLCULUĞU</div>
-                    <p style={{fontSize:13,color:G.textMuted}}>Campbell'ın 12 aşaması bu senaryoya göre doldurulacak</p>
-                  </div>
-                )}
-                {heroYukleniyor&&<div style={{textAlign:"center",padding:"30px 0"}}><div style={{width:28,height:28,border:"2px solid rgba(245,158,11,0.2)",borderTopColor:"#F59E0B",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>}
-
-                {heroJourney&&[
-                  {key:"olagan_dunya",no:1,label:"Olağan Dünya",sub:"Ordinary World",col:"#94A3B8"},
-                  {key:"macera_cagrisi",no:2,label:"Maceranın Çağrısı",sub:"Call to Adventure",col:"#38BDF8"},
-                  {key:"cagriya_ret",no:3,label:"Çağrıyı Reddetme",sub:"Refusal of the Call",col:"#EF4444"},
-                  {key:"akil_hoca",no:4,label:"Akıl Hocasıyla Karşılaşma",sub:"Meeting the Mentor",col:"#8B5CF6"},
-                  {key:"esigi_gecmek",no:5,label:"Eşiği Geçmek",sub:"Crossing the Threshold",col:"#F59E0B"},
-                  {key:"testler",no:6,label:"Testler, Müttefikler, Düşmanlar",sub:"Tests, Allies, Enemies",col:"#EF4444"},
-                  {key:"derin_magara",no:7,label:"En Derin Mağaraya Yaklaşmak",sub:"Approach to the Inmost Cave",col:"#7C3AED"},
-                  {key:"buyuk_sinav",no:8,label:"Büyük Sınav",sub:"The Ordeal",col:"#EF4444"},
-                  {key:"odulu_almak",no:9,label:"Ödülü Almak",sub:"Reward / Seizing the Sword",col:"#22C55E"},
-                  {key:"donus_yolu",no:10,label:"Geri Dönüş Yolu",sub:"The Road Back",col:"#38BDF8"},
-                  {key:"dirilis",no:11,label:"Diriliş",sub:"Resurrection",col:"#F59E0B"},
-                  {key:"eliksirle_donus",no:12,label:"Eliksirle Dönüş",sub:"Return with the Elixir",col:"#22C55E"},
-                ].map(asama=>heroJourney[asama.key]?(
-                  <div key={asama.key} style={{marginBottom:10,padding:"14px 16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`,borderLeft:`3px solid ${asama.col}`,boxShadow:`-4px 0 12px ${asama.col}10`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                      <span style={{width:24,height:24,borderRadius:"50%",background:`${asama.col}15`,color:asama.col,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:G.fontDisp}}>{asama.no}</span>
-                      <div>
-                        <p style={{fontSize:13,fontWeight:700,color:G.text}}>{asama.label}</p>
-                        <p style={{fontSize:10,color:G.textDim,fontStyle:"italic"}}>{asama.sub}</p>
-                      </div>
-                    </div>
-                    <p style={{fontSize:13,color:G.textMuted,lineHeight:1.65,paddingLeft:32}}>{heroJourney[asama.key]}</p>
-                  </div>
-                ):null)}
-              </div>
-            )}
 
 
       {/* ── ARŞİV DRAWER ─────────────────────────────────────────────────── */}
