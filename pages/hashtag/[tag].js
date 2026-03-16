@@ -60,6 +60,44 @@ function Av({url,size}){
   );
 }
 
+
+function SimpleDrawer({user,username,avatarUrl,onClose}){
+  var LINKS=[
+    {href:"/",label:"Ana Sayfa",icon:"home"},
+    {href:"/uret",label:"Senaryo Üret",icon:"film",badge:"AI"},
+    {href:"/kesfet",label:"Keşfet",icon:"compass"},
+    {href:"/topluluk",label:"Topluluk",icon:"users"},
+    {href:"/mesajlar",label:"Mesajlar",icon:"chat"},
+    {href:"/profil",label:"Profil",icon:"user"},
+  ];
+  return(<>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(8px)"}}/>
+    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:280,background:`linear-gradient(180deg,${G.black},${G.deep})`,borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column"}}>
+      <div style={{height:2,background:G.blueGrad,boxShadow:"0 0 20px rgba(56,189,248,0.5)"}}/>
+      <div style={{padding:"18px 18px 14px",borderBottom:`1px solid ${G.border}`}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <Av url={avatarUrl} size={44}/>
+          <button onClick={onClose} style={{background:`${G.blue}08`,border:`1px solid ${G.border}`,borderRadius:8,padding:"5px 10px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
+        </div>
+        {user?<p style={{fontSize:14,fontWeight:800,color:G.text}}>@{username}</p>
+          :<a href="/" style={{display:"block",padding:"9px",borderRadius:10,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,textTransform:"uppercase",textAlign:"center",textDecoration:"none"}}>Giriş Yap</a>}
+      </div>
+      <nav style={{flex:1,overflowY:"auto",padding:"10px"}}>
+        {LINKS.map(item=>{
+          var active=typeof window!=="undefined"&&window.location.pathname===item.href;
+          return(
+            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",borderRadius:10,marginBottom:2,color:active?G.blue:G.textMuted,background:active?`${G.blue}08`:"transparent",fontWeight:active?700:500,fontSize:13,textDecoration:"none"}}>
+              <Icon id={item.icon} size={16} color={active?G.blue:G.textMuted}/>
+              <span style={{flex:1}}>{item.label}</span>
+              {item.badge&&<span style={{fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:20,background:G.purple,color:"#fff"}}>{item.badge}</span>}
+            </a>
+          );
+        })}
+      </nav>
+    </div>
+  </>);
+}
+
 function AltNav(){
   var items=[{href:"/",id:"home"},{href:"/kesfet",id:"compass"},{href:"/topluluk",id:"users"},{href:"/mesajlar",id:"chat"},{href:"/profil",id:"user"}];
   return(
@@ -83,6 +121,7 @@ function zaman(ts){
 }
 
 export default function HashtagSayfa(){
+  var [drawer,setDrawer]=useState(false);
   var router=useRouter();
   var {tag}=router.query;
   var {user, profil, authHazir} = useAuth();
@@ -295,6 +334,7 @@ export default function HashtagSayfa(){
       </div>
 
       <AltNav/>
+      {drawer&&<SimpleDrawer user={user} username={profil?.username||(user?.email?.split("@")[0]||"")} avatarUrl={profil?.avatar_url||null} onClose={()=>setDrawer(false)}/>}
     </div>
   );
 }
