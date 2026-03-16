@@ -194,6 +194,10 @@ export default function Uret(){
   var [yukleniyor,setYukleniyor]=useState(false);
   var [senaryo,setSenaryo]=useState(null);
   var [kaydedildi,setKaydedildi]=useState(false);
+  var [arsivAcik,setArsivAcik]=useState(false);
+  var [arsiv,setArsiv]=useState([]);
+  var [arsivYukleniyor,setArsivYukleniyor]=useState(false);
+  var [arsivKaydediliyor,setArsivKaydediliyor]=useState(false);
   var [paylasimAcik,setPaylasimAcik]=useState(false);
   var [sekme,setSekme]=useState("senaryo");
   var [beatler,setBeatler]=useState({});
@@ -338,6 +342,72 @@ export default function Uret(){
       if(data.olagan_dunya)setHeroJourney(data);
     }catch(e){}
     setHeroYukleniyor(false);
+  }
+
+
+  // Arşivi yükle
+  async function arsivYukle(){
+    if(!user) return;
+    setArsivYukleniyor(true);
+    var {data} = await supabase.from("senaryo_versiyonlar")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", {ascending:false})
+      .limit(50);
+    if(data) setArsiv(data);
+    setArsivYukleniyor(false);
+  }
+
+  // Versiyonu arşive kaydet
+  async function versiyonKaydet(){
+    if(!user||!senaryo||arsivKaydediliyor) return;
+    setArsivKaydediliyor(true);
+    await supabase.from("senaryo_versiyonlar").insert({
+      user_id:    user.id,
+      tip,
+      tur,
+      baslik:     senaryo.baslik,
+      tagline:    senaryo.tagline,
+      veri:       JSON.stringify({
+        senaryo,
+        beatler:        Object.keys(beatler).length>0 ? beatler : null,
+        karakterBible:  karakterBible || null,
+        heroJourney:    heroJourney || null,
+        logline:        logline || null,
+        pitchDeck:      pitchDeck || null,
+        dramaturgAnaliz:dramaturgAnaliz || null,
+        puan:           puan || null,
+      }),
+    });
+    // Arşivi güncelle
+    await arsivYukle();
+    setArsivKaydediliyor(false);
+  }
+
+  // Versiyonu geri yükle
+  function versiyonYukle(versiyon){
+    try{
+      var veri = JSON.parse(versiyon.veri);
+      setSenaryo(veri.senaryo || null);
+      setBeatler(veri.beatler || {});
+      setKarakterBible(veri.karakterBible || null);
+      setHeroJourney(veri.heroJourney || null);
+      setLogline(veri.logline || null);
+      setPitchDeck(veri.pitchDeck || null);
+      setDraturagAnaliz(veri.dramaturgAnaliz || null);
+      setPuan(veri.puan || null);
+      setSekme("senaryo");
+      setArsivAcik(false);
+    }catch(e){
+      alert("Versiyon yüklenemedi: " + e.message);
+    }
+  }
+
+  // Versiyonu sil
+  async function versiyonSil(id){
+    if(!confirm("Bu versiyonu silmek istediğine emin misin?")) return;
+    await supabase.from("senaryo_versiyonlar").delete().eq("id", id).eq("user_id", user.id);
+    setArsiv(prev => prev.filter(v => v.id !== id));
   }
 
   async function profilKaydet(){
@@ -707,7 +777,19 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   </div>
                   <button onClick={()=>setKartModal(true)} style={{flex:1,padding:"11px 8px",borderRadius:12,background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon id="share" size={13} color={G.textMuted}/>Paylaş</button>
                   {!kaydedildi
-                    ?<button onClick={profilKaydet} style={{flex:2,padding:"11px 8px",borderRadius:12,background:G.blueGrad,border:"none",color:G.black,fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:G.glowBlue}}><Icon id="save" size={13} color={G.black}/>{user?"Kaydet":"Giriş Yap"}</button>
+                    ?<div style={{flex:2,display:"flex",gap:4}}>
+                      <button onClick={profilKaydet} style={{flex:1,padding:"11px 8px",borderRadius:"12px 0 0 12px",background:G.blueGrad,border:"none",color:G.black,fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,boxShadow:G.glowBlue}}>
+                        <Icon id="save" size={12} color={G.black}/>{user?"Kaydet":"Giriş Yap"}
+                      </button>
+                      <button onClick={versiyonKaydet} disabled={arsivKaydediliyor}
+                        title="Arşive ekle — tüm analiz verileriyle"
+                        style={{padding:"11px 10px",borderRadius:"0 12px 12px 0",background:`${G.purple}15`,border:`1px solid ${G.purple}30`,borderLeft:"none",color:G.purple,fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:3}}>
+                        {arsivKaydediliyor
+                          ?<div style={{width:10,height:10,border:`1.5px solid ${G.purple}30`,borderTopColor:G.purple,borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>
+                          :<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/></svg>
+                        }
+                      </button>
+                    </div>
                     :<div style={{flex:2,padding:"11px 8px",borderRadius:12,background:`${G.green}12`,border:`1px solid ${G.green}30`,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon id="check" size={13} color={G.green}/><span style={{fontSize:12,color:G.green,fontWeight:700}}>Kaydedildi</span></div>
                   }
                 </div>
@@ -1017,6 +1099,70 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                 ):null)}
               </div>
             )}
+
+
+      {/* ── ARŞİV DRAWER ─────────────────────────────────────────────────── */}
+      {arsivAcik&&<>
+        <div onClick={()=>setArsivAcik(false)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(10px)"}}/>
+        <div style={{position:"fixed",top:0,right:0,bottom:0,zIndex:301,width:Math.min(360,window.innerWidth),background:`linear-gradient(180deg,${G.black},${G.deep})`,borderLeft:`1px solid ${G.border}`,display:"flex",flexDirection:"column",boxShadow:"-8px 0 60px rgba(0,0,0,0.9)"}}>
+          {/* Başlık */}
+          <div style={{padding:"16px 20px",borderBottom:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+            <div>
+              <p style={{fontFamily:G.fontDisp,fontSize:20,letterSpacing:"0.08em",color:G.text}}>ARŞİVLERİM</p>
+              <p style={{fontSize:11,color:G.textMuted,marginTop:2}}>{arsiv.length} versiyon kaydedilmiş</p>
+            </div>
+            <button onClick={()=>setArsivAcik(false)} style={{width:32,height:32,borderRadius:8,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.textMuted} strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          {/* Liste */}
+          <div style={{flex:1,overflowY:"auto",padding:"12px"}}>
+            {arsivYukleniyor&&(
+              <div style={{textAlign:"center",padding:"40px 0"}}>
+                <div style={{width:24,height:24,border:`2px solid ${G.border}`,borderTopColor:G.purple,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
+              </div>
+            )}
+            {!arsivYukleniyor&&arsiv.length===0&&(
+              <div style={{textAlign:"center",padding:"60px 20px"}}>
+                <div style={{fontFamily:G.fontDisp,fontSize:24,color:G.textDim,marginBottom:8}}>BOŞ ARŞİV</div>
+                <p style={{fontSize:12,color:G.textMuted}}>Senaryo ürettikten sonra arşiv butonuna basarak kaydet.</p>
+              </div>
+            )}
+            {arsiv.map((v,i)=>{
+              var tarih=new Date(v.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+              return(
+                <div key={v.id} style={{marginBottom:10,padding:"14px",background:`linear-gradient(135deg,${G.surface},${G.card})`,border:`1px solid ${G.border}`,borderRadius:14,position:"relative",animation:`fadeUp 0.2s ${i*0.03}s both ease`}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=`${G.purple}40`;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;}}>
+                  {/* Tür etiketi */}
+                  <div style={{display:"flex",gap:5,marginBottom:8}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:`${G.blue}10`,color:G.blue,border:`1px solid ${G.blue}20`}}>{v.tip}</span>
+                    <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:`${G.purple}10`,color:G.purple,border:`1px solid ${G.purple}20`}}>{v.tur}</span>
+                  </div>
+                  {/* Başlık */}
+                  <p style={{fontSize:14,fontWeight:700,color:G.text,marginBottom:4,lineHeight:1.3}}>{v.baslik}</p>
+                  {v.tagline&&<p style={{fontSize:11,color:G.textMuted,fontStyle:"italic",marginBottom:8}}>"{v.tagline}"</p>}
+                  <p style={{fontSize:10,color:G.textDim,marginBottom:12}}>{tarih}</p>
+                  {/* Butonlar */}
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>versiyonYukle(v)}
+                      style={{flex:1,padding:"8px",borderRadius:10,background:`${G.blue}10`,border:`1px solid ${G.blue}25`,color:G.blue,fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      Yükle
+                    </button>
+                    <button onClick={()=>versiyonSil(v.id)}
+                      style={{padding:"8px 12px",borderRadius:10,background:`${G.red}08`,border:`1px solid ${G.red}20`,color:G.red,fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </>}
 
       <AltNav/>
       {drawer&&<Drawer user={user} username={username} avatarUrl={avatarUrl} onClose={()=>setDrawer(false)}/>}
