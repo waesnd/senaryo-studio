@@ -5,7 +5,10 @@ export default async function handler(req, res){
   var {tip, tur, ozelIstek, sahneSayisi, karakterSayisi} = req.body;
   if(!tip || !tur) return res.status(400).json({error:"tip ve tur zorunlu"});
 
-  var prompt = `Sen Türkiye'nin en iyi senaryo yazarısın. ${tip} formatında, ${tur} türünde özgün ve çarpıcı bir senaryo fikri üret.
+  // Özel istekten kişi adı/gerçek olay referanslarını temizle
+  var temizIstek = ozelIstek || "";
+
+var prompt = `Sen Türkiye'nin en iyi senaryo yazarısın. ${tip} formatında, ${tur} türünde özgün ve çarpıcı bir senaryo fikri üret.
 
 ZORUNLU KURALLAR:
 - Tüm karakter isimleri MUTLAKA Türkçe/Türk ismi olmalı (Ayşe, Kemal, Zeynep, Tarık, Defne, Murat, Hira, Serdar, Leyla, Caner, Bora, Naz, Ece, Selim, Melis gibi)
@@ -15,7 +18,8 @@ ZORUNLU KURALLAR:
 - Açılış sahnesi seyirciyi anında içine çekecek güçte olsun
 - Tagline akılda kalıcı, film postere yazılabilecek nitelikte olsun
 - Ana fikir somut çatışma ve dramatik gerilim içersin
-${sahneSayisi ? `\nSahne sayısı: yaklaşık ${sahneSayisi} sahne olsun` : ""}\n${karakterSayisi ? `Karakter sayısı: tam olarak ${karakterSayisi} ana karakter olsun` : ""}\n${ozelIstek ? `Kullanıcının özel isteği (kesinlikle uygula): ${ozelIstek}` : ""}
+${sahneSayisi ? `\nSahne sayısı: yaklaşık ${sahneSayisi} sahne olsun` : ""}\n${karakterSayisi ? `Karakter sayısı: tam olarak ${karakterSayisi} ana karakter olsun` : ""}\n${ozelIstek ? `Kullanıcının özel isteği (kesinlikle uygula): ${temizIstek}
+ÖNEMLİ: Özel istekte gerçek kişi adları varsa (örn: "Caner", "Ahmet" gibi), bunları kurgusal karakter isimleri olarak kullan. Gerçek kişileri değil, ilham alınan kurgusal karakterleri yaz.` : ""}
 
 SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama veya markdown ekleme:
 {
