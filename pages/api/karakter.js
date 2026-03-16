@@ -1,5 +1,6 @@
 // pages/api/karakter.js
-export default async function handler(req, res){
+import { withAuth } from "../../lib/withAuth";
+async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
   var {concept, tip, tur} = req.body;
@@ -51,3 +52,5 @@ SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama ekleme:
     res.status(500).json({error: e.message});
   }
 }
+
+export default withAuth(handler);

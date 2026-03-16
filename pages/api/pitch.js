@@ -1,5 +1,6 @@
 // pages/api/pitch.js
-export default async function handler(req, res){
+import { withAuth } from "../../lib/withAuth";
+async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
   var {senaryo, tur, tip} = req.body;
   if(!senaryo) return res.status(400).json({error:"senaryo zorunlu"});
@@ -42,3 +43,5 @@ SADECE şu JSON formatında yanıt ver, başka hiçbir şey yazma:
     res.status(500).json({error: e.message});
   }
 }
+
+export default withAuth(handler);

@@ -1,5 +1,6 @@
 // pages/api/diyalog.js
-export default async function handler(req, res){
+import { withAuth } from "../../lib/withAuth";
+async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
   var {metin, tur} = req.body;
   if(!metin?.trim()) return res.status(400).json({error:"metin zorunlu"});
@@ -26,3 +27,5 @@ SADECE güçlendirilmiş diyaloğu yaz, başka açıklama ekleme.`;
     res.status(500).json({error: e.message});
   }
 }
+
+export default withAuth(handler);

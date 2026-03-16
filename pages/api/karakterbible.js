@@ -1,11 +1,12 @@
 // pages/api/karakterbible.js
-export default async function handler(req, res){
+import { withAuth } from "../../lib/withAuth";
+async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
   var {senaryo, tur} = req.body;
   if(!senaryo) return res.status(400).json({error:"senaryo zorunlu"});
 
-  var prompt = `Sen Türk televizyon ve sinema sektöründe uzman bir karakter yazarısın. Aşağıdaki senaryodaki en önemli 3 ana karakter için kapsamlı Character Bible oluştur.
+  var prompt = `Sen Türk televizyon ve sinema sektöründe uzman bir karakter yazarısın. Aşağıdaki senaryodaki en önemli 3 ana karakter için kapsamlı Karakter Dosyası oluştur.
 
 ZORUNLU: Tüm karakter isimleri Türkçe olmalı, yabancı isim kullanma.
 
@@ -66,3 +67,5 @@ SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama ekleme:
     res.status(500).json({error: e.message});
   }
 }
+
+export default withAuth(handler);

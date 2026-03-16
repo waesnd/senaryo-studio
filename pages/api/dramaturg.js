@@ -1,5 +1,6 @@
 // pages/api/dramaturg.js
-export default async function handler(req, res){
+import { withAuth } from "../../lib/withAuth";
+async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
   var {senaryo, tip, tur} = req.body;
@@ -83,3 +84,5 @@ SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
     res.status(500).json({error: e.message});
   }
 }
+
+export default withAuth(handler);
