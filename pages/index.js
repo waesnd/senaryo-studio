@@ -332,7 +332,7 @@ function FilmCardSkeleton(){
 }
 
 // ── STORY BAR ─────────────────────────────────────────────────────────────────
-function StoryBar({storyler,user,avatarUrl}){
+function StoryBar({storyler,user,avatarUrl,onSil}){
   return(
     <div style={{display:"flex",gap:12,overflowX:"auto",padding:"14px 16px 10px",scrollbarWidth:"none"}}>
       {user&&(
@@ -346,16 +346,31 @@ function StoryBar({storyler,user,avatarUrl}){
           <span style={{fontSize:10,color:G.textMuted,maxWidth:52,textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Sen</span>
         </div>
       )}
-      {storyler.map(s=>(
-        <div key={s.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flexShrink:0,cursor:"pointer"}} onClick={()=>window.location.href=`/@${s.profiles?.username}`}>
-          <div style={{width:50,height:50,borderRadius:"50%",background:`linear-gradient(135deg,${G.blue},${G.purple})`,padding:2,boxShadow:G.glowBlue}}>
-            <div style={{width:"100%",height:"100%",borderRadius:"50%",border:`2px solid ${G.black}`,overflow:"hidden",background:G.deep}}>
-              {s.profiles?.avatar_url?<img src={s.profiles.avatar_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={22} color="rgba(56,189,248,0.4)"/>}
+      {storyler.map(s=>{
+        var benimStory=user&&s.user_id===user.id;
+        return(
+          <div key={s.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flexShrink:0}}>
+            <div style={{position:"relative"}}>
+              <div style={{width:50,height:50,borderRadius:"50%",background:`linear-gradient(135deg,${G.blue},${G.purple})`,padding:2,boxShadow:G.glowBlue,cursor:"pointer"}}
+                onClick={()=>window.location.href=`/@${s.profiles?.username}`}>
+                <div style={{width:"100%",height:"100%",borderRadius:"50%",border:`2px solid ${G.black}`,overflow:"hidden",background:G.deep}}>
+                  {s.profiles?.avatar_url?<img src={s.profiles.avatar_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={22} color="rgba(56,189,248,0.4)"/>}
+                </div>
+              </div>
+              {/* Kendi story'inde sil butonu */}
+              {benimStory&&(
+                <button onClick={e=>{e.stopPropagation();onSil&&onSil(s.id);}}
+                  style={{position:"absolute",top:-4,right:-4,width:18,height:18,borderRadius:"50%",background:G.red,border:`2px solid ${G.black}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:`0 0 6px ${G.red}80`,zIndex:1}}>
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              )}
             </div>
+            <span style={{fontSize:10,color:benimStory?G.blue:G.textMuted,maxWidth:52,textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:benimStory?700:400}}>
+              {benimStory?"Senin":("@"+s.profiles?.username)}
+            </span>
           </div>
-          <span style={{fontSize:10,color:G.textMuted,maxWidth:52,textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{s.profiles?.username}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -425,6 +440,10 @@ export default function Index(){
   async function loadStoryler(){
     var{data}=await supabase.from("storyler").select("*,profiles(username,avatar_url)").order("created_at",{ascending:false}).limit(15);
     if(data)setStoryler(data);
+  }
+  async function storySil(id){
+    await supabase.from("storyler").delete().eq("id",id).eq("user_id",user.id);
+    setStoryler(p=>p.filter(s=>s.id!==id));
   }
   async function loadGonderiler(page=0,reset=false){
     setYukleniyor(true);
@@ -523,7 +542,7 @@ export default function Index(){
       </div>
 
       {/* STORY */}
-      <StoryBar storyler={storyler} user={user} avatarUrl={avatarUrl}/>
+      <StoryBar storyler={storyler} user={user} avatarUrl={avatarUrl} onSil={storySil}/>
       <div style={{height:1,background:`linear-gradient(90deg,transparent,${G.blue}15,transparent)`,margin:"0 16px 4px"}}/>
 
       {/* SEKME */}

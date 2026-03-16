@@ -241,6 +241,45 @@ export default function Uret(){
     await supabase.from("senaryolar").insert([{user_id:user.id,tip,tur,baslik:senaryo.baslik,tagline:senaryo.tagline,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.acilis_sahnesi,soru:senaryo.buyuk_soru,paylasim_acik:paylasimAcik,begeni_sayisi:0}]);
     setKaydedildi(true);
   }
+
+  function fdxIndir(){
+    if(!senaryo)return;
+    var baslik=(senaryo.baslik||"Senaryo").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+    function fdxParagraph(tip,metin){
+      var temiz=(metin||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return `<Paragraph Type="${tip}"><Text>${temiz}</Text></Paragraph>\n`;
+    }
+
+    var icerik=`<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<FinalDraft DocumentType="Script" Template="No" Version="2">
+<Content>
+${fdxParagraph("Title Page","SCRIPTIFY — AI SENARYO PLATFORMU")}
+${fdxParagraph("Title Page",baslik)}
+${senaryo.tagline?fdxParagraph("Title Page",`"${senaryo.tagline.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}"`):""}
+${fdxParagraph("Scene Heading","FADE IN:")}
+${senaryo.acilis_sahnesi?fdxParagraph("Action",senaryo.acilis_sahnesi):""}
+${senaryo.ana_fikir?fdxParagraph("Action",senaryo.ana_fikir):""}
+${senaryo.karakter?fdxParagraph("Action","KARAKTERLER:\n"+senaryo.karakter):""}
+${senaryo.buyuk_soru?fdxParagraph("Action","BÜYÜK SORU: "+senaryo.buyuk_soru):""}
+${Object.keys(beatler).length>0?BEAT_SHEET.filter(b=>beatler[b.id]).map(b=>
+  fdxParagraph("Scene Heading",b.no+". "+b.label.toUpperCase())+
+  fdxParagraph("Action",beatler[b.id])
+).join(""):""}
+${fdxParagraph("Scene Heading","FADE OUT.")}
+${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-TR")+" | Scriptify AI Senaryo Platformu")}
+</Content>
+</FinalDraft>`;
+
+    var blob=new Blob([icerik],{type:"text/xml;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url;
+    a.download=(senaryo.baslik||"senaryo").replace(/\s+/g,"_")+".fdx";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function txtIndir(){
     if(!senaryo)return;
     var icerik=`SCRIPTIFY — SENARYO\n${"=".repeat(50)}\n\nBaşlık: ${senaryo.baslik}\nTür: ${tur} | Format: ${tip}\n${senaryo.tagline?`Tagline: "${senaryo.tagline}"\n`:""}\n${"─".repeat(40)}\n\n`+
@@ -417,7 +456,10 @@ export default function Uret(){
                 )}
 
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  <button onClick={txtIndir} style={{flex:1,padding:"11px 8px",borderRadius:12,background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon id="download" size={13} color={G.textMuted}/>İndir</button>
+                  <div style={{flex:1,position:"relative",display:"flex",gap:4}}>
+                    <button onClick={txtIndir} style={{flex:1,padding:"11px 8px",borderRadius:"12px 0 0 12px",background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Icon id="download" size={13} color={G.textMuted}/>TXT</button>
+                    <button onClick={fdxIndir} style={{padding:"11px 10px",borderRadius:"0 12px 12px 0",background:G.surface,border:`1px solid ${G.border}`,borderLeft:"none",color:G.purple,fontSize:11,fontWeight:700,cursor:"pointer"}} title="Final Draft formatında indir">FDX</button>
+                  </div>
                   <button onClick={()=>setKartModal(true)} style={{flex:1,padding:"11px 8px",borderRadius:12,background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon id="share" size={13} color={G.textMuted}/>Paylaş</button>
                   {!kaydedildi
                     ?<button onClick={profilKaydet} style={{flex:2,padding:"11px 8px",borderRadius:12,background:G.blueGrad,border:"none",color:G.black,fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:G.glowBlue}}><Icon id="save" size={13} color={G.black}/>{user?"Kaydet":"Giriş Yap"}</button>
