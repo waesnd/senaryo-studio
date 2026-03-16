@@ -395,7 +395,8 @@ export default function Index(){
   var [profil,setProfil]=useState(null);
   var [gonderiler,setGonderiler]=useState([]);
   var [storyler,setStoryler]=useState([]);
-  var [yukleniyor,setYukleniyor]=useState(true);
+  var [yukleniyor,setYukleniyor]=useState(false);
+  var [authYukleniyor,setAuthYukleniyor]=useState(true);
   var [sekme,setSekme]=useState("kesfet");
   var [drawer,setDrawer]=useState(false);
   var [sayfa,setSayfa]=useState(0);
@@ -407,12 +408,16 @@ export default function Index(){
   var username=profil?.username||(user?user.email.split("@")[0]:"");
 
   useEffect(()=>{
+    var initialized=false;
     supabase.auth.getSession().then(r=>{
+      initialized=true;
       if(r.data?.session){setUser(r.data.session.user);loadProfil(r.data.session.user);}
-      else setYukleniyor(false);
+      else setAuthYukleniyor(false);
     });
     var {data:{subscription}}=supabase.auth.onAuthStateChange((_,s)=>{
-      if(s?.user&&!user){setUser(s.user);loadProfil(s.user);}
+      if(!initialized)return;
+      if(s?.user){setUser(s.user);loadProfil(s.user);}
+      else{setUser(null);setProfil(null);setAuthYukleniyor(false);}
     });
     loadStoryler();
     return()=>subscription?.unsubscribe();
@@ -421,7 +426,7 @@ export default function Index(){
   useEffect(()=>{setSayfa(0);setBitti(false);loadGonderiler(0,true);},[sekme]);
 
   function loadProfil(u){
-    supabase.from("profiles").select("*").eq("id",u.id).single().then(r=>{if(r.data)setProfil(r.data);setYukleniyor(false);});
+    supabase.from("profiles").select("*").eq("id",u.id).single().then(r=>{if(r.data)setProfil(r.data);setAuthYukleniyor(false);});
   }
   async function loadStoryler(){
     var{data}=await supabase.from("storyler").select("*,profiles(username,avatar_url)").order("created_at",{ascending:false}).limit(15);
@@ -461,6 +466,8 @@ export default function Index(){
     if(saved)await supabase.from("kaydedilenler").insert([{gonderi_id:id,user_id:user.id}]);
     else await supabase.from("kaydedilenler").delete().eq("gonderi_id",id).eq("user_id",user.id);
   }
+
+  if(authYukleniyor)return(<div style={{minHeight:"100vh",background:"#0A0F1E",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14}}><div style={{width:36,height:36,border:"2px solid rgba(56,189,248,0.15)",borderTopColor:"#38BDF8",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><p style={{fontFamily:"Bebas Neue,sans-serif",fontSize:14,letterSpacing:"0.15em",color:"rgba(241,245,249,0.25)"}}>SCRİPTİFY</p><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
   return(
     <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:80}}>
