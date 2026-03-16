@@ -562,7 +562,7 @@ export default function SenaryoDetay(){
             <Icon id="flag" size={14} color={G.red}/>
             <p style={{fontFamily:G.fontDisp,fontSize:16,letterSpacing:"0.05em",color:G.text}}>RAPORLA</p>
           </div>
-          {["Uygunsuz içerik","Spam","Yanlış bilgi","Nefret söylemi","Diğer"].map(s=>(
+          {["Spam / Alakasız içerik","Küçültücü / Hakaret","Telif ihlali","Uygunsuz içerik"].map(s=>(
             <button key={s} onClick={()=>raporGonder(s)}
               style={{display:"block",width:"100%",padding:"12px 16px",marginBottom:8,borderRadius:12,border:`1px solid ${G.border}`,background:G.card,color:G.textMuted,fontSize:13,textAlign:"left",transition:"all 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor=G.red+"40";e.currentTarget.style.color=G.red;e.currentTarget.style.background=`${G.red}08`;}}
