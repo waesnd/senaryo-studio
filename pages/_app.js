@@ -1,243 +1,254 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useEffect } from "react";
 import Head from "next/head";
 
-// ── GLOBAL CİNEMA DESIGN SYSTEM ───────────────────────────────────────────────
-export const CINEMA = {
-  black:     "#080808",
-  deep:      "#0d0d0d",
-  surface:   "#111111",
-  card:      "#161616",
-  border:    "rgba(212,175,55,0.15)",
-  borderHov: "rgba(212,175,55,0.4)",
-  gold:      "#D4AF37",
-  goldL:     "#F2D46F",
-  goldD:     "#A8892A",
-  goldGrad:  "linear-gradient(135deg, #D4AF37 0%, #F2D46F 40%, #A8892A 70%, #D4AF37 100%)",
-  goldMetal: "linear-gradient(135deg, #BFA340 0%, #F5E27A 35%, #C9A227 65%, #E8CC5A 100%)",
-  red:       "#C0392B",
-  redL:      "#E74C3C",
-  redGrad:   "linear-gradient(135deg, #C0392B, #E74C3C)",
-  silver:    "#A8A9AD",
-  silverL:   "#D4D5D9",
-  chrome:    "linear-gradient(135deg, #868686 0%, #D4D5D9 35%, #868686 65%, #C0C0C0 100%)",
-  text:      "#F5F0E8",
-  textMuted: "rgba(245,240,232,0.45)",
-  textDim:   "rgba(245,240,232,0.22)",
-  glow:      "0 0 30px rgba(212,175,55,0.2), 0 0 60px rgba(212,175,55,0.08)",
-  glowRed:   "0 0 20px rgba(192,57,43,0.3)",
-  shadow:    "0 8px 40px rgba(0,0,0,0.8)",
-  shadowGold:"0 4px 24px rgba(212,175,55,0.25)",
-  fontDisp:  "'Bebas Neue', 'Arial Narrow', sans-serif",
-  fontBody:  "'DM Sans', system-ui, sans-serif",
+export const MIDNIGHT = {
+  black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
+  border:"rgba(56,189,248,0.12)", borderHov:"rgba(56,189,248,0.4)",
+  blue:"#38BDF8", blueL:"#7DD3FC", blueD:"#0EA5E9",
+  blueGrad:"linear-gradient(135deg,#0EA5E9 0%,#38BDF8 40%,#7DD3FC 70%,#0EA5E9 100%)",
+  purple:"#8B5CF6", purpleL:"#A78BFA", purpleD:"#7C3AED",
+  purpleGrad:"linear-gradient(135deg,#7C3AED 0%,#8B5CF6 50%,#A78BFA 100%)",
+  red:"#EF4444", redL:"#F87171",
+  green:"#22C55E", greenL:"#4ADE80",
+  amber:"#F59E0B", amberL:"#FCD34D",
+  text:"#F1F5F9", textMuted:"rgba(241,245,249,0.5)", textDim:"rgba(241,245,249,0.25)",
+  glowBlue:"0 0 24px rgba(56,189,248,0.25)",
+  glowPurple:"0 0 24px rgba(139,92,246,0.25)",
+  glowRed:"0 0 16px rgba(239,68,68,0.3)",
+  shadow:"0 8px 40px rgba(0,0,0,0.7)",
+  fontDisp:"'Bebas Neue','Arial Narrow',sans-serif",
+  fontBody:"'DM Sans',system-ui,sans-serif",
 };
 
-// ── SPLASH SCREEN ─────────────────────────────────────────────────────────────
-function SplashScreen({ onDone }) {
-  var [phase, setPhase] = useState(0);
+export default function App({ Component, pageProps }){
 
-  useEffect(() => {
-    var timers = [
-      setTimeout(() => setPhase(1), 200),
-      setTimeout(() => setPhase(2), 800),
-      setTimeout(() => setPhase(3), 1500),
-      setTimeout(() => setPhase(4), 2500),
-      setTimeout(() => onDone(), 3100),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, []);
+  useEffect(()=>{
+    if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  },[]);
 
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 9999,
-      background: "#000",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      overflow: "hidden",
-      opacity: phase === 4 ? 0 : 1,
-      transition: phase === 4 ? "opacity 0.6s ease" : "none",
-    }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;800&display=swap');
-        @keyframes beam { from{opacity:0;transform:scaleY(0.2)} to{opacity:1;transform:scaleY(1)} }
-        @keyframes logoIn { from{opacity:0;transform:translateY(20px) scale(0.9);filter:blur(10px)} to{opacity:1;transform:none;filter:none} }
-        @keyframes tagIn { from{opacity:0;letter-spacing:0.5em} to{opacity:1;letter-spacing:0.2em} }
-        @keyframes scan { from{top:-5%} to{top:105%} }
-        @keyframes flicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.6} 94%{opacity:1} 97%{opacity:0.8} 98%{opacity:1} }
-      `}</style>
-
-      {/* Projeksiyon ışığı — geniş */}
-      {phase >= 1 && (
-        <div style={{
-          position: "absolute", top: 0, left: "50%",
-          transform: "translateX(-50%)",
-          width: 0, height: 0,
-          borderLeft: "200px solid transparent",
-          borderRight: "200px solid transparent",
-          borderTop: "60vh solid rgba(212,175,55,0.07)",
-          animation: "beam 0.8s ease forwards",
-          filter: "blur(12px)",
-          pointerEvents: "none",
-        }} />
-      )}
-      {/* Projeksiyon ışığı — dar, parlak merkez */}
-      {phase >= 1 && (
-        <div style={{
-          position: "absolute", top: 0, left: "50%",
-          transform: "translateX(-50%)",
-          width: 0, height: 0,
-          borderLeft: "60px solid transparent",
-          borderRight: "60px solid transparent",
-          borderTop: "50vh solid rgba(212,175,55,0.1)",
-          animation: "beam 0.5s ease forwards",
-          filter: "blur(4px)",
-          pointerEvents: "none",
-        }} />
-      )}
-
-      {/* Scanline */}
-      <div style={{
-        position: "absolute", left: 0, right: 0, height: 1,
-        background: "rgba(212,175,55,0.15)",
-        animation: "scan 2.5s linear infinite",
-        pointerEvents: "none",
-      }} />
-
-      {/* Sol sprocket */}
-      <div style={{ position: "absolute", left: 12, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-around", padding: "16px 0" }}>
-        {Array(14).fill(0).map((_,i) => <div key={i} style={{ width: 10, height: 14, borderRadius: 3, background: "#181818", border: "1px solid #2a2a2a" }} />)}
-      </div>
-      {/* Sağ sprocket */}
-      <div style={{ position: "absolute", right: 12, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-around", padding: "16px 0" }}>
-        {Array(14).fill(0).map((_,i) => <div key={i} style={{ width: 10, height: 14, borderRadius: 3, background: "#181818", border: "1px solid #2a2a2a" }} />)}
-      </div>
-
-      {/* Logo — saf CSS, font bağımlılığı yok */}
-      {phase >= 2 && (
-        <div style={{ textAlign: "center", animation: "logoIn 0.8s cubic-bezier(0.16,1,0.3,1) forwards", padding: "0 24px" }}>
-
-          {/* SVG ile çizilmiş SCRIPTIFY — anında render, font gerekmez */}
-          <svg viewBox="0 0 420 80" width="min(380px, 85vw)" height="auto" style={{ display: "block", margin: "0 auto", filter: "drop-shadow(0 0 18px rgba(212,175,55,0.35))", animation: "flicker 4s ease 1.2s infinite" }}>
-            <defs>
-              <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%"   stopColor="#D4AF37"/>
-                <stop offset="35%"  stopColor="#F2D46F"/>
-                <stop offset="65%"  stopColor="#A8892A"/>
-                <stop offset="100%" stopColor="#D4AF37"/>
-              </linearGradient>
-            </defs>
-            <text
-              x="210" y="68"
-              textAnchor="middle"
-              fontFamily="'Arial Black','Arial Narrow','Impact',sans-serif"
-              fontWeight="900"
-              fontSize="72"
-              letterSpacing="6"
-              fill="url(#goldGrad)"
-            >
-              SCRIPTIFY
-            </text>
-          </svg>
-
-          {/* Altın ayırıcı çizgi */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", margin: "14px 0 10px" }}>
-            <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, #D4AF37)" }} />
-            <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4AF37" }} />
-            <div style={{ width: 4, height: 4, transform: "rotate(45deg)", background: "#D4AF37" }} />
-            <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4AF37" }} />
-            <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #D4AF37, transparent)" }} />
-          </div>
-
-          {phase >= 3 && (
-            <p style={{
-              fontFamily: "system-ui, sans-serif",
-              fontSize: 11, fontWeight: 700,
-              letterSpacing: "0.25em", textTransform: "uppercase",
-              color: "#A8A9AD",
-              animation: "tagIn 0.6s ease forwards",
-            }}>
-              AI Senaryo Stüdyosu
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Alt film karesi şeridi */}
-      <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 3 }}>
-        {Array(10).fill(0).map((_, i) => (
-          <div key={i} style={{
-            width: 22, height: 15, borderRadius: 2,
-            border: "1px solid #2a2a2a",
-            background: i === 4 || i === 5 ? "rgba(212,175,55,0.15)" : "#0d0d0d",
-          }} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── ANA APP ───────────────────────────────────────────────────────────────────
-export default function App({ Component, pageProps }) {
-  var [splash, setSplash] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      var seen = sessionStorage.getItem("sf_splash");
-      if (!seen) { setSplash(true); sessionStorage.setItem("sf_splash", "1"); }
-    }
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
-  }, []);
-
-  return (
+  return(
     <>
       <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+        <meta name="theme-color" content="#0A0F1E"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+        <meta name="apple-mobile-web-app-title" content="Scriptify"/>
+        <meta name="description" content="AI destekli senaryo üretici ve sosyal platform"/>
+        <meta property="og:title" content="Scriptify — AI Senaryo Platformu"/>
+        <meta property="og:description" content="Yapay zeka ile senaryo üret, topluluğu keşfet"/>
+        <meta property="og:type" content="website"/>
+        <link rel="manifest" href="/manifest.json"/>
+        <link rel="icon" href="/favicon.ico"/>
+        <link rel="apple-touch-icon" href="/icon-192.png"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet"/>
       </Head>
+
       <style jsx global>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { -webkit-text-size-adjust: 100%; }
+        *, *::before, *::after {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        html {
+          -webkit-text-size-adjust: 100%;
+          scroll-behavior: smooth;
+        }
+
         body {
-          background: #080808;
-          color: #F5F0E8;
+          background: #0A0F1E;
+          color: #F1F5F9;
           font-family: 'DM Sans', system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
           overflow-x: hidden;
+          /* Siber arka plan pattern */
+          background-image:
+            radial-gradient(ellipse at 20% 0%, rgba(56,189,248,0.04) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 100%, rgba(139,92,246,0.04) 0%, transparent 50%);
+          background-attachment: fixed;
         }
+
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-track { background: #080808; }
-        ::-webkit-scrollbar-thumb { background: #A8892A; border-radius: 2px; }
-        ::selection { background: rgba(212,175,55,0.2); color: #F2D46F; }
+        ::-webkit-scrollbar-track { background: #0A0F1E; }
+        ::-webkit-scrollbar-thumb { background: #0EA5E9; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #38BDF8; }
+
+        /* Seçim */
+        ::selection {
+          background: rgba(56,189,248,0.2);
+          color: #7DD3FC;
+        }
+
+        /* Temel elemanlar */
         a { text-decoration: none; color: inherit; }
         button { font-family: 'DM Sans', sans-serif; cursor: pointer; }
         input, textarea { font-family: 'DM Sans', sans-serif; }
-        input::placeholder, textarea::placeholder { color: rgba(245,240,232,0.22); }
+        input::placeholder, textarea::placeholder { color: rgba(241,245,249,0.25); }
 
-        @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        @keyframes spin { to{transform:rotate(360deg)} }
-        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        @keyframes goldPulse { 0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,0)} 50%{box-shadow:0 0 0 5px rgba(212,175,55,0.12)} }
+        /* ── ANİMASYONLAR ── */
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: none; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+          0%   { background-position: -200% 0; }
+          100% { background-position:  200% 0; }
+        }
+        @keyframes neonPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(56,189,248,0); }
+          50%       { box-shadow: 0 0 0 6px rgba(56,189,248,0.08); }
+        }
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.6; }
+          50%       { opacity: 1; }
+        }
+        @keyframes neonFlicker {
+          0%, 100% { opacity: 1; }
+          92%       { opacity: 0.85; }
+          95%       { opacity: 0.6; }
+          97%       { opacity: 1; }
+        }
+        @keyframes scanLine {
+          0%   { transform: translateY(-100%); }
+          100% { transform: translateY(200vh); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
+        }
 
-        .cinema-fade { animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
-        .gold-text {
-          background: linear-gradient(135deg, #D4AF37 0%, #F2D46F 40%, #A8892A 70%, #D4AF37 100%);
+        /* ── UTILITY SINIFLARI ── */
+
+        /* Fade animasyonu */
+        .ma-fade { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+
+        /* Neon mavi gradient yazı */
+        .blue-text {
+          background: linear-gradient(135deg, #0EA5E9 0%, #38BDF8 50%, #7DD3FC 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
+
+        /* Mor gradient yazı */
+        .purple-text {
+          background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #A78BFA 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        /* Skeleton loading */
         .skeleton {
-          background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
+          background: linear-gradient(
+            90deg,
+            #1E293B 25%,
+            #243048 50%,
+            #1E293B 75%
+          );
           background-size: 200% 100%;
           animation: shimmer 1.4s infinite;
           border-radius: 8px;
         }
+
+        /* Neon kart */
+        .neon-card {
+          background: linear-gradient(145deg, #1E293B, #162032);
+          border: 1px solid rgba(56,189,248,0.12);
+          border-radius: 16px;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .neon-card:hover {
+          border-color: rgba(56,189,248,0.35);
+          box-shadow: 0 0 24px rgba(56,189,248,0.12);
+        }
+
+        /* Glass efekti */
+        .glass {
+          background: rgba(30,41,59,0.7);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(56,189,248,0.1);
+        }
+
+        /* Hover geçiş */
+        .hover-lift {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .hover-lift:hover {
+          transform: translateY(-2px);
+        }
+
+        /* Scroll gizle */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Overflow ellipsis */
+        .truncate {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* 2 satır kırp */
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        /* Siber ızgara arka plan */
+        .cyber-grid {
+          background-image:
+            linear-gradient(rgba(56,189,248,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(56,189,248,0.04) 1px, transparent 1px);
+          background-size: 40px 40px;
+        }
+
+        /* Neon alt çizgi animasyonu */
+        .neon-underline {
+          position: relative;
+        }
+        .neon-underline::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #38BDF8, transparent);
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .neon-underline:hover::after { opacity: 1; }
+
+        /* PWA safe area */
+        .safe-bottom {
+          padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
+        }
+
+        /* Responsive max-width konteyner */
+        .container {
+          max-width: 680px;
+          margin: 0 auto;
+          padding: 0 16px;
+        }
       `}</style>
 
-      {splash && <SplashScreen onDone={() => setSplash(false)} />}
-      {!splash && <Component {...pageProps} />}
+      <Component {...pageProps}/>
     </>
   );
 }
