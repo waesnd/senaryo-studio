@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/useAuth";
 
 var G = {
   black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
@@ -83,7 +84,8 @@ export default function Bildirimler(){
   var [silOnay,setSilOnay]=useState(false);
 
   useEffect(()=>{
-  },[]);
+    if(user) yukle(user);
+  },[user]);
 
   async function yukle(u){
     var{data}=await supabase.from("bildirimler")
