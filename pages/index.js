@@ -422,12 +422,32 @@ export default function Index(){
   }
   async function loadGonderiler(page=0,reset=false){
     setYukleniyor(true);
-    var{data}=await supabase.from("gonderiler").select("*,profiles(username,avatar_url,dogrulandi,senaryo_sayisi)").eq("paylasim_acik",true).order("created_at",{ascending:false}).range(page*LIMIT,(page+1)*LIMIT-1);
+    var data=null;
+
+    if(sekme==="takip"&&user){
+      var{data:takipler}=await supabase.from("takipler").select("takip_edilen").eq("takip_eden",user.id);
+      var takipIDs=(takipler||[]).map(t=>t.takip_edilen);
+      if(takipIDs.length===0){
+        if(reset)setGonderiler([]);
+        setBitti(true);setYukleniyor(false);return;
+      }
+      var res=await supabase.from("gonderiler")
+        .select("*,profiles(username,avatar_url,dogrulandi,senaryo_sayisi)")
+        .eq("paylasim_acik",true).in("user_id",takipIDs)
+        .order("created_at",{ascending:false}).range(page*LIMIT,(page+1)*LIMIT-1);
+      data=res.data;
+    }else{
+      var res=await supabase.from("gonderiler")
+        .select("*,profiles(username,avatar_url,dogrulandi,senaryo_sayisi)")
+        .eq("paylasim_acik",true)
+        .order("created_at",{ascending:false}).range(page*LIMIT,(page+1)*LIMIT-1);
+      data=res.data;
+    }
+
     if(data){
       if(reset)setGonderiler(data);
       else setGonderiler(p=>[...p,...data]);
-      if(data.length<LIMIT)setBitti(true);
-      else setBitti(false);
+      setBitti(data.length<LIMIT);
     }
     setYukleniyor(false);
   }
@@ -523,13 +543,25 @@ export default function Index(){
         {!yukleniyor&&gonderiler.length===0&&(
           <div style={{textAlign:"center",padding:"60px 20px"}}>
             <div style={{width:64,height:64,borderRadius:"50%",background:`${G.blue}10`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:G.glowBlue}}>
-              <Icon id="film" size={28} color={G.blue}/>
+              <Icon id={sekme==="takip"?"users":"film"} size={28} color={G.blue}/>
             </div>
-            <div style={{fontFamily:G.fontDisp,fontSize:40,color:G.textDim,marginBottom:8,letterSpacing:"0.1em"}}>BOŞ SAHNE</div>
-            <p style={{fontSize:14,color:G.textMuted,marginBottom:20}}>Henüz paylaşılmış senaryo yok.</p>
-            <a href="/uret" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",borderRadius:12,background:G.blueGrad,color:"#0A0F1E",fontSize:13,fontWeight:800,letterSpacing:"0.05em",textTransform:"uppercase",boxShadow:G.glowBlue}}>
-              <Icon id="zap" size={14} color="#0A0F1E"/>İlk Senaryoyu Üret
-            </a>
+            {sekme==="takip"?(
+              <>
+                <div style={{fontFamily:G.fontDisp,fontSize:36,color:G.textDim,marginBottom:8,letterSpacing:"0.1em"}}>KİMSEYİ TAKİP ETMİYORSUN</div>
+                <p style={{fontSize:14,color:G.textMuted,marginBottom:20}}>Takip ettiğin kişilerin senaryoları burada görünür.</p>
+                <a href="/kesfet" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",borderRadius:12,background:G.blueGrad,color:"#0A0F1E",fontSize:13,fontWeight:800,letterSpacing:"0.05em",textTransform:"uppercase",boxShadow:G.glowBlue}}>
+                  <Icon id="compass" size={14} color="#0A0F1E"/>Senarist Keşfet
+                </a>
+              </>
+            ):(
+              <>
+                <div style={{fontFamily:G.fontDisp,fontSize:40,color:G.textDim,marginBottom:8,letterSpacing:"0.1em"}}>BOŞ SAHNE</div>
+                <p style={{fontSize:14,color:G.textMuted,marginBottom:20}}>Henüz paylaşılmış senaryo yok.</p>
+                <a href="/uret" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",borderRadius:12,background:G.blueGrad,color:"#0A0F1E",fontSize:13,fontWeight:800,letterSpacing:"0.05em",textTransform:"uppercase",boxShadow:G.glowBlue}}>
+                  <Icon id="zap" size={14} color="#0A0F1E"/>İlk Senaryoyu Üret
+                </a>
+              </>
+            )}
           </div>
         )}
       </div>

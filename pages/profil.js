@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/useAuth";
 
 // ── MIDNIGHT ASSASSIN TEMA ────────────────────────────────────────────────────
 var G = {
@@ -317,8 +318,8 @@ function SenaryoKarti({s}){
 
 // ── ANA SAYFA ─────────────────────────────────────────────────────────────────
 export default function Profil(){
-  var [user,setUser]=useState(null);
-  var [profil,setProfil]=useState(null);
+  var {user, profil: authProfil, authHazir, setProfil} = useAuth();
+  var [profil, setProfilLokal] = useState(null);
   var [senaryolar,setSenaryolar]=useState([]);
   var [kaydedilenler,setKaydedilenler]=useState([]);
   var [yukleniyor,setYukleniyor]=useState(true);
@@ -335,19 +336,22 @@ export default function Profil(){
   var sonraki=getSonraki(profil?.senaryo_sayisi);
   var ilerleme=sonraki?Math.min(100,Math.round(((profil?.senaryo_sayisi||0)-rozet.min)/(sonraki.min-rozet.min)*100)):100;
 
+  // authProfil hazır olunca local state'i doldur
   useEffect(()=>{
-    supabase.auth.getSession().then(r=>{
-      if(r.data?.session){setUser(r.data.session.user);loadProfil(r.data.session.user);}
-      else{setYukleniyor(false);window.location.href="/";}
-    });
-  },[]);
+    if(!authHazir) return;
+    if(!user){ window.location.href="/"; return; }
+    if(authProfil){
+      setProfilLokal(authProfil);
+      setEditData({bio:authProfil.bio||"",website:authProfil.website||"",nickname:authProfil.nickname||""});
+    }
+    loadSenaryolar(user.id);
+    loadKaydedilenler(user.id);
+    setYukleniyor(false);
+  },[authHazir, user, authProfil]);
 
   async function loadProfil(u){
     var{data}=await supabase.from("profiles").select("*").eq("id",u.id).single();
-    if(data){setProfil(data);setEditData({bio:data.bio||"",website:data.website||"",nickname:data.nickname||""});}
-    await loadSenaryolar(u.id);
-    await loadKaydedilenler(u.id);
-    setYukleniyor(false);
+    if(data){ setProfilLokal(data); setProfil(data); setEditData({bio:data.bio||"",website:data.website||"",nickname:data.nickname||""}); }
   }
   async function loadSenaryolar(uid){
     var{data}=await supabase.from("gonderiler").select("*").eq("user_id",uid).order("created_at",{ascending:false});
@@ -367,14 +371,14 @@ export default function Profil(){
     var data=await res.json();
     if(data.secure_url){
       await supabase.from("profiles").update({avatar_url:data.secure_url}).eq("id",user.id);
-      setProfil(p=>({...p,avatar_url:data.secure_url}));
+      setProfilLokal(p=>({...p,avatar_url:data.secure_url}));
     }
     setAvatarYukleniyor(false);
   }
   async function profilKaydet(){
     if(!user)return;
     await supabase.from("profiles").update({bio:editData.bio,website:editData.website,nickname:editData.nickname}).eq("id",user.id);
-    setProfil(p=>({...p,...editData}));
+    setProfilLokal(p=>({...p,...editData}));
     setEditMode(false);
   }
 
@@ -566,7 +570,7 @@ export default function Profil(){
             </div>
           </button>
           {/* Sil */}
-          {avatarUrl&&<button onClick={async()=>{await supabase.from("profiles").update({avatar_url:null}).eq("id",user.id);setProfil(p=>({...p,avatar_url:null}));setAvatarModal(false);}}
+          {avatarUrl&&<button onClick={async()=>{await supabase.from("profiles").update({avatar_url:null}).eq("id",user.id);setProfilLokal(p=>({...p,avatar_url:null}));setAvatarModal(false);}}
             style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 16px",borderRadius:14,background:`${G.red}08`,border:`1px solid ${G.red}20`,color:G.red,fontSize:14,cursor:"pointer"}}
             onMouseEnter={e=>e.currentTarget.style.background=`${G.red}15`}
             onMouseLeave={e=>e.currentTarget.style.background=`${G.red}08`}>
