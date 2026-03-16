@@ -429,11 +429,16 @@ export default function Index(){
     loadStoryler();
   },[]);
 
+  // authHazir olunca kesfet feed'ini yükle
   useEffect(()=>{
+    if(!authHazir) return;
+    if(kesfetGonderiler.length===0) loadGonderiler(0,true,"kesfet");
+  },[authHazir]);
+
+  useEffect(()=>{
+    if(!authHazir) return;
     setSayfa(0);setBitti(false);
-    // Mevcut cache varsa göster, yoksa yükle
-    var mevcut=sekme==="takip"?takipGonderiler:kesfetGonderiler;
-    if(mevcut.length===0) loadGonderiler(0,true);
+    loadGonderiler(0,true,sekme);
   },[sekme]);
 
 
@@ -445,15 +450,20 @@ export default function Index(){
     await supabase.from("storyler").delete().eq("id",id).eq("user_id",user.id);
     setStoryler(p=>p.filter(s=>s.id!==id));
   }
-  async function loadGonderiler(page=0,reset=false){
+  async function loadGonderiler(page=0,reset=false,aktivSekme){
+    var hedefSekme=aktivSekme||sekme;
     setYukleniyor(true);
     var data=null;
 
-    if(sekme==="takip"&&user){
+    if(hedefSekme==="takip"&&!user){
+      // Giriş yapmamış — keşfet gibi yükle
+      hedefSekme="kesfet";
+    }
+    if(hedefSekme==="takip"&&user){
       var{data:takipler}=await supabase.from("takipler").select("takip_edilen").eq("takip_eden",user.id);
       var takipIDs=(takipler||[]).map(t=>t.takip_edilen);
       if(takipIDs.length===0){
-        if(reset)setGonderiler([]);
+        if(reset)setTakipGonderiler([]);
         setBitti(true);setYukleniyor(false);return;
       }
       var res=await supabase.from("gonderiler")
@@ -470,7 +480,7 @@ export default function Index(){
     }
 
     if(data){
-      if(sekme==="takip"){
+      if(hedefSekme==="takip"){
         if(reset)setTakipGonderiler(data);
         else setTakipGonderiler(p=>[...p,...data]);
       }else{
@@ -486,7 +496,7 @@ export default function Index(){
     if(!loaderRef.current)return;
     var obs=new IntersectionObserver(entries=>{
       if(entries[0].isIntersecting&&!yukleniyor&&!bitti){
-        var next=sayfa+1;setSayfa(next);loadGonderiler(next);
+        var next=sayfa+1;setSayfa(next);loadGonderiler(next,false,sekme);
       }
     },{threshold:0.1});
     obs.observe(loaderRef.current);
@@ -631,7 +641,7 @@ export default function Index(){
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}20,${G.purple}15,transparent)`,pointerEvents:"none"}}/>
         <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
           <Av url={avatarUrl} size={34} ring={!!user}/>
-          <img src="/logo.png" alt="Scriptify" style={{height:36,objectFit:"contain",maxWidth:130}}/>
+          <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
         </button>
         <div style={{display:"flex",gap:8}}>
           <a href="/bildirimler" style={{width:36,height:36,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>

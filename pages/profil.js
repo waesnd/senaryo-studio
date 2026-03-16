@@ -441,6 +441,7 @@ export default function Profil(){
         <button onClick={()=>setDrawer(true)} style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <Icon id="menu" size={16} color={G.blue}/>
         </button>
+        <img src="/logo.png" alt="Scriptify" style={{height:40,objectFit:"contain",maxWidth:120,marginLeft:6}}/>
       </div>
 
       {/* BANNER */}
