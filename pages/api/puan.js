@@ -1,5 +1,6 @@
 // pages/api/puan.js
 import { withAuth } from "../../lib/withAuth";
+import { callGroq } from "../../lib/groq";
 async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
@@ -47,41 +48,14 @@ SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
 }`;
 
   try{
-    var groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer " + process.env.GROQ_API_KEY,
-      },
-      body:JSON.stringify({
-        model:"llama-3.3-70b-versatile",
-        messages:[{role:"user", content:prompt}],
-        temperature:0.85,
-        max_tokens:1024,
-      }),
-    });
-
-    if(!groqRes.ok) throw new Error("Groq API hatası: " + groqRes.status);
-
-    var data = await groqRes.json();
-    var text = data.choices?.[0]?.message?.content || "";
-    text = text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
-    var match = text.match(/\{[\s\S]*\}/);
-    if(!match) throw new Error("JSON bulunamadı");
-
-    var parsed = JSON.parse(match[0]);
-
-    // Tip güvenliği
+    var sonuc = await callGroq(prompt, { temperature: 0.85, max_tokens: 1024 });
     var sayisal = ["toplam","orijinallik","ticari_potansiyel","karakter_derinligi","anlatim"];
-    sayisal.forEach(k=>{ if(typeof parsed[k]==="string") parsed[k]=parseInt(parsed[k])||0; });
-    if(typeof parsed.netflix_uygun_mu === "string") parsed.netflix_uygun_mu = parsed.netflix_uygun_mu==="true";
-    if(!Array.isArray(parsed.benzer_yapimlar)) parsed.benzer_yapimlar = [];
-
-    // Toplam doğrula (alt puanların toplamı 100'ü geçmesin)
-    var altToplam = (parsed.orijinallik||0)+(parsed.ticari_potansiyel||0)+(parsed.karakter_derinligi||0)+(parsed.anlatim||0);
-    if(altToplam !== parsed.toplam) parsed.toplam = altToplam;
-
-    res.status(200).json(parsed);
+    sayisal.forEach(k=>{ if(typeof sonuc[k]==="string") sonuc[k]=parseInt(sonuc[k])||0; });
+    if(typeof sonuc.netflix_uygun_mu === "string") sonuc.netflix_uygun_mu = sonuc.netflix_uygun_mu==="true";
+    if(!Array.isArray(sonuc.benzer_yapimlar)) sonuc.benzer_yapimlar = [];
+    var altToplam = (sonuc.orijinallik||0)+(sonuc.ticari_potansiyel||0)+(sonuc.karakter_derinligi||0)+(sonuc.anlatim||0);
+    if(altToplam !== sonuc.toplam) sonuc.toplam = altToplam;
+    res.status(200).json(sonuc);
   }catch(e){
     console.error("[puan]", e.message);
     res.status(500).json({error: e.message});

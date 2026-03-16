@@ -1,5 +1,6 @@
 // pages/api/diyalog.js
 import { withAuth } from "../../lib/withAuth";
+import { callGroq } from "../../lib/groq";
 async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
   var {metin, tur} = req.body;
@@ -13,14 +14,8 @@ ${metin}
 SADECE güçlendirilmiş diyaloğu yaz, başka açıklama ekleme.`;
 
   try{
-    var groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+process.env.GROQ_API_KEY},
-      body:JSON.stringify({model:"llama-3.3-70b-versatile",messages:[{role:"user",content:prompt}],temperature:0.85,max_tokens:1024}),
-    });
-    if(!groqRes.ok) throw new Error("Groq API hatası: "+groqRes.status);
-    var data = await groqRes.json();
-    var sonuc = data.choices?.[0]?.message?.content || "";
+    var sonuc = await callGroq(prompt, { temperature: 0.85, max_tokens: 1024, raw: true });
+
     res.status(200).json({sonuc});
   }catch(e){
     console.error("[diyalog]", e.message);

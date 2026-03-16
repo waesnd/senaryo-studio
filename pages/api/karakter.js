@@ -1,5 +1,6 @@
 // pages/api/karakter.js
 import { withAuth } from "../../lib/withAuth";
+import { callGroq } from "../../lib/groq";
 async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
@@ -24,29 +25,9 @@ SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama ekleme:
 }`;
 
   try{
-    var groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer " + process.env.GROQ_API_KEY,
-      },
-      body:JSON.stringify({
-        model:"llama-3.3-70b-versatile",
-        messages:[{role:"user", content:prompt}],
-        temperature:0.85,
-        max_tokens:1024,
-      }),
-    });
+    var sonuc = await callGroq(prompt, { temperature: 0.85, max_tokens: 1024, raw: false });
 
-    if(!groqRes.ok) throw new Error("Groq API hatası: " + groqRes.status);
-
-    var data = await groqRes.json();
-    var text = data.choices?.[0]?.message?.content || "";
-    text = text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
-    var match = text.match(/\{[\s\S]*\}/);
-    if(!match) throw new Error("JSON bulunamadı");
-
-    res.status(200).json(JSON.parse(match[0]));
+    res.status(200).json(sonuc);
   }catch(e){
     console.error("[karakter]", e.message);
     res.status(500).json({error: e.message});

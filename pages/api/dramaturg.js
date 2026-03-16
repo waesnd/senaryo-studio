@@ -1,5 +1,6 @@
 // pages/api/dramaturg.js
 import { withAuth } from "../../lib/withAuth";
+import { callGroq } from "../../lib/groq";
 async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
@@ -48,37 +49,11 @@ SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
 }`;
 
   try{
-    var groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer " + process.env.GROQ_API_KEY,
-      },
-      body:JSON.stringify({
-        model:"llama-3.3-70b-versatile",
-        messages:[{role:"user", content:prompt}],
-        temperature:0.88,
-        max_tokens:1500,
-      }),
-    });
-
-    if(!groqRes.ok) throw new Error("Groq API hatası: " + groqRes.status);
-
-    var data = await groqRes.json();
-    var text = data.choices?.[0]?.message?.content || "";
-    text = text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
-    var match = text.match(/\{[\s\S]*\}/);
-    if(!match) throw new Error("JSON bulunamadı");
-
-    var parsed = JSON.parse(match[0]);
-
-    // Puan sayıya dönüştür
-    if(typeof parsed.genel_puan === "string") parsed.genel_puan = parseInt(parsed.genel_puan)||70;
-    // Dizi kontrolü
-    if(!Array.isArray(parsed.guc_noktalari)) parsed.guc_noktalari = [];
-    if(!Array.isArray(parsed.zayif_noktalar)) parsed.zayif_noktalar = [];
-
-    res.status(200).json(parsed);
+    var sonuc = await callGroq(prompt, { temperature: 0.88, max_tokens: 1500 });
+    if(typeof sonuc.genel_puan === "string") sonuc.genel_puan = parseInt(sonuc.genel_puan)||70;
+    if(!Array.isArray(sonuc.guc_noktalari)) sonuc.guc_noktalari = [];
+    if(!Array.isArray(sonuc.zayif_noktalar)) sonuc.zayif_noktalar = [];
+    res.status(200).json(sonuc);
   }catch(e){
     console.error("[dramaturg]", e.message);
     res.status(500).json({error: e.message});
