@@ -2,7 +2,7 @@
 export default async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
-  var {tip, tur, ozelIstek} = req.body;
+  var {tip, tur, ozelIstek, sahneSayisi, karakterSayisi} = req.body;
   if(!tip || !tur) return res.status(400).json({error:"tip ve tur zorunlu"});
 
   var prompt = `Sen Türkiye'nin en iyi senaryo yazarısın. ${tip} formatında, ${tur} türünde özgün ve çarpıcı bir senaryo fikri üret.
@@ -15,7 +15,7 @@ ZORUNLU KURALLAR:
 - Açılış sahnesi seyirciyi anında içine çekecek güçte olsun
 - Tagline akılda kalıcı, film postere yazılabilecek nitelikte olsun
 - Ana fikir somut çatışma ve dramatik gerilim içersin
-${ozelIstek ? `\nKullanıcının özel isteği (kesinlikle uygula): ${ozelIstek}` : ""}
+${sahneSayisi ? `\nSahne sayısı: yaklaşık ${sahneSayisi} sahne olsun` : ""}\n${karakterSayisi ? `Karakter sayısı: tam olarak ${karakterSayisi} ana karakter olsun` : ""}\n${ozelIstek ? `Kullanıcının özel isteği (kesinlikle uygula): ${ozelIstek}` : ""}
 
 SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama veya markdown ekleme:
 {
