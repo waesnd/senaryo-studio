@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabase";
-import { useAuth } from "../_app";
+import { useAuth } from "../../lib/useAuth";
 
 var G = {
   black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
@@ -102,6 +102,7 @@ export default function KullaniciProfil(){
   var router=useRouter();
   var {username}=router.query;
   var {user, profil: authProfil, authHazir} = useAuth();
+  var [profil,setProfil]=useState(null);
   var [senaryolar,setSenaryolar]=useState([]);
   var [gonderiler,setGonderiler]=useState([]);
   var [tab,setTab]=useState("gonderiler");
@@ -111,13 +112,12 @@ export default function KullaniciProfil(){
   var [takipEdiyorum,setTakipEdiyorum]=useState(false);
   var [engelledim,setEngelledim]=useState(false);
   var [yukleniyor,setYukleniyor]=useState(true);
+  var loaded=authHazir;
   var [menu,setMenu]=useState(false);
 
   var benimProfil=user&&profil&&user.id===profil.id;
   var rozet=getRozet(profil?.senaryo_sayisi||0);
 
-  useEffect(()=>{
-  },[]);
 
   useEffect(()=>{
     if(!username)return;
