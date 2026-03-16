@@ -233,19 +233,36 @@ export default function Uret(){
       if(chTip)setTip(chTip);
     }catch(e){}
   },[]);
+
+  // Supabase session token'ını al — API çağrıları için
+  async function getToken(){
+    try{
+      var { data } = await supabase.auth.getSession();
+      return data?.session?.access_token || null;
+    }catch(e){ return null; }
+  }
+
+  // Auth header'lı fetch yardımcısı
+  async function authFetch(url, body){
+    var token = await getToken();
+    var headers = {"Content-Type":"application/json"};
+    if(token) headers["Authorization"] = "Bearer " + token;
+    return fetch(url, {method:"POST", headers, body:JSON.stringify(body)});
+  }
+
   async function senaryoUret(){
     setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);
-    try{var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip,tur,ozelIstek,sahneSayisi,karakterSayisi})});var data=await res.json();if(data.senaryo)setSenaryo(data.senaryo);else alert("Senaryo oluşturulamadı.");}
+    try{var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi}));var data=await res.json();if(data.senaryo)setSenaryo(data.senaryo);else alert("Senaryo oluşturulamadı.");}
     catch(e){alert("Hata: "+e.message);}
     setYukleniyor(false);
   }
-  async function beatUret(){if(!senaryo)return;setBeatYukleniyor(true);try{var res=await fetch("/api/beatsheet",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tip,tur})});setBeatler(await res.json());}catch(e){}setBeatYukleniyor(false);}
-  async function karakterBibleUret(){if(!senaryo)return;setBibleYukleniyor(true);try{var res=await fetch("/api/karakterbible",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tur})});setKarakterBible(await res.json());}catch(e){}setBibleYukleniyor(false);}
-  async function dramaturgCalistir(){if(!senaryo)return;setDraturagYukleniyor(true);try{var res=await fetch("/api/dramaturg",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tip,tur})});setDraturagAnaliz(await res.json());}catch(e){}setDraturagYukleniyor(false);}
-  async function puanHesapla(){if(!senaryo)return;setPuanYukleniyor(true);try{var res=await fetch("/api/puan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tip,tur})});setPuan(await res.json());}catch(e){}setPuanYukleniyor(false);}
+  async function beatUret(){if(!senaryo)return;setBeatYukleniyor(true);try{var res=await authFetch("/api/beatsheet", {senaryo,tip,tur}));setBeatler(await res.json());}catch(e){}setBeatYukleniyor(false);}
+  async function karakterBibleUret(){if(!senaryo)return;setBibleYukleniyor(true);try{var res=await authFetch("/api/karakterbible", {senaryo,tur}));setKarakterBible(await res.json());}catch(e){}setBibleYukleniyor(false);}
+  async function dramaturgCalistir(){if(!senaryo)return;setDraturagYukleniyor(true);try{var res=await authFetch("/api/dramaturg", {senaryo,tip,tur}));setDraturagAnaliz(await res.json());}catch(e){}setDraturagYukleniyor(false);}
+  async function puanHesapla(){if(!senaryo)return;setPuanYukleniyor(true);try{var res=await authFetch("/api/puan", {senaryo,tip,tur}));setPuan(await res.json());}catch(e){}setPuanYukleniyor(false);}
   async function sequelUret(){
     if(!senaryo)return;setSequelYukleniyor(true);setSequel(null);
-    try{var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip,tur,ozelIstek:`Bu senaryonun devamını yaz: "${senaryo.baslik}". Tagline: ${senaryo.tagline}. Ana fikir: ${senaryo.ana_fikir?.slice(0,200)}`})});var data=await res.json();if(data.senaryo)setSequel(data.senaryo);}catch(e){}
+    try{var res=await authFetch("/api/generate", {tip,tur,ozelIstek:`Bu senaryonun devamını yaz: "${senaryo.baslik}". Tagline: ${senaryo.tagline}. Ana fikir: ${senaryo.ana_fikir?.slice(0,200)`})});var data=await res.json();if(data.senaryo)setSequel(data.senaryo);}catch(e){}
     setSequelYukleniyor(false);
   }
   // Revize — senaryoyu yeniden yaz
@@ -253,8 +270,7 @@ export default function Uret(){
     if(!senaryo)return;
     setRevizeYukleniyor(true);
     try{
-      var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({tip,tur,ozelIstek:`Şu senaryoyu tamamen revize et, daha güçlü, daha özgün ve daha çarpıcı yap. Aynı temayı koru ama tüm unsurları yenile: "${senaryo.baslik}" — ${senaryo.ana_fikir?.slice(0,200)}`})});
+      var res=await authFetch("/api/generate", {tip,tur,ozelIstek:`Şu senaryoyu tamamen revize et, daha güçlü, daha özgün ve daha çarpıcı yap. Aynı temayı koru ama tüm unsurları yenile: "${senaryo.baslik}" — ${senaryo.ana_fikir?.slice(0,200)`})});
       var data=await res.json();
       if(data.senaryo)setSenaryo(data.senaryo);
     }catch(e){}
@@ -266,7 +282,7 @@ export default function Uret(){
     if(!diyalogMetin.trim())return;
     setDiyalogYukleniyor(true);
     try{
-      var res=await fetch("/api/diyalog",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metin:diyalogMetin,tur})});
+      var res=await authFetch("/api/diyalog", {metin:diyalogMetin,tur}));
       var data=await res.json();
       setDiyalogSonuc(data.sonuc||"");
     }catch(e){alert("Hata: "+e.message);}
@@ -278,7 +294,7 @@ export default function Uret(){
     if(!senaryo)return;
     setLoglineYukleniyor(true);
     try{
-      var res=await fetch("/api/logline",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tur,tip})});
+      var res=await authFetch("/api/logline", {senaryo,tur,tip}));
       var data=await res.json();
       if(data.logline1)setLogline(data);
     }catch(e){}
@@ -290,7 +306,7 @@ export default function Uret(){
     if(!senaryo)return;
     setPitchYukleniyor(true);
     try{
-      var res=await fetch("/api/pitch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tur,tip})});
+      var res=await authFetch("/api/pitch", {senaryo,tur,tip}));
       var data=await res.json();
       if(data.one_liner)setPitchDeck(data);
     }catch(e){}
@@ -301,7 +317,7 @@ export default function Uret(){
     if(!senaryo)return;
     setHeroYukleniyor(true);
     try{
-      var res=await fetch("/api/herosjourney",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tur,tip})});
+      var res=await authFetch("/api/herosjourney", {senaryo,tur,tip}));
       var data=await res.json();
       if(data.olagan_dunya)setHeroJourney(data);
     }catch(e){}
