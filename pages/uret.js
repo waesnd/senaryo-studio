@@ -806,33 +806,82 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
             {sekme==="beatsheet"&&(
               <div style={KART}>
                 <NeonCorners color={G.blue}/>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-                  <div><h3 style={{fontFamily:G.fontDisp,fontSize:22,color:G.text}}>SAHNE PLANI</h3><p style={{fontSize:11,color:G.textMuted}}>Save the Cat — 15 Adım</p></div>
-                  <AIBtn onClick={beatUret} loading={beatYukleniyor} loadLabel="Oluşturuluyor" label="⚡ Oluştur"/>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                  <div><h3 style={{fontFamily:G.fontDisp,fontSize:22,color:G.text}}>SAHNE PLANI</h3></div>
+                  <AIBtn onClick={sahneSekme==="stc"?beatUret:heroJourneyUret} loading={sahneSekme==="stc"?beatYukleniyor:heroYukleniyor} loadLabel="Oluşturuluyor" label="⚡ Oluştur" color={sahneSekme==="stc"?G.blueGrad:`linear-gradient(135deg,#F59E0B,#FCD34D)`} glow={sahneSekme==="stc"?G.glowBlue:"0 0 20px rgba(245,158,11,0.3)"}/>
                 </div>
-                <div style={{display:"flex",gap:6,marginBottom:20}}>
-                  {[{label:"1. PERDE",color:G.blue,acts:1},{label:"2. PERDE",color:G.purple,acts:2},{label:"3. PERDE",color:G.red,acts:3}].map(p=>(
-                    <div key={p.label} style={{flex:1,padding:"8px 10px",borderRadius:10,background:`${p.color}10`,border:`1px solid ${p.color}20`,textAlign:"center"}}>
-                      <p style={{fontFamily:G.fontDisp,fontSize:12,color:p.color}}>{p.label}</p>
-                      <p style={{fontSize:9,color:G.textDim,marginTop:2}}>{BEAT_SHEET.filter(b=>b.act===p.acts).length} beat</p>
-                    </div>
+                {/* Alt sekme — Save the Cat / Hero's Journey */}
+                <div style={{display:"flex",gap:6,marginBottom:16,background:G.surface,borderRadius:12,padding:4}}>
+                  {[{id:"stc",label:"Save the Cat",sub:"15 Beat"},{id:"hero",label:"Hero's Journey",sub:"12 Aşama"}].map(t=>(
+                    <button key={t.id} onClick={()=>setSahneSekme(t.id)}
+                      style={{flex:1,padding:"9px 8px",borderRadius:9,border:"none",background:sahneSekme===t.id?`linear-gradient(135deg,${t.id==="stc"?G.blue+"20":"rgba(245,158,11,0.15)"},transparent)`:
+                      "transparent",color:sahneSekme===t.id?(t.id==="stc"?G.blue:"#F59E0B"):G.textDim,fontSize:11,fontWeight:sahneSekme===t.id?800:500,cursor:"pointer",transition:"all 0.15s",boxShadow:sahneSekme===t.id?`0 0 10px ${t.id==="stc"?G.blue+"20":"rgba(245,158,11,0.15)"}`:
+                      "none"}}>
+                      <p>{t.label}</p>
+                      <p style={{fontSize:9,opacity:0.7,marginTop:1}}>{t.sub}</p>
+                    </button>
                   ))}
                 </div>
-                {Object.keys(beatler).length===0&&!beatYukleniyor&&<div style={{textAlign:"center",padding:"40px 0"}}><div style={{fontFamily:G.fontDisp,fontSize:36,color:G.textDim,marginBottom:10}}>SAHNE PLANI</div><p style={{fontSize:13,color:G.textMuted}}>Save the Cat yöntemiyle 15 adımlık yapı</p></div>}
-                {beatYukleniyor&&<div style={{textAlign:"center",padding:"30px 0"}}><div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>}
-                {BEAT_SHEET.map(beat=>{
-                  var col={1:G.blue,2:G.purple,3:G.red}[beat.act];
-                  return(
-                    <div key={beat.id} style={{marginBottom:10,padding:"14px 16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`,borderLeft:`3px solid ${col}`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:beatler[beat.id]?8:0}}>
-                        <span style={{width:22,height:22,borderRadius:"50%",background:`${col}15`,color:col,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:G.fontDisp}}>{beat.no}</span>
-                        <div style={{flex:1}}><p style={{fontSize:13,fontWeight:700,color:G.text}}>{beat.label}</p><p style={{fontSize:11,color:G.textDim}}>{beat.aciklama}</p></div>
-                        {beatler[beat.id]&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:`${col}15`,color:col,fontWeight:700}}>✓</span>}
+                {/* SAVE THE CAT */}
+                {sahneSekme==="stc"&&<>
+                  <div style={{display:"flex",gap:6,marginBottom:16}}>
+                    {[{label:"1. PERDE",color:G.blue,acts:1},{label:"2. PERDE",color:G.purple,acts:2},{label:"3. PERDE",color:G.red,acts:3}].map(p=>(
+                      <div key={p.label} style={{flex:1,padding:"8px 10px",borderRadius:10,background:`${p.color}10`,border:`1px solid ${p.color}20`,textAlign:"center"}}>
+                        <p style={{fontFamily:G.fontDisp,fontSize:12,color:p.color}}>{p.label}</p>
+                        <p style={{fontSize:9,color:G.textDim,marginTop:2}}>{BEAT_SHEET.filter(b=>b.act===p.acts).length} beat</p>
                       </div>
-                      {beatler[beat.id]&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.65,paddingLeft:30}}>{beatler[beat.id]}</p>}
+                    ))}
+                  </div>
+                  {Object.keys(beatler).length===0&&!beatYukleniyor&&<div style={{textAlign:"center",padding:"40px 0"}}><div style={{fontFamily:G.fontDisp,fontSize:32,color:G.textDim,marginBottom:8}}>SAVE THE CAT</div><p style={{fontSize:13,color:G.textMuted}}>Blake Snyder yöntemiyle 15 adımlık yapı</p></div>}
+                  {beatYukleniyor&&<div style={{textAlign:"center",padding:"30px 0"}}><div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>}
+                  {BEAT_SHEET.map(beat=>{
+                    var col={1:G.blue,2:G.purple,3:G.red}[beat.act];
+                    return(
+                      <div key={beat.id} style={{marginBottom:10,padding:"14px 16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`,borderLeft:`3px solid ${col}`}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:beatler[beat.id]?8:0}}>
+                          <span style={{width:22,height:22,borderRadius:"50%",background:`${col}15`,color:col,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:G.fontDisp}}>{beat.no}</span>
+                          <div style={{flex:1}}><p style={{fontSize:13,fontWeight:700,color:G.text}}>{beat.label}</p><p style={{fontSize:11,color:G.textDim}}>{beat.aciklama}</p></div>
+                          {beatler[beat.id]&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:`${col}15`,color:col,fontWeight:700}}>✓</span>}
+                        </div>
+                        {beatler[beat.id]&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.65,paddingLeft:30}}>{beatler[beat.id]}</p>}
+                      </div>
+                    );
+                  })}
+                </>}
+
+                {/* HERO'S JOURNEY */}
+                {sahneSekme==="hero"&&<>
+                  {/* Aşama haritası */}
+                  <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
+                    {[{no:1,col:"#94A3B8"},{no:2,col:G.blue},{no:3,col:G.red},{no:4,col:G.purple},{no:5,col:"#F59E0B"},{no:6,col:G.red},{no:7,col:"#7C3AED"},{no:8,col:G.red},{no:9,col:G.green},{no:10,col:G.blue},{no:11,col:"#F59E0B"},{no:12,col:G.green}].map(s=>(
+                      <div key={s.no} style={{flexShrink:0,width:32,height:32,borderRadius:"50%",background:`${s.col}15`,border:`1px solid ${s.col}30`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:G.fontDisp,fontSize:11,color:s.col,fontWeight:800}}>{s.no}</div>
+                    ))}
+                  </div>
+                  {!heroJourney&&!heroYukleniyor&&<div style={{textAlign:"center",padding:"40px 0"}}><div style={{fontFamily:G.fontDisp,fontSize:32,color:G.textDim,marginBottom:8}}>HERO'S JOURNEY</div><p style={{fontSize:13,color:G.textMuted}}>Joseph Campbell — 12 aşamalı kahramanın yolculuğu</p></div>}
+                  {heroYukleniyor&&<div style={{textAlign:"center",padding:"30px 0"}}><div style={{width:28,height:28,border:"2px solid rgba(245,158,11,0.2)",borderTopColor:"#F59E0B",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>}
+                  {heroJourney&&[
+                    {key:"olagan_dunya",no:1,label:"Olağan Dünya",sub:"Ordinary World",col:"#94A3B8"},
+                    {key:"macera_cagrisi",no:2,label:"Maceranın Çağrısı",sub:"Call to Adventure",col:G.blue},
+                    {key:"cagriya_ret",no:3,label:"Çağrıyı Reddetme",sub:"Refusal of the Call",col:G.red},
+                    {key:"akil_hoca",no:4,label:"Akıl Hocasıyla Karşılaşma",sub:"Meeting the Mentor",col:G.purple},
+                    {key:"esigi_gecmek",no:5,label:"Eşiği Geçmek",sub:"Crossing the Threshold",col:"#F59E0B"},
+                    {key:"testler",no:6,label:"Testler, Müttefikler, Düşmanlar",sub:"Tests, Allies, Enemies",col:G.red},
+                    {key:"derin_magara",no:7,label:"En Derin Mağaraya Yaklaşmak",sub:"Approach to the Inmost Cave",col:"#7C3AED"},
+                    {key:"buyuk_sinav",no:8,label:"Büyük Sınav",sub:"The Ordeal",col:G.red},
+                    {key:"odulu_almak",no:9,label:"Ödülü Almak",sub:"Reward / Seizing the Sword",col:G.green},
+                    {key:"donus_yolu",no:10,label:"Geri Dönüş Yolu",sub:"The Road Back",col:G.blue},
+                    {key:"dirilis",no:11,label:"Diriliş",sub:"Resurrection",col:"#F59E0B"},
+                    {key:"eliksirle_donus",no:12,label:"Eliksirle Dönüş",sub:"Return with the Elixir",col:G.green},
+                  ].map(asama=>heroJourney[asama.key]?(
+                    <div key={asama.key} style={{marginBottom:10,padding:"14px 16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`,borderLeft:`3px solid ${asama.col}`,boxShadow:`-4px 0 12px ${asama.col}10`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                        <span style={{width:24,height:24,borderRadius:"50%",background:`${asama.col}15`,color:asama.col,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:G.fontDisp}}>{asama.no}</span>
+                        <div><p style={{fontSize:13,fontWeight:700,color:G.text}}>{asama.label}</p><p style={{fontSize:10,color:G.textDim,fontStyle:"italic"}}>{asama.sub}</p></div>
+                      </div>
+                      <p style={{fontSize:13,color:G.textMuted,lineHeight:1.65,paddingLeft:32}}>{heroJourney[asama.key]}</p>
                     </div>
-                  );
-                })}
+                  ):null)}
+                </>}
               </div>
             )}
 
@@ -1025,43 +1074,6 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                 ):null)}
               </div>
             )}
-
-            {/* HERO'S JOURNEY */}
-            {sekme==="hero"&&(
-              <div style={{...KART,border:"1px solid rgba(245,158,11,0.2)"}}>
-                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,#F59E0B,#FCD34D)",borderRadius:"20px 20px 0 0"}}/>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,paddingTop:4}}>
-                  <div>
-                    <h3 style={{fontFamily:G.fontDisp,fontSize:20,color:G.text}}>HERO'S JOURNEY</h3>
-                    <p style={{fontSize:11,color:G.textMuted}}>Joseph Campbell — 12 Aşamalı Kahramanın Yolculuğu</p>
-                  </div>
-                  <button onClick={heroJourneyUret} disabled={heroYukleniyor}
-                    style={{padding:"9px 18px",borderRadius:12,background:heroYukleniyor?G.surface:"linear-gradient(135deg,#F59E0B,#FCD34D)",border:"none",color:heroYukleniyor?G.textMuted:"#0A0F1E",fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
-                    {heroYukleniyor?<><div style={{width:14,height:14,border:"2px solid rgba(245,158,11,0.3)",borderTopColor:"#F59E0B",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>Analiz ediliyor</>:"⚡ Analiz Et"}
-                  </button>
-                </div>
-
-                {/* Karşılaştırma görseli */}
-                <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
-                  {[
-                    {no:1,label:"Olağan Dünya",col:"#94A3B8"},
-                    {no:2,label:"Çağrı",col:"#38BDF8"},
-                    {no:3,label:"Red",col:"#EF4444"},
-                    {no:4,label:"Akıl Hoca",col:"#8B5CF6"},
-                    {no:5,label:"Eşik",col:"#F59E0B"},
-                    {no:6,label:"Testler",col:"#EF4444"},
-                    {no:7,label:"Mağara",col:"#7C3AED"},
-                    {no:8,label:"Sınav",col:"#EF4444"},
-                    {no:9,label:"Ödül",col:"#22C55E"},
-                    {no:10,label:"Dönüş",col:"#38BDF8"},
-                    {no:11,label:"Diriliş",col:"#F59E0B"},
-                    {no:12,label:"Elixir",col:"#22C55E"},
-                  ].map(s=>(
-                    <div key={s.no} style={{flexShrink:0,textAlign:"center",width:52}}>
-                      <div style={{width:36,height:36,borderRadius:"50%",background:`${s.col}15`,border:`1px solid ${s.col}30`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px",fontSize:11,fontWeight:800,color:s.col,fontFamily:G.fontDisp}}>{s.no}</div>
-                      <p style={{fontSize:8,color:G.textDim,lineHeight:1.2}}>{s.label}</p>
-                    </div>
-                  ))}
                 </div>
 
                 {!heroJourney&&!heroYukleniyor&&(
