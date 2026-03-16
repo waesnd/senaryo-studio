@@ -81,8 +81,7 @@ function zaman(ts){
 }
 
 export default function Arama(){
-  var [user,setUser]=useState(null);
-  var [profil,setProfil]=useState(null);
+  var {user, profil, authHazir} = useAuth();
   var [ara,setAra]=useState("");
   var [tab,setTab]=useState("hepsi");
   var [sonuclar,setSonuclar]=useState({kullanici:[],senaryo:[],gonderi:[]});
@@ -95,15 +94,9 @@ export default function Arama(){
   var avatarUrl=profil?.avatar_url||null;
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data})=>{
-      setTimeout(()=>inputRef.current?.focus(),50);
-      if(data?.session){setUser(data.session.user);loadProfil(data.session.user);}
-    });
-    supabase.auth.onAuthStateChange((_,s)=>{if(s){setUser(s.user);loadProfil(s.user);}else{setUser(null);setProfil(null);}});
+    setTimeout(()=>inputRef.current?.focus(),50);
     supabase.from("senaryolar").select("baslik,tur,begeni_sayisi").eq("paylasim_acik",true).order("begeni_sayisi",{ascending:false}).limit(6).then(({data})=>{if(data)setPopuler(data);});
   },[]);
-
-  function loadProfil(u){supabase.from("profiles").select("*").eq("id",u.id).single().then(({data})=>{if(data)setProfil(data);});}
 
   function aramaYap(kelime){
     if(!kelime.trim()){setSonuclar({kullanici:[],senaryo:[],gonderi:[]});setAramaYapildi(false);return;}

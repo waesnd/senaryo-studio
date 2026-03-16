@@ -90,8 +90,7 @@ function zaman(ts){
 }
 
 export default function Mesajlar(){
-  var [user,setUser]=useState(null);
-  var [profil,setProfil]=useState(null);
+  var {user, profil, authHazir} = useAuth();
   var [konusmalar,setKonusmalar]=useState([]);
   var [aktif,setAktif]=useState(null);
   var [mesajlar,setMesajlar]=useState([]);
@@ -105,7 +104,6 @@ export default function Mesajlar(){
   var [notAcik,setNotAcik]=useState(false);
   var [notMetin,setNotMetin]=useState("");
   var [notKaydedildi,setNotKaydedildi]=useState(false);
-  var [loaded,setLoaded]=useState(false);
   var mesajSonuRef=useRef(null);
   var dosyaRef=useRef(null);
 
@@ -113,12 +111,8 @@ export default function Mesajlar(){
   var username=profil?.username||user?.email?.split("@")[0]||"";
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data})=>{
-      if(data?.session){setUser(data.session.user);yukle(data.session.user);}
-      setLoaded(true);
-    });
-    supabase.auth.onAuthStateChange((_,s)=>{if(s){setUser(s.user);yukle(s.user);}else{setUser(null);setProfil(null);}});
-  },[]);
+    if(user) yukle(user);
+  },[user]);
 
   useEffect(()=>{
     if(mesajSonuRef.current)mesajSonuRef.current.scrollIntoView({behavior:"smooth"});

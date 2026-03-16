@@ -186,8 +186,7 @@ function AIBtn({onClick,loading,loadLabel,label,color=G.blueGrad,glow=G.glowBlue
 var KART={background:`linear-gradient(145deg,#1E293B,#162032)`,border:`1px solid rgba(56,189,248,0.12)`,borderRadius:20,padding:"22px",marginBottom:16,position:"relative"};
 
 export default function Uret(){
-  var [user,setUser]=useState(null);
-  var [profil,setProfil]=useState(null);
+  var {user, profil, authHazir} = useAuth();
   var [tip,setTip]=useState("Dizi");
   var [tur,setTur]=useState("Gerilim");
   var [ozelIstek,setOzelIstek]=useState("");
@@ -220,12 +219,7 @@ export default function Uret(){
       if(chTur)setTur(chTur);
       if(chTip)setTip(chTip);
     }catch(e){}
-    supabase.auth.getSession().then(r=>{if(r.data?.session){setUser(r.data.session.user);loadProfil(r.data.session.user);}});
-    supabase.auth.onAuthStateChange((_,s)=>{if(s){setUser(s.user);loadProfil(s.user);}else{setUser(null);setProfil(null);}});
   },[]);
-
-  function loadProfil(u){supabase.from("profiles").select("*").eq("id",u.id).single().then(r=>{if(r.data)setProfil(r.data);});}
-
   async function senaryoUret(){
     setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");
     try{var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip,tur,ozelIstek})});var data=await res.json();if(data.senaryo)setSenaryo(data.senaryo);else alert("Senaryo oluşturulamadı.");}

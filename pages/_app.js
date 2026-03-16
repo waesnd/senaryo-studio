@@ -1,5 +1,48 @@
-import { useEffect } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import Head from "next/head";
+import { supabase } from "../lib/supabase";
+
+
+// ── MERKEZI AUTH CONTEXT ──────────────────────────────────────────────────────
+export var AuthContext = createContext({user:null, profil:null, authHazir:false});
+export function useAuth(){ return useContext(AuthContext); }
+
+function AuthProvider({children}){
+  var [user,setUser]=useState(null);
+  var [profil,setProfil]=useState(null);
+  var [authHazir,setAuthHazir]=useState(false);
+
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data})=>{
+      var u=data?.session?.user||null;
+      setUser(u);
+      if(u) loadProfil(u);
+      else setAuthHazir(true);
+    });
+    var {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(event==="TOKEN_REFRESHED"||event==="INITIAL_SESSION") return;
+      var u=session?.user||null;
+      setUser(prev=>{
+        if(prev?.id===u?.id) return prev;
+        if(u) loadProfil(u);
+        else{ setProfil(null); setAuthHazir(true); }
+        return u;
+      });
+    });
+    return()=>subscription?.unsubscribe();
+  },[]);
+
+  function loadProfil(u){
+    supabase.from("profiles").select("*").eq("id",u.id).single()
+      .then(({data})=>{ if(data)setProfil(data); setAuthHazir(true); });
+  }
+
+  return(
+    <AuthContext.Provider value={{user,profil,authHazir,setProfil}}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
 export const MIDNIGHT = {
   black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
@@ -248,7 +291,9 @@ export default function App({ Component, pageProps }){
         }
       `}</style>
 
-      <Component {...pageProps}/>
+      <AuthProvider>
+        <Component {...pageProps}/>
+      </AuthProvider>
     </>
   );
 }

@@ -77,17 +77,12 @@ function zaman(ts){
 }
 
 export default function Bildirimler(){
-  var [user,setUser]=useState(null);
+  var {user, profil, authHazir} = useAuth();
   var [bildirimler,setBildirimler]=useState([]);
   var [tab,setTab]=useState("hepsi");
-  var [loaded,setLoaded]=useState(false);
   var [silOnay,setSilOnay]=useState(false);
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data})=>{
-      if(data?.session){setUser(data.session.user);yukle(data.session.user);}
-      setLoaded(true);
-    });
   },[]);
 
   async function yukle(u){

@@ -156,7 +156,7 @@ function KisiKarti({profil}){
 }
 
 export default function Kesfet(){
-  var [user,setUser]=useState(null);
+  var {user, profil, authHazir} = useAuth();
   var [gonderiler,setGonderiler]=useState([]);
   var [kisiler,setKisiler]=useState([]);
   var [hashtagler,setHashtagler]=useState([]);
@@ -165,9 +165,7 @@ export default function Kesfet(){
   var [arama,setArama]=useState("");
   var [yukleniyor,setYukleniyor]=useState(true);
 
-  useEffect(()=>{
-    supabase.auth.getSession().then(r=>{if(r.data?.session)setUser(r.data.session.user);});
-    loadVeriler();
+  useEffect(()=>{    loadVeriler();
   },[]);
 
   async function loadVeriler(){

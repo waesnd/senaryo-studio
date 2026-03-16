@@ -147,8 +147,7 @@ function AltNav(){
 }
 
 export default function Topluluk(){
-  var [user,setUser]=useState(null);
-  var [profil,setProfil]=useState(null);
+  var {user, profil, authHazir} = useAuth();
   var [challengelar,setChallenglar]=useState([]);
   var [topSenaristler,setTopSenaristler]=useState([]);
   var [yukleniyorC,setYukleniyorC]=useState(true);
@@ -159,14 +158,8 @@ export default function Topluluk(){
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email.split("@")[0]:"");
 
-  useEffect(()=>{
-    supabase.auth.getSession().then(r=>{
-      if(r.data?.session){
-        setUser(r.data.session.user);
-        supabase.from("profiles").select("*").eq("id",r.data.session.user.id).single().then(r2=>{if(r2.data)setProfil(r2.data);});
-      }
+  useEffect(()=>{      }
     });
-    supabase.auth.onAuthStateChange((_,s)=>{if(s)setUser(s.user);else setUser(null);});
     loadChallenglar();
     loadTopSenaristler();
   },[]);
