@@ -817,11 +817,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                 </div>
                 <p style={{fontSize:11,color:G.textDim,marginBottom:8,letterSpacing:"0.06em",textTransform:"uppercase"}}>Güçlendirilecek Diyalog</p>
                 <textarea value={diyalogMetin} onChange={e=>setDiyalogMetin(e.target.value)} rows={5}
-                  placeholder={"AHMET
-Seni seviyorum.
-
-NAZ
-Ben de seni..."}
+                  placeholder={"AHMET\nSeni seviyorum.\n\nNAZ\nBen de seni..."}
                   style={{marginBottom:12,resize:"none",lineHeight:1.7,fontFamily:"monospace",fontSize:13,background:G.surface,border:`1px solid ${G.border}`,borderRadius:12,padding:"10px 14px",color:G.text,width:"100%",outline:"none"}}/>
                 <button onClick={diyalogGuclendir} disabled={diyalogYukleniyor||!diyalogMetin.trim()}
                   style={{width:"100%",padding:"12px",borderRadius:14,background:diyalogYukleniyor?"rgba(45,212,191,0.08)":"linear-gradient(135deg,#0891b2,#2DD4BF)",border:"none",color:diyalogYukleniyor?G.textMuted:"#0A0F1E",fontSize:13,fontWeight:800,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
