@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabase";
-import { useAuth } from "../_app";
+import { useAuth } from "../../lib/useAuth";
 
 var G = {
   black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
@@ -141,9 +141,6 @@ export default function SenaryoDetay(){
   var benim=user&&senaryo&&user.id===senaryo.user_id;
   var turRenk=TURLER_RENK[senaryo?.tur]||G.blue;
 
-  useEffect(()=>{
-  },[]);
-
   useEffect(()=>{if(id)yukle();},[id,user]);
 
   async function yukle(){
@@ -230,7 +227,7 @@ export default function SenaryoDetay(){
     if(platform!=="kopyala")setPaylasModal(false);
   }
 
-  if(!loaded||!senaryo)return(
+  if(!authHazir||!senaryo)return(
     <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
       <div style={{width:32,height:32,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
       <p style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim,letterSpacing:"0.1em"}}>YÜKLENİYOR</p>
