@@ -328,7 +328,10 @@ export default function Profil(){
   var [editData,setEditData]=useState({});
   var [avatarModal,setAvatarModal]=useState(false);
   var [avatarYukleniyor,setAvatarYukleniyor]=useState(false);
+  var [bannerYukleniyor,setBannerYukleniyor]=useState(false);
+  var [bannerModal,setBannerModal]=useState(false);
   var fileRef=useRef();
+  var bannerRef=useRef();
 
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email?.split("@")[0]:"");
@@ -375,6 +378,29 @@ export default function Profil(){
     }
     setAvatarYukleniyor(false);
   }
+  async function bannerDegistir(e){
+    var file=e.target.files?.[0];
+    if(!file||!user)return;
+    setBannerYukleniyor(true);
+    var fd=new FormData();
+    fd.append("file",file);fd.append("upload_preset","scriptify_avatars");
+    var res=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
+    var data=await res.json();
+    if(data.secure_url){
+      await supabase.from("profiles").update({banner_url:data.secure_url}).eq("id",user.id);
+      setProfilLokal(p=>({...p,banner_url:data.secure_url}));
+      setProfil(p=>({...p,banner_url:data.secure_url}));
+    }
+    setBannerYukleniyor(false);
+    setBannerModal(false);
+  }
+  async function bannerSil(){
+    if(!user)return;
+    await supabase.from("profiles").update({banner_url:null}).eq("id",user.id);
+    setProfilLokal(p=>({...p,banner_url:null}));
+    setProfil(p=>({...p,banner_url:null}));
+    setBannerModal(false);
+  }
   async function profilKaydet(){
     if(!user)return;
     await supabase.from("profiles").update({bio:editData.bio,website:editData.website,nickname:editData.nickname}).eq("id",user.id);
@@ -418,7 +444,28 @@ export default function Profil(){
       </div>
 
       {/* BANNER */}
-      <ProfileBanner senaryolar={senaryolar}/>
+      <div style={{position:"relative",height:140,overflow:"hidden",cursor:"pointer"}} onClick={()=>setBannerModal(true)}>
+        {profil?.banner_url
+          ?<img src={profil.banner_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+          :<div style={{height:"100%",background:`linear-gradient(135deg,${G.deep},${G.surface})`,position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",inset:0,backgroundImage:`linear-gradient(${G.blue}05 1px,transparent 1px),linear-gradient(90deg,${G.blue}05 1px,transparent 1px)`,backgroundSize:"30px 30px"}}/>
+            <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse at 30% 50%,${G.blue}08,transparent 60%)`}}/>
+            <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse at 80% 30%,${G.purple}06,transparent 50%)`}}/>
+          </div>
+        }
+        {/* Banner düzenle butonu */}
+        <div style={{position:"absolute",bottom:10,right:12,display:"flex",gap:6}}>
+          <button onClick={e=>{e.stopPropagation();setBannerModal(true);}}
+            style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:20,background:"rgba(10,15,30,0.75)",backdropFilter:"blur(8px)",border:`1px solid ${G.border}`,color:G.text,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            {bannerYukleniyor
+              ?<div style={{width:10,height:10,border:`1.5px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>
+              :<Icon id="camera" size={11} color={G.blue}/>
+            }
+            Banner
+          </button>
+        </div>
+        <input ref={bannerRef} type="file" accept="image/*" onChange={bannerDegistir} style={{display:"none"}}/>
+      </div>
 
       {/* PROFİL ALANI */}
       <div style={{padding:"20px 16px 0",maxWidth:640,margin:"0 auto"}}>
@@ -547,7 +594,37 @@ export default function Profil(){
       </div>
 
       {/* AVATAR MODAL */}
-      {avatarModal&&<>
+      {/* BANNER MODAL */}
+      {bannerModal&&<>
+        <div onClick={()=>setBannerModal(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,5,20,0.9)",backdropFilter:"blur(10px)"}}/>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:401,background:`linear-gradient(180deg,${G.surface},${G.deep})`,border:`1px solid ${G.borderHov}`,borderRadius:"24px 24px 0 0",padding:"20px 20px env(safe-area-inset-bottom,24px)",boxShadow:`0 -20px 60px rgba(0,0,0,0.8),${G.glowBlue}`}}>
+          <div style={{width:36,height:3,borderRadius:2,background:G.border,margin:"0 auto 16px"}}/>
+          <h3 style={{fontFamily:G.fontDisp,fontSize:18,letterSpacing:"0.08em",color:G.text,marginBottom:6}}>BANNER</h3>
+          <p style={{fontSize:12,color:G.textMuted,marginBottom:18}}>1500×500 önerilen boyut · JPG veya PNG</p>
+          <button onClick={()=>{setBannerModal(false);bannerRef.current?.click();}}
+            style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 16px",marginBottom:10,borderRadius:14,background:`${G.blue}08`,border:`1px solid ${G.blue}20`,color:G.text,fontSize:14,cursor:"pointer",transition:"all 0.2s"}}
+            onMouseEnter={e=>{e.currentTarget.style.background=`${G.blue}14`;}}
+            onMouseLeave={e=>{e.currentTarget.style.background=`${G.blue}08`;}}>
+            <div style={{width:40,height:40,borderRadius:12,background:G.blueGrad,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:G.glowBlue}}>
+              <Icon id="camera" size={18} color={G.black}/>
+            </div>
+            <div><p style={{fontSize:14,fontWeight:700,color:G.text}}>Fotoğraf Yükle</p><p style={{fontSize:11,color:G.textMuted,marginTop:2}}>Galeriden seç</p></div>
+          </button>
+          {profil?.banner_url&&(
+            <button onClick={bannerSil}
+              style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 16px",borderRadius:14,background:`${G.red}08`,border:`1px solid ${G.red}20`,color:G.red,fontSize:14,cursor:"pointer",transition:"all 0.2s"}}
+              onMouseEnter={e=>{e.currentTarget.style.background=`${G.red}14`;}}
+              onMouseLeave={e=>{e.currentTarget.style.background=`${G.red}08`;}}>
+              <div style={{width:40,height:40,borderRadius:12,background:`${G.red}15`,border:`1px solid ${G.red}25`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon id="trash" size={18} color={G.red}/>
+              </div>
+              <div><p style={{fontSize:14,fontWeight:700}}>Fotoğrafı Sil</p><p style={{fontSize:11,color:G.textMuted,marginTop:2}}>Banner kaldırılır</p></div>
+            </button>
+          )}
+        </div>
+      </>}
+
+            {avatarModal&&<>
         <div onClick={()=>setAvatarModal(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,5,20,0.9)",backdropFilter:"blur(12px)"}}/>
         <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:401,background:G.deep,border:`1px solid ${G.borderHov}`,borderRadius:"24px 24px 0 0",padding:"24px 20px env(safe-area-inset-bottom,24px)",boxShadow:`0 -20px 60px rgba(0,0,0,0.8),${G.glowBlue}`}}>
           <div style={{width:36,height:3,borderRadius:2,background:G.border,margin:"0 auto 20px"}}/>
