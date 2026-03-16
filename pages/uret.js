@@ -344,7 +344,7 @@ export default function Uret(){
             </div>
             <div>
               <h1 style={{fontFamily:G.fontDisp,fontSize:24,letterSpacing:"0.08em",color:G.text}}>SENARYO ÜRET</h1>
-              <p style={{fontSize:11,color:G.textMuted}}>AI Stüdyo · Sahne Planı · Kişi Bibliyası · Dramaturg</p>
+              <p style={{fontSize:11,color:G.textMuted}}>AI Stüdyo · Sahne Planı · Karakter Dosyası · Dramaturg</p>
             </div>
           </div>
 
@@ -381,7 +381,7 @@ export default function Uret(){
               {[
                 {id:"senaryo",label:"Senaryo",col:G.blue},
                 {id:"beatsheet",label:"Sahne Planı",col:G.blue},
-                {id:"karakterler",label:"Kişi Bibliyası",col:G.purple},
+                {id:"karakterler",label:"Karakter Dosyası",col:G.purple},
                 {id:"dramaturg",label:"Dramaturg",col:G.amber},
                 {id:"puan",label:"Puan",col:G.amber},
               ].map(s=>(
@@ -472,13 +472,13 @@ export default function Uret(){
               </div>
             )}
 
-            {/* KİŞİ BİBLİYASI */}
+            {/* KARAKTER DOSYASI */}
             {sekme==="karakterler"&&(
               <div style={{...KART,border:`1px solid ${G.borderPurple||"rgba(139,92,246,0.2)"}`}}>
                 <NeonCorners color={G.purple}/>
                 <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:G.purpleGrad,borderRadius:"20px 20px 0 0"}}/>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,paddingTop:6}}>
-                  <div><h3 style={{fontFamily:G.fontDisp,fontSize:22,color:G.text}}>KİŞİ BİBLİYASI</h3><p style={{fontSize:11,color:G.textMuted}}>Karakter profilleri & psikoloji</p></div>
+                  <div><h3 style={{fontFamily:G.fontDisp,fontSize:22,color:G.text}}>KARAKTER DOSYASI</h3><p style={{fontSize:11,color:G.textMuted}}>Karakter profilleri & psikoloji</p></div>
                   <AIBtn onClick={karakterBibleUret} loading={bibleYukleniyor} loadLabel="Oluşturuluyor" label="⚡ Oluştur" color={G.purpleGrad} glow={G.glowPurple}/>
                 </div>
                 {!karakterBible&&!bibleYukleniyor&&<div style={{textAlign:"center",padding:"40px 0"}}><div style={{fontFamily:G.fontDisp,fontSize:36,color:G.textDim,marginBottom:10}}>KARAKTERLER</div><p style={{fontSize:13,color:G.textMuted}}>Karakter profillerini oluştur</p></div>}
