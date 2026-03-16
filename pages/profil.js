@@ -515,18 +515,12 @@ export default function Profil(){
               <span style={{fontSize:11,fontWeight:700,color:rozet.color}}>{rozet.label}</span>
             </div>
             {profil?.bio&&!editMode&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.6}}>{profil.bio}</p>}
-            {profil?.website&&!editMode&&(
-              {(()=>{
-                var safeUrl = guvenliUrl(profil.website);
-                if(!safeUrl) return null;
-                return(
-                  <a href={safeUrl} target="_blank" rel="noopener noreferrer"
-                    style={{display:"flex",alignItems:"center",gap:5,marginTop:6,fontSize:12,color:G.blue}}>
-                    <Icon id="link" size={12} color={G.blue}/>
-                    {safeUrl.replace(/https?:\/\//,"")}
-                  </a>
-                );
-              })()}
+            {profil?.website&&!editMode&&guvenliUrl(profil.website)&&(
+              <a href={guvenliUrl(profil.website)} target="_blank" rel="noopener noreferrer"
+                style={{display:"flex",alignItems:"center",gap:5,marginTop:6,fontSize:12,color:G.blue}}>
+                <Icon id="link" size={12} color={G.blue}/>
+                {guvenliUrl(profil.website).replace(/https?:\/\//,"")}
+              </a>
             )}
           </div>
         </div>
