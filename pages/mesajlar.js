@@ -61,6 +61,62 @@ function Av({url,size,online=false}){
   );
 }
 
+
+var DRAWER_ITEMS=[
+  {href:"/",label:"Ana Sayfa",id:"home"},
+  {href:"/uret",label:"Senaryo Üret",id:"film",badge:"AI"},
+  {href:"/kesfet",label:"Keşfet",id:"compass"},
+  {href:"/topluluk",label:"Topluluk",id:"users"},
+  {href:"/mesajlar",label:"Mesajlar",id:"chat"},
+];
+
+function Drawer({user,username,avatarUrl,onClose}){
+  var [exitModal,setExitModal]=useState(false);
+  return(<>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(8px)"}}/>
+    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:290,background:`linear-gradient(180deg,${G.black},${G.deep})`,borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",boxShadow:"8px 0 60px rgba(0,0,0,0.9)"}}>
+      <div style={{height:2,background:G.blueGrad,flexShrink:0,boxShadow:"0 0 20px rgba(56,189,248,0.5)"}}/>
+      <div style={{padding:"20px 20px 16px",borderBottom:`1px solid ${G.border}`,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+          <Av url={avatarUrl} size={48}/>
+          <button onClick={onClose} style={{background:`${G.blue}08`,border:`1px solid ${G.border}`,borderRadius:10,padding:"6px 12px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
+        </div>
+        {user?<p style={{fontSize:15,fontWeight:800,color:G.text}}>@{username}</p>
+          :<button onClick={()=>{onClose();window.location.href="/";}} style={{width:"100%",padding:"10px",borderRadius:12,background:G.blueGrad,border:"none",color:G.black,fontSize:13,fontWeight:800,textTransform:"uppercase",cursor:"pointer"}}>Giriş Yap</button>}
+      </div>
+      <nav style={{flex:1,overflowY:"auto",padding:"12px"}}>
+        {DRAWER_ITEMS.map(item=>{
+          var active=typeof window!=="undefined"&&window.location.pathname===item.href;
+          return(
+            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 14px",borderRadius:12,marginBottom:2,color:active?G.blue:G.textMuted,background:active?`${G.blue}08`:"transparent",fontWeight:active?700:500,fontSize:14,border:`1px solid ${active?G.border:"transparent"}`,textDecoration:"none"}}>
+              <Icon id={item.id} size={18} color={active?G.blue:G.textMuted}/>
+              <span style={{flex:1}}>{item.label}</span>
+              {item.badge&&<span style={{fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:20,background:G.purple,color:"#fff"}}>{item.badge}</span>}
+            </a>
+          );
+        })}
+        <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${G.border}`}}>
+          <a href="/profil" style={{display:"flex",alignItems:"center",gap:14,padding:"12px 14px",borderRadius:12,color:G.textMuted,fontSize:14,textDecoration:"none"}}><Icon id="user" size={18} color={G.textMuted}/><span>Profil</span></a>
+          {user&&<button onClick={()=>setExitModal(true)} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 14px",borderRadius:12,color:G.red,fontSize:14,background:`${G.red}08`,border:"none",width:"100%",textAlign:"left",cursor:"pointer"}}><Icon id="logout" size={18} color={G.red}/><span style={{fontWeight:600}}>Çıkış Yap</span></button>}
+        </div>
+      </nav>
+    </div>
+    {exitModal&&<>
+      <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)"}}/>
+      <div style={{position:"fixed",inset:0,zIndex:301,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+        <div style={{background:G.surface,border:`1px solid ${G.borderHov}`,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:300,textAlign:"center",position:"relative"}}>
+          <h3 style={{fontFamily:G.fontDisp,fontSize:22,color:G.text,marginBottom:8}}>ÇIKIŞ YAP</h3>
+          <p style={{fontSize:13,color:G.textMuted,marginBottom:22}}>Emin misin?</p>
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={()=>setExitModal(false)} style={{flex:1,padding:"12px",borderRadius:12,background:"rgba(241,245,249,0.05)",border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600,cursor:"pointer"}}>İptal</button>
+            <button onClick={()=>{supabase.auth.signOut();onClose();window.location.href="/";}} style={{flex:1,padding:"12px",borderRadius:12,background:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Çıkış</button>
+          </div>
+        </div>
+      </div>
+    </>}
+  </>);
+}
+
 function AltNav(){
   var items=[{href:"/",id:"home"},{href:"/kesfet",id:"compass"},{href:"/topluluk",id:"users"},{href:"/mesajlar",id:"chat"},{href:"/profil",id:"user"}];
   return(
@@ -105,6 +161,7 @@ export default function Mesajlar(){
   var [notAcik,setNotAcik]=useState(false);
   var [notMetin,setNotMetin]=useState("");
   var [notKaydedildi,setNotKaydedildi]=useState(false);
+  var [drawer,setDrawer]=useState(false);
   var mesajSonuRef=useRef(null);
   var dosyaRef=useRef(null);
 
@@ -261,8 +318,9 @@ export default function Mesajlar(){
           </>
         ):(
           <>
-            <button onClick={()=>window.location.href="/profil"} style={{background:"none",border:"none",padding:0,cursor:"pointer"}}>
+            <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
               <Av url={avatarUrl} size={34}/>
+              <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
             </button>
             <div style={{flex:1}}>
               <span style={{fontFamily:G.fontDisp,fontSize:20,letterSpacing:"0.1em",color:G.text}}>MESAJLAR</span>
@@ -436,6 +494,7 @@ export default function Mesajlar(){
       )}
 
       {!aktif&&<AltNav/>}
+      {drawer&&<Drawer user={user} username={username} avatarUrl={avatarUrl} onClose={()=>setDrawer(false)}/>}
     </div>
   );
 }

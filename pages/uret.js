@@ -218,6 +218,8 @@ export default function Uret(){
   var [loglineYukleniyor,setLoglineYukleniyor]=useState(false);
   var [pitchDeck,setPitchDeck]=useState(null);
   var [pitchYukleniyor,setPitchYukleniyor]=useState(false);
+  var [heroJourney,setHeroJourney]=useState(null);
+  var [heroYukleniyor,setHeroYukleniyor]=useState(false);
 
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email.split("@")[0]:"");
@@ -232,7 +234,7 @@ export default function Uret(){
     }catch(e){}
   },[]);
   async function senaryoUret(){
-    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);
+    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);
     try{var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip,tur,ozelIstek,sahneSayisi,karakterSayisi})});var data=await res.json();if(data.senaryo)setSenaryo(data.senaryo);else alert("Senaryo oluşturulamadı.");}
     catch(e){alert("Hata: "+e.message);}
     setYukleniyor(false);
@@ -293,6 +295,17 @@ export default function Uret(){
       if(data.one_liner)setPitchDeck(data);
     }catch(e){}
     setPitchYukleniyor(false);
+  }
+
+  async function heroJourneyUret(){
+    if(!senaryo)return;
+    setHeroYukleniyor(true);
+    try{
+      var res=await fetch("/api/herosjourney",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tur,tip})});
+      var data=await res.json();
+      if(data.olagan_dunya)setHeroJourney(data);
+    }catch(e){}
+    setHeroYukleniyor(false);
   }
 
   async function profilKaydet(){
@@ -536,7 +549,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
         <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
           <Av url={avatarUrl} size={34}/>
-          <img src="/logo.png" alt="Scriptify" style={{height:36,objectFit:"contain",maxWidth:130}}/>
+          <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
         </button>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <a href="/" style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -888,6 +901,81 @@ Ben de seni..."}
                   </div>
                 ):null)}
               </div>
+
+            {/* HERO'S JOURNEY */}
+            {sekme==="hero"&&(
+              <div style={{...KART,border:"1px solid rgba(245,158,11,0.2)"}}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,#F59E0B,#FCD34D)",borderRadius:"20px 20px 0 0"}}/>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,paddingTop:4}}>
+                  <div>
+                    <h3 style={{fontFamily:G.fontDisp,fontSize:20,color:G.text}}>HERO'S JOURNEY</h3>
+                    <p style={{fontSize:11,color:G.textMuted}}>Joseph Campbell — 12 Aşamalı Kahramanın Yolculuğu</p>
+                  </div>
+                  <button onClick={heroJourneyUret} disabled={heroYukleniyor}
+                    style={{padding:"9px 18px",borderRadius:12,background:heroYukleniyor?G.surface:"linear-gradient(135deg,#F59E0B,#FCD34D)",border:"none",color:heroYukleniyor?G.textMuted:"#0A0F1E",fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+                    {heroYukleniyor?<><div style={{width:14,height:14,border:"2px solid rgba(245,158,11,0.3)",borderTopColor:"#F59E0B",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>Analiz ediliyor</>:"⚡ Analiz Et"}
+                  </button>
+                </div>
+
+                {/* Karşılaştırma görseli */}
+                <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
+                  {[
+                    {no:1,label:"Olağan Dünya",col:"#94A3B8"},
+                    {no:2,label:"Çağrı",col:"#38BDF8"},
+                    {no:3,label:"Red",col:"#EF4444"},
+                    {no:4,label:"Akıl Hoca",col:"#8B5CF6"},
+                    {no:5,label:"Eşik",col:"#F59E0B"},
+                    {no:6,label:"Testler",col:"#EF4444"},
+                    {no:7,label:"Mağara",col:"#7C3AED"},
+                    {no:8,label:"Sınav",col:"#EF4444"},
+                    {no:9,label:"Ödül",col:"#22C55E"},
+                    {no:10,label:"Dönüş",col:"#38BDF8"},
+                    {no:11,label:"Diriliş",col:"#F59E0B"},
+                    {no:12,label:"Elixir",col:"#22C55E"},
+                  ].map(s=>(
+                    <div key={s.no} style={{flexShrink:0,textAlign:"center",width:52}}>
+                      <div style={{width:36,height:36,borderRadius:"50%",background:`${s.col}15`,border:`1px solid ${s.col}30`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px",fontSize:11,fontWeight:800,color:s.col,fontFamily:G.fontDisp}}>{s.no}</div>
+                      <p style={{fontSize:8,color:G.textDim,lineHeight:1.2}}>{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {!heroJourney&&!heroYukleniyor&&(
+                  <div style={{textAlign:"center",padding:"40px 0"}}>
+                    <div style={{fontFamily:G.fontDisp,fontSize:32,color:G.textDim,marginBottom:8}}>KAHRAMANIN YOLCULUĞU</div>
+                    <p style={{fontSize:13,color:G.textMuted}}>Campbell'ın 12 aşaması bu senaryoya göre doldurulacak</p>
+                  </div>
+                )}
+                {heroYukleniyor&&<div style={{textAlign:"center",padding:"30px 0"}}><div style={{width:28,height:28,border:"2px solid rgba(245,158,11,0.2)",borderTopColor:"#F59E0B",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>}
+
+                {heroJourney&&[
+                  {key:"olagan_dunya",no:1,label:"Olağan Dünya",sub:"Ordinary World",col:"#94A3B8"},
+                  {key:"macera_cagrisi",no:2,label:"Maceranın Çağrısı",sub:"Call to Adventure",col:"#38BDF8"},
+                  {key:"cagriya_ret",no:3,label:"Çağrıyı Reddetme",sub:"Refusal of the Call",col:"#EF4444"},
+                  {key:"akil_hoca",no:4,label:"Akıl Hocasıyla Karşılaşma",sub:"Meeting the Mentor",col:"#8B5CF6"},
+                  {key:"esigi_gecmek",no:5,label:"Eşiği Geçmek",sub:"Crossing the Threshold",col:"#F59E0B"},
+                  {key:"testler",no:6,label:"Testler, Müttefikler, Düşmanlar",sub:"Tests, Allies, Enemies",col:"#EF4444"},
+                  {key:"derin_magara",no:7,label:"En Derin Mağaraya Yaklaşmak",sub:"Approach to the Inmost Cave",col:"#7C3AED"},
+                  {key:"buyuk_sinav",no:8,label:"Büyük Sınav",sub:"The Ordeal",col:"#EF4444"},
+                  {key:"odulu_almak",no:9,label:"Ödülü Almak",sub:"Reward / Seizing the Sword",col:"#22C55E"},
+                  {key:"donus_yolu",no:10,label:"Geri Dönüş Yolu",sub:"The Road Back",col:"#38BDF8"},
+                  {key:"dirilis",no:11,label:"Diriliş",sub:"Resurrection",col:"#F59E0B"},
+                  {key:"eliksirle_donus",no:12,label:"Eliksirle Dönüş",sub:"Return with the Elixir",col:"#22C55E"},
+                ].map(aşama=>heroJourney[aşama.key]?(
+                  <div key={aşama.key} style={{marginBottom:10,padding:"14px 16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`,borderLeft:`3px solid ${aşama.col}`,boxShadow:`-4px 0 12px ${aşama.col}10`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{width:24,height:24,borderRadius:"50%",background:`${aşama.col}15`,color:aşama.col,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:G.fontDisp}}>{aşama.no}</span>
+                      <div>
+                        <p style={{fontSize:13,fontWeight:700,color:G.text}}>{aşama.label}</p>
+                        <p style={{fontSize:10,color:G.textDim,fontStyle:"italic"}}>{aşama.sub}</p>
+                      </div>
+                    </div>
+                    <p style={{fontSize:13,color:G.textMuted,lineHeight:1.65,paddingLeft:32}}>{heroJourney[aşama.key]}</p>
+                  </div>
+                ):null)}
+              </div>
+            )}
+
             )}
 
       <AltNav/>
