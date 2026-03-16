@@ -509,6 +509,108 @@ export default function Index(){
 
   if(!authHazir)return(<div style={{minHeight:"100vh",background:"#0A0F1E",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14}}><div style={{width:36,height:36,border:"2px solid rgba(56,189,248,0.15)",borderTopColor:"#38BDF8",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><p style={{fontFamily:"Bebas Neue,sans-serif",fontSize:14,letterSpacing:"0.15em",color:"rgba(241,245,249,0.25)"}}>SCRİPTİFY</p><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
+  // Giriş yapmamış kullanıcıya landing page göster
+  if(!user)return(
+    <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,overflowX:"hidden"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,800&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        a{text-decoration:none;color:inherit;}button{font-family:inherit;cursor:pointer;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+        @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
+
+      {/* NAV */}
+      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:50,padding:"16px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(10,15,30,0.8)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`}}>
+        <img src="/logo.png" alt="Scriptify" style={{height:32,objectFit:"contain"}}/>
+        <div style={{display:"flex",gap:10}}>
+          <a href="/kesfet" style={{padding:"8px 18px",borderRadius:20,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600}}>Keşfet</a>
+          <a href="/api/auth/google" style={{padding:"8px 20px",borderRadius:20,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,boxShadow:G.glowBlue}}>Giriş Yap</a>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px 40px",position:"relative",overflow:"hidden"}}>
+        {/* Arka plan ışımaları */}
+        <div style={{position:"absolute",top:"20%",left:"10%",width:400,height:400,borderRadius:"50%",background:`radial-gradient(circle,${G.blue}08,transparent 70%)`,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:"20%",right:"10%",width:300,height:300,borderRadius:"50%",background:`radial-gradient(circle,${G.purple}08,transparent 70%)`,pointerEvents:"none"}}/>
+        {/* Grid */}
+        <div style={{position:"absolute",inset:0,backgroundImage:`linear-gradient(${G.blue}04 1px,transparent 1px),linear-gradient(90deg,${G.blue}04 1px,transparent 1px)`,backgroundSize:"40px 40px",pointerEvents:"none"}}/>
+
+        {/* Badge */}
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:20,background:`${G.blue}10`,border:`1px solid ${G.blue}25`,marginBottom:24,animation:"fadeUp 0.5s ease both"}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:G.green,boxShadow:`0 0 6px ${G.green}`}}/>
+          <span style={{fontSize:12,fontWeight:700,color:G.blue,letterSpacing:"0.08em"}}>AI SENARYO PLATFORMU</span>
+        </div>
+
+        {/* Başlık */}
+        <h1 style={{fontFamily:G.fontDisp,fontSize:"clamp(42px,8vw,88px)",letterSpacing:"0.04em",textAlign:"center",lineHeight:1.05,marginBottom:20,animation:"fadeUp 0.5s 0.1s ease both"}}>
+          <span style={{color:G.text}}>SENARYO </span>
+          <span style={{background:G.blueGrad,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>YAZMAK</span>
+          <br/>
+          <span style={{color:G.text}}>BU KADAR </span>
+          <span style={{background:`linear-gradient(135deg,${G.purple},${G.purpleL})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>KOLAY</span>
+        </h1>
+
+        {/* Alt başlık */}
+        <p style={{fontSize:"clamp(15px,2.5vw,19px)",color:G.textMuted,textAlign:"center",maxWidth:560,lineHeight:1.7,marginBottom:36,animation:"fadeUp 0.5s 0.2s ease both"}}>
+          AI ile saniyeler içinde senaryo üret. Beat sheet, karakter dosyası, dramaturg analizi — hepsi dahil. Topluluğa paylaş, yapımcılar keşfetsin.
+        </p>
+
+        {/* CTA butonları */}
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center",marginBottom:60,animation:"fadeUp 0.5s 0.3s ease both"}}>
+          <a href="/uret" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"14px 32px",borderRadius:14,background:G.blueGrad,color:G.black,fontSize:15,fontWeight:800,letterSpacing:"0.04em",boxShadow:G.glowBlue,transition:"transform 0.2s"}}
+            onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"}
+            onMouseLeave={e=>e.currentTarget.style.transform="none"}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Ücretsiz Başla
+          </a>
+          <a href="/kesfet" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"14px 28px",borderRadius:14,background:`${G.purple}12`,border:`1.5px solid ${G.purple}30`,color:G.purple,fontSize:15,fontWeight:700,transition:"transform 0.2s"}}
+            onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"}
+            onMouseLeave={e=>e.currentTarget.style.transform="none"}>
+            Senaryoları Keşfet →
+          </a>
+        </div>
+
+        {/* Özellik kartları */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,maxWidth:900,width:"100%",animation:"fadeUp 0.5s 0.4s ease both"}}>
+          {[
+            {icon:"⚡",title:"Anında Üret",desc:"Tür ve format seç, AI saniyeler içinde profesyonel senaryo üretir.",col:G.blue},
+            {icon:"🎭",title:"Beat Sheet",desc:"Save the Cat yöntemiyle 15 adımlı sahne planı otomatik oluşturulur.",col:G.purple},
+            {icon:"👥",title:"Karakter Dosyası",desc:"Psikolojik derinlikte karakter profilleri, motivasyonlar, karakter yayı.",col:G.blue},
+            {icon:"🎬",title:"Topluluk",desc:"Senaryonu paylaş, diğer yazarları takip et, yapımcıların radarına gir.",col:G.purple},
+          ].map((f,i)=>(
+            <div key={i} style={{padding:"20px",background:`linear-gradient(135deg,${G.surface},${G.card})`,border:`1px solid ${G.border}`,borderRadius:16,transition:"all 0.2s",position:"relative",overflow:"hidden"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=f.col+"40";e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow=`0 12px 32px ${f.col}12`;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${f.col},transparent)`,opacity:0.6}}/>
+              <div style={{fontSize:28,marginBottom:12}}>{f.icon}</div>
+              <h3 style={{fontFamily:G.fontDisp,fontSize:18,letterSpacing:"0.05em",color:G.text,marginBottom:6}}>{f.title}</h3>
+              <p style={{fontSize:13,color:G.textMuted,lineHeight:1.6}}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* STATS */}
+      <div style={{borderTop:`1px solid ${G.border}`,borderBottom:`1px solid ${G.border}`,padding:"32px 24px",display:"flex",justifyContent:"center",gap:"clamp(24px,6vw,80px)",flexWrap:"wrap",background:`${G.blue}03`}}>
+        {[{val:"10+",label:"AI Araç"},{val:"∞",label:"Senaryo Üretimi"},{val:"15",label:"Beat Adımı"},{val:"3",label:"Export Formatı"}].map(s=>(
+          <div key={s.label} style={{textAlign:"center"}}>
+            <div style={{fontFamily:G.fontDisp,fontSize:36,color:G.blue,letterSpacing:"0.05em",textShadow:G.glowBlue}}>{s.val}</div>
+            <p style={{fontSize:12,color:G.textMuted,marginTop:4,letterSpacing:"0.06em"}}>{s.label.toUpperCase()}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* FOOTER */}
+      <footer style={{padding:"24px",textAlign:"center",borderTop:`1px solid ${G.border}`}}>
+        <p style={{fontSize:12,color:G.textDim}}>© 2025 Scriptify — AI Senaryo Platformu</p>
+      </footer>
+    </div>
+  );
+
   return(
     <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:80}}>
       <style>{`

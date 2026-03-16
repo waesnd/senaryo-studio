@@ -208,6 +208,16 @@ export default function Uret(){
   var [sequelYukleniyor,setSequelYukleniyor]=useState(false);
   var [kartModal,setKartModal]=useState(false);
   var [drawer,setDrawer]=useState(false);
+  var [sahneSayisi,setSahneSayisi]=useState(5);
+  var [karakterSayisi,setKarakterSayisi]=useState(3);
+  var [revizeYukleniyor,setRevizeYukleniyor]=useState(false);
+  var [diyalogYukleniyor,setDiyalogYukleniyor]=useState(false);
+  var [diyalogSonuc,setDiyalogSonuc]=useState(null);
+  var [diyalogMetin,setDiyalogMetin]=useState("");
+  var [logline,setLogline]=useState(null);
+  var [loglineYukleniyor,setLoglineYukleniyor]=useState(false);
+  var [pitchDeck,setPitchDeck]=useState(null);
+  var [pitchYukleniyor,setPitchYukleniyor]=useState(false);
 
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email.split("@")[0]:"");
@@ -222,8 +232,8 @@ export default function Uret(){
     }catch(e){}
   },[]);
   async function senaryoUret(){
-    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");
-    try{var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip,tur,ozelIstek})});var data=await res.json();if(data.senaryo)setSenaryo(data.senaryo);else alert("Senaryo oluşturulamadı.");}
+    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);
+    try{var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip,tur,ozelIstek,sahneSayisi,karakterSayisi})});var data=await res.json();if(data.senaryo)setSenaryo(data.senaryo);else alert("Senaryo oluşturulamadı.");}
     catch(e){alert("Hata: "+e.message);}
     setYukleniyor(false);
   }
@@ -236,6 +246,55 @@ export default function Uret(){
     try{var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip,tur,ozelIstek:`Bu senaryonun devamını yaz: "${senaryo.baslik}". Tagline: ${senaryo.tagline}. Ana fikir: ${senaryo.ana_fikir?.slice(0,200)}`})});var data=await res.json();if(data.senaryo)setSequel(data.senaryo);}catch(e){}
     setSequelYukleniyor(false);
   }
+  // Revize — senaryoyu yeniden yaz
+  async function revizeEt(){
+    if(!senaryo)return;
+    setRevizeYukleniyor(true);
+    try{
+      var res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({tip,tur,ozelIstek:`Şu senaryoyu tamamen revize et, daha güçlü, daha özgün ve daha çarpıcı yap. Aynı temayı koru ama tüm unsurları yenile: "${senaryo.baslik}" — ${senaryo.ana_fikir?.slice(0,200)}`})});
+      var data=await res.json();
+      if(data.senaryo)setSenaryo(data.senaryo);
+    }catch(e){}
+    setRevizeYukleniyor(false);
+  }
+
+  // Diyalog güçlendirici
+  async function diyalogGuclendir(){
+    if(!diyalogMetin.trim())return;
+    setDiyalogYukleniyor(true);
+    try{
+      var res=await fetch("/api/diyalog",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metin:diyalogMetin,tur})});
+      var data=await res.json();
+      setDiyalogSonuc(data.sonuc||"");
+    }catch(e){alert("Hata: "+e.message);}
+    setDiyalogYukleniyor(false);
+  }
+
+  // Logline üretici
+  async function loglineUret(){
+    if(!senaryo)return;
+    setLoglineYukleniyor(true);
+    try{
+      var res=await fetch("/api/logline",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tur,tip})});
+      var data=await res.json();
+      if(data.logline1)setLogline(data);
+    }catch(e){}
+    setLoglineYukleniyor(false);
+  }
+
+  // Pitch deck üretici
+  async function pitchDeckUret(){
+    if(!senaryo)return;
+    setPitchYukleniyor(true);
+    try{
+      var res=await fetch("/api/pitch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senaryo,tur,tip})});
+      var data=await res.json();
+      if(data.one_liner)setPitchDeck(data);
+    }catch(e){}
+    setPitchYukleniyor(false);
+  }
+
   async function profilKaydet(){
     if(!user||!senaryo)return;
     await supabase.from("senaryolar").insert([{user_id:user.id,tip,tur,baslik:senaryo.baslik,tagline:senaryo.tagline,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.acilis_sahnesi,soru:senaryo.buyuk_soru,paylasim_acik:paylasimAcik,begeni_sayisi:0}]);
@@ -278,6 +337,127 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
     a.download=(senaryo.baslik||"senaryo").replace(/\s+/g,"_")+".fdx";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+
+  async function pdfIndir(){
+    if(!senaryo)return;
+    // jsPDF CDN'den yükle
+    if(typeof window.jspdf === "undefined"){
+      await new Promise((res,rej)=>{
+        var s=document.createElement("script");
+        s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+        s.onload=res; s.onerror=rej;
+        document.head.appendChild(s);
+      });
+    }
+    var {jsPDF}=window.jspdf;
+    var doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    var W=210; var margin=20; var x=margin; var y=30;
+    var lineH=6; var maxW=W-margin*2;
+
+    function addText(text,size,color,bold,italic){
+      doc.setFontSize(size||11);
+      doc.setTextColor(...(color||[241,245,249]));
+      doc.setFont("helvetica", bold?"bold":italic?"italic":"normal");
+      if(y>270){doc.addPage();y=20;drawBg();}
+      var lines=doc.splitTextToSize(String(text||""),maxW);
+      lines.forEach(line=>{
+        if(y>270){doc.addPage();y=20;drawBg();}
+        doc.text(line,x,y);
+        y+=lineH;
+      });
+      y+=2;
+    }
+
+    function drawBg(){
+      doc.setFillColor(10,15,30);
+      doc.rect(0,0,210,297,"F");
+      // Neon üst çizgi
+      doc.setDrawColor(56,189,248);
+      doc.setLineWidth(0.5);
+      doc.line(margin,12,W-margin,12);
+      doc.line(margin,285,W-margin,285);
+    }
+
+    function addSection(label,val,col){
+      if(!val)return;
+      y+=3;
+      doc.setFillColor(...(col||[56,189,248]),20);
+      doc.roundedRect(margin-2,y-4,maxW+4,8,2,2,"F");
+      doc.setFontSize(8); doc.setTextColor(...(col||[56,189,248]));
+      doc.setFont("helvetica","bold");
+      doc.text(label,x,y+1);
+      y+=8;
+      addText(val,11,[200,220,240]);
+    }
+
+    // Arkaplan
+    drawBg();
+
+    // SCRIPTIFY logo
+    doc.setFontSize(9); doc.setTextColor(56,189,248);
+    doc.setFont("helvetica","bold");
+    doc.text("SCRIPTIFY — AI SENARYO PLATFORMU",x,10);
+
+    // Başlık
+    addText(senaryo.baslik,24,[56,189,248],true);
+    y-=2;
+
+    // Badge'ler
+    doc.setFontSize(8); doc.setTextColor(139,92,246);
+    doc.text(tip+" · "+tur,x,y); y+=8;
+
+    // Tagline
+    if(senaryo.tagline){ doc.setFontSize(11); doc.setTextColor(125,211,252); doc.setFont("helvetica","italic"); doc.text('"'+senaryo.tagline+'"',x,y); y+=10; }
+
+    // İçerik bölümleri
+    addSection("ANA FİKİR",senaryo.ana_fikir,[56,189,248]);
+    addSection("KARAKTERLER",senaryo.karakter,[139,92,246]);
+    addSection("AÇILIŞ SAHNESİ",senaryo.acilis_sahnesi,[56,189,248]);
+    addSection("BÜYÜK SORU",senaryo.buyuk_soru,[245,158,11]);
+
+    // Beat Sheet
+    if(Object.keys(beatler).length>0){
+      y+=6;
+      addText("SAHNE PLANI — SAVE THE CAT",13,[56,189,248],true);
+      var actCol={1:[56,189,248],2:[139,92,246],3:[239,68,68]};
+      BEAT_SHEET.forEach(b=>{
+        if(beatler[b.id]){
+          y+=2;
+          doc.setFontSize(9); doc.setTextColor(...actCol[b.act]); doc.setFont("helvetica","bold");
+          doc.text(b.no+". "+b.label.toUpperCase(),x,y); y+=5;
+          addText(beatler[b.id],10,[180,200,220]);
+        }
+      });
+    }
+
+    // Karakter Dosyası
+    if(karakterBible?.karakterler?.length>0){
+      if(y>200){doc.addPage();y=20;drawBg();}
+      addText("KARAKTER DOSYASI",13,[139,92,246],true);
+      karakterBible.karakterler.forEach(k=>{
+        y+=2;
+        doc.setFontSize(11); doc.setTextColor(167,139,250); doc.setFont("helvetica","bold");
+        doc.text(k.ad+(k.yas?" · "+k.yas:"")+(k.meslek?" · "+k.meslek:""),x,y); y+=6;
+        if(k.hedef)addText("Hedef: "+k.hedef,9,[180,200,220]);
+        if(k.korku)addText("Korku: "+k.korku,9,[180,200,220]);
+        if(k.arc)addText("Karakter Yayı: "+k.arc,9,[180,200,220]);
+        y+=2;
+      });
+    }
+
+    // Alt bilgi
+    var pageCount=doc.internal.getNumberOfPages();
+    for(var i=1;i<=pageCount;i++){
+      doc.setPage(i);
+      doc.setFontSize(8); doc.setTextColor(56,189,248,0.4);
+      doc.text("scriptify.app",margin,291);
+      doc.text(new Date().toLocaleDateString("tr-TR"),W-margin,291,{align:"right"});
+      doc.text("Sayfa "+i+"/"+pageCount,W/2,291,{align:"center"});
+    }
+
+    doc.save((senaryo.baslik||"senaryo").replace(/\s+/g,"_")+".pdf");
   }
 
   async function txtIndir(){
@@ -443,6 +623,12 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   </div>
                 ))}
 
+                {/* Revize butonu */}
+                <button onClick={revizeEt} disabled={revizeYukleniyor}
+                  style={{width:"100%",padding:"11px",borderRadius:14,background:revizeYukleniyor?G.surface:`${G.blue}10`,border:`1.5px solid ${revizeYukleniyor?G.border:G.blue}`,color:revizeYukleniyor?G.textMuted:G.blue,fontSize:13,fontWeight:700,marginBottom:10,transition:"all 0.2s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  {revizeYukleniyor?<><div style={{width:14,height:14,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span>Revize ediliyor...</span></>:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Revize Et — Yeniden Yaz</>}
+                </button>
+
                 <button onClick={sequelUret} disabled={sequelYukleniyor} style={{width:"100%",padding:"12px",borderRadius:14,background:sequelYukleniyor?G.surface:G.purpleGrad,border:`1px solid ${sequelYukleniyor?G.border:"transparent"}`,color:sequelYukleniyor?G.textMuted:"#fff",fontSize:13,fontWeight:700,cursor:sequelYukleniyor?"default":"pointer",marginBottom:12,textTransform:"uppercase",letterSpacing:"0.05em",boxShadow:sequelYukleniyor?"none":G.glowPurple}}>
                   {sequelYukleniyor?<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span style={{display:"inline-block",width:14,height:14,border:`2px solid ${G.border}`,borderTopColor:G.purple,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>Devam yazılıyor...</span>:"🔮 Devam Ettir (Sequel)"}
                 </button>
@@ -456,9 +642,10 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                 )}
 
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  <div style={{flex:1,position:"relative",display:"flex",gap:4}}>
-                    <button onClick={txtIndir} style={{flex:1,padding:"11px 8px",borderRadius:"12px 0 0 12px",background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Icon id="download" size={13} color={G.textMuted}/>TXT</button>
-                    <button onClick={fdxIndir} style={{padding:"11px 10px",borderRadius:"0 12px 12px 0",background:G.surface,border:`1px solid ${G.border}`,borderLeft:"none",color:G.purple,fontSize:11,fontWeight:700,cursor:"pointer"}} title="Final Draft formatında indir">FDX</button>
+                  <div style={{flex:1,position:"relative",display:"flex",gap:3}}>
+                    <button onClick={txtIndir} style={{flex:1,padding:"11px 6px",borderRadius:"12px 0 0 12px",background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><Icon id="download" size={12} color={G.textMuted}/>TXT</button>
+                    <button onClick={fdxIndir} style={{padding:"11px 8px",borderRadius:"0",background:G.surface,border:`1px solid ${G.border}`,borderLeft:"none",color:G.purple,fontSize:11,fontWeight:700,cursor:"pointer"}} title="Final Draft">FDX</button>
+                    <button onClick={pdfIndir} style={{padding:"11px 8px",borderRadius:"0 12px 12px 0",background:G.surface,border:`1px solid ${G.border}`,borderLeft:"none",color:G.red,fontSize:11,fontWeight:700,cursor:"pointer"}} title="PDF olarak indir">PDF</button>
                   </div>
                   <button onClick={()=>setKartModal(true)} style={{flex:1,padding:"11px 8px",borderRadius:12,background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon id="share" size={13} color={G.textMuted}/>Paylaş</button>
                   {!kaydedildi
@@ -604,6 +791,104 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
           </div>
         )}
       </div>
+
+            {/* DİYALOG GÜÇLENDİRİCİ */}
+            {sekme==="diyalog"&&(
+              <div style={{...KART,border:`1px solid rgba(45,212,191,0.2)`}}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,#2DD4BF,#0EA5E9)",borderRadius:"20px 20px 0 0"}}/>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,paddingTop:4}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:"rgba(45,212,191,0.15)",border:"1px solid rgba(45,212,191,0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                  </div>
+                  <div><h3 style={{fontFamily:G.fontDisp,fontSize:20,color:G.text}}>DİYALOG GÜÇLENDİRİCİ</h3><p style={{fontSize:11,color:G.textMuted}}>Zayıf diyaloğu sinematik seviyeye taşı</p></div>
+                </div>
+                <p style={{fontSize:11,color:G.textDim,marginBottom:8,letterSpacing:"0.06em",textTransform:"uppercase"}}>Güçlendirilecek Diyalog</p>
+                <textarea value={diyalogMetin} onChange={e=>setDiyalogMetin(e.target.value)} rows={5}
+                  placeholder={"AHMET
+Seni seviyorum.
+
+NAZ
+Ben de seni..."}
+                  style={{marginBottom:12,resize:"none",lineHeight:1.7,fontFamily:"monospace",fontSize:13,background:G.surface,border:`1px solid ${G.border}`,borderRadius:12,padding:"10px 14px",color:G.text,width:"100%",outline:"none"}}/>
+                <button onClick={diyalogGuclendir} disabled={diyalogYukleniyor||!diyalogMetin.trim()}
+                  style={{width:"100%",padding:"12px",borderRadius:14,background:diyalogYukleniyor?"rgba(45,212,191,0.08)":"linear-gradient(135deg,#0891b2,#2DD4BF)",border:"none",color:diyalogYukleniyor?G.textMuted:"#0A0F1E",fontSize:13,fontWeight:800,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  {diyalogYukleniyor?<><div style={{width:14,height:14,border:`2px solid ${G.border}`,borderTopColor:"#2DD4BF",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>Güçlendiriliyor...</>:"⚡ Diyaloğu Güçlendir"}
+                </button>
+                {diyalogSonuc&&(
+                  <div style={{background:"rgba(45,212,191,0.06)",border:"1px solid rgba(45,212,191,0.2)",borderRadius:14,padding:16}}>
+                    <p style={{fontSize:10,fontWeight:700,color:"#2DD4BF",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>✓ GÜÇLENDİRİLMİŞ DİYALOG</p>
+                    <pre style={{fontSize:13,color:G.text,lineHeight:1.8,whiteSpace:"pre-wrap",fontFamily:"monospace"}}>{diyalogSonuc}</pre>
+                    <button onClick={()=>navigator.clipboard?.writeText(diyalogSonuc)}
+                      style={{marginTop:10,padding:"7px 16px",borderRadius:10,background:"rgba(45,212,191,0.1)",border:"1px solid rgba(45,212,191,0.25)",color:"#2DD4BF",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      📋 Kopyala
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* LOGLINE ÜRETİCİ */}
+            {sekme==="logline"&&(
+              <div style={{...KART,border:`1px solid ${G.green}20`}}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${G.green},#4ADE80)`,borderRadius:"20px 20px 0 0"}}/>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,paddingTop:4}}>
+                  <div>
+                    <h3 style={{fontFamily:G.fontDisp,fontSize:20,color:G.text}}>LOGLINE ÜRETİCİ</h3>
+                    <p style={{fontSize:11,color:G.textMuted}}>3 farklı güçlü logline seçeneği</p>
+                  </div>
+                  <button onClick={loglineUret} disabled={loglineYukleniyor}
+                    style={{padding:"9px 18px",borderRadius:12,background:loglineYukleniyor?G.surface:`linear-gradient(135deg,${G.green},#4ADE80)`,border:"none",color:loglineYukleniyor?G.textMuted:"#0A0F1E",fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+                    {loglineYukleniyor?<><div style={{width:14,height:14,border:`2px solid ${G.border}`,borderTopColor:G.green,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>Üretiliyor</>:"⚡ Üret"}
+                  </button>
+                </div>
+                {!logline&&!loglineYukleniyor&&<div style={{textAlign:"center",padding:"40px 0"}}><div style={{fontFamily:G.fontDisp,fontSize:32,color:G.textDim,marginBottom:8}}>LOGLINE</div><p style={{fontSize:13,color:G.textMuted}}>Senaryondan 3 güçlü logline üret</p></div>}
+                {loglineYukleniyor&&<div style={{textAlign:"center",padding:"30px 0"}}><div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.green,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>}
+                {logline&&[logline.logline1,logline.logline2,logline.logline3].filter(Boolean).map((l,i)=>(
+                  <div key={i} style={{marginBottom:12,padding:"16px",background:`${G.green}06`,border:`1px solid ${G.green}20`,borderRadius:14,position:"relative"}}>
+                    <span style={{position:"absolute",top:12,left:14,fontFamily:G.fontDisp,fontSize:11,color:G.green,letterSpacing:"0.1em"}}>#{i+1}</span>
+                    <p style={{fontSize:14,color:G.text,lineHeight:1.7,paddingLeft:28,fontStyle:"italic"}}>"{l}"</p>
+                    <button onClick={()=>navigator.clipboard?.writeText(l)}
+                      style={{marginTop:8,marginLeft:28,padding:"5px 12px",borderRadius:8,background:`${G.green}10`,border:`1px solid ${G.green}25`,color:G.green,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      📋 Kopyala
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* PİTCH DECK */}
+            {sekme==="pitch"&&(
+              <div style={{...KART,border:`1px solid ${G.red}20`}}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${G.red},${G.redL})`,borderRadius:"20px 20px 0 0"}}/>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,paddingTop:4}}>
+                  <div>
+                    <h3 style={{fontFamily:G.fontDisp,fontSize:20,color:G.text}}>PİTCH DECK</h3>
+                    <p style={{fontSize:11,color:G.textMuted}}>Yapımcılara sunum için pitch içeriği</p>
+                  </div>
+                  <button onClick={pitchDeckUret} disabled={pitchYukleniyor}
+                    style={{padding:"9px 18px",borderRadius:12,background:pitchYukleniyor?G.surface:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:pitchYukleniyor?G.textMuted:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+                    {pitchYukleniyor?<><div style={{width:14,height:14,border:`2px solid ${G.border}`,borderTopColor:G.red,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>Hazırlanıyor</>:"⚡ Üret"}
+                  </button>
+                </div>
+                {!pitchDeck&&!pitchYukleniyor&&<div style={{textAlign:"center",padding:"40px 0"}}><div style={{fontFamily:G.fontDisp,fontSize:32,color:G.textDim,marginBottom:8}}>PİTCH DECK</div><p style={{fontSize:13,color:G.textMuted}}>Yapımcı sunumuna hazır pitch içeriği</p></div>}
+                {pitchYukleniyor&&<div style={{textAlign:"center",padding:"30px 0"}}><div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.red,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>}
+                {pitchDeck&&[
+                  {key:"one_liner",label:"ONE LINER",col:G.red,icon:"🎯"},
+                  {key:"problem",label:"PROBLEM",col:G.amber,icon:"⚡"},
+                  {key:"cozum",label:"ÇÖZÜM",col:G.blue,icon:"💡"},
+                  {key:"hedef_kitle",label:"HEDEF KİTLE",col:G.purple,icon:"👥"},
+                  {key:"rekabet",label:"REKABET & FARK",col:G.blueL,icon:"🏆"},
+                  {key:"neden_simdi",label:"NEDEN ŞİMDİ?",col:"#F472B6",icon:"⏰"},
+                  {key:"vizyon",label:"VİZYON",col:G.purple,icon:"🔭"},
+                  {key:"cagri",label:"NEDEN YATIRIN?",col:G.green,icon:"💰"},
+                ].map(item=>pitchDeck[item.key]?(
+                  <div key={item.key} style={{marginBottom:10,padding:"14px 16px",background:`${item.col}06`,border:`1px solid ${item.col}20`,borderRadius:14}}>
+                    <p style={{fontSize:10,fontWeight:700,color:item.col,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>{item.icon} {item.label}</p>
+                    <p style={{fontSize:13,color:G.text,lineHeight:1.65}}>{pitchDeck[item.key]}</p>
+                  </div>
+                ):null)}
+              </div>
+            )}
 
       <AltNav/>
       {drawer&&<Drawer user={user} username={username} avatarUrl={avatarUrl} onClose={()=>setDrawer(false)}/>}
