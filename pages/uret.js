@@ -897,6 +897,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   </div>
                 ):null)}
               </div>
+            )}
 
             {/* HERO'S JOURNEY */}
             {sekme==="hero"&&(
@@ -957,21 +958,19 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   {key:"donus_yolu",no:10,label:"Geri Dönüş Yolu",sub:"The Road Back",col:"#38BDF8"},
                   {key:"dirilis",no:11,label:"Diriliş",sub:"Resurrection",col:"#F59E0B"},
                   {key:"eliksirle_donus",no:12,label:"Eliksirle Dönüş",sub:"Return with the Elixir",col:"#22C55E"},
-                ].map(aşama=>heroJourney[aşama.key]?(
-                  <div key={aşama.key} style={{marginBottom:10,padding:"14px 16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`,borderLeft:`3px solid ${aşama.col}`,boxShadow:`-4px 0 12px ${aşama.col}10`}}>
+                ].map(asama=>heroJourney[asama.key]?(
+                  <div key={asama.key} style={{marginBottom:10,padding:"14px 16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`,borderLeft:`3px solid ${asama.col}`,boxShadow:`-4px 0 12px ${asama.col}10`}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                      <span style={{width:24,height:24,borderRadius:"50%",background:`${aşama.col}15`,color:aşama.col,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:G.fontDisp}}>{aşama.no}</span>
+                      <span style={{width:24,height:24,borderRadius:"50%",background:`${asama.col}15`,color:asama.col,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:G.fontDisp}}>{asama.no}</span>
                       <div>
-                        <p style={{fontSize:13,fontWeight:700,color:G.text}}>{aşama.label}</p>
-                        <p style={{fontSize:10,color:G.textDim,fontStyle:"italic"}}>{aşama.sub}</p>
+                        <p style={{fontSize:13,fontWeight:700,color:G.text}}>{asama.label}</p>
+                        <p style={{fontSize:10,color:G.textDim,fontStyle:"italic"}}>{asama.sub}</p>
                       </div>
                     </div>
-                    <p style={{fontSize:13,color:G.textMuted,lineHeight:1.65,paddingLeft:32}}>{heroJourney[aşama.key]}</p>
+                    <p style={{fontSize:13,color:G.textMuted,lineHeight:1.65,paddingLeft:32}}>{heroJourney[asama.key]}</p>
                   </div>
                 ):null)}
               </div>
-            )}
-
             )}
 
       <AltNav/>
