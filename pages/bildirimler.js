@@ -210,9 +210,10 @@ export default function Bildirimler(){
       {/* TOPBAR */}
       <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:12}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
-        <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}><Av url={profil?.avatar_url||null} size={34}/><img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:140}}/></button>,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,flexShrink:0}}>
-          <Icon id="arrow-left" size={16} color={G.blue}/>
-        </a>
+        <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
+          <Av url={profil?.avatar_url||null} size={34}/>
+          <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:140}}/>
+        </button>
         <div style={{flex:1}}>
           <span style={{fontFamily:G.fontDisp,fontSize:20,letterSpacing:"0.1em",color:G.text}}>BİLDİRİMLER</span>
           {okunmayanSayi>0&&<span style={{marginLeft:8,fontSize:11,color:G.red,fontWeight:700,textShadow:`0 0 8px ${G.red}60`}}>{okunmayanSayi} yeni</span>}
