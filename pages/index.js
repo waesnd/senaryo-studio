@@ -395,7 +395,8 @@ export default function Index(){
   var {user, profil, authHazir} = useAuth();
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email.split("@")[0]:"");
-  var [gonderiler,setGonderiler]=useState([]);
+  var [kesfetGonderiler,setKesfetGonderiler]=useState([]);
+  var [takipGonderiler,setTakipGonderiler]=useState([]);
   var [storyler,setStoryler]=useState([]);
   var [yukleniyor,setYukleniyor]=useState(false);
 
@@ -413,7 +414,12 @@ export default function Index(){
     loadStoryler();
   },[]);
 
-  useEffect(()=>{setSayfa(0);setBitti(false);loadGonderiler(0,true);},[sekme]);
+  useEffect(()=>{
+    setSayfa(0);setBitti(false);
+    // Mevcut cache varsa göster, yoksa yükle
+    var mevcut=sekme==="takip"?takipGonderiler:kesfetGonderiler;
+    if(mevcut.length===0) loadGonderiler(0,true);
+  },[sekme]);
 
 
   async function loadStoryler(){
@@ -445,8 +451,13 @@ export default function Index(){
     }
 
     if(data){
-      if(reset)setGonderiler(data);
-      else setGonderiler(p=>[...p,...data]);
+      if(sekme==="takip"){
+        if(reset)setTakipGonderiler(data);
+        else setTakipGonderiler(p=>[...p,...data]);
+      }else{
+        if(reset)setKesfetGonderiler(data);
+        else setKesfetGonderiler(p=>[...p,...data]);
+      }
       setBitti(data.length<LIMIT);
     }
     setYukleniyor(false);
@@ -474,6 +485,8 @@ export default function Index(){
     if(saved)await supabase.from("kaydedilenler").insert([{gonderi_id:id,user_id:user.id}]);
     else await supabase.from("kaydedilenler").delete().eq("gonderi_id",id).eq("user_id",user.id);
   }
+
+  var gonderiler=sekme==="takip"?takipGonderiler:kesfetGonderiler;
 
   if(!authHazir)return(<div style={{minHeight:"100vh",background:"#0A0F1E",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14}}><div style={{width:36,height:36,border:"2px solid rgba(56,189,248,0.15)",borderTopColor:"#38BDF8",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><p style={{fontFamily:"Bebas Neue,sans-serif",fontSize:14,letterSpacing:"0.15em",color:"rgba(241,245,249,0.25)"}}>SCRİPTİFY</p><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
