@@ -1,14 +1,15 @@
 // pages/api/generate.js
-export default async function handler(req, res){
+import { withAuth } from "../../lib/withAuth";
+
+async function handler(req, res){
   if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
   var {tip, tur, ozelIstek, sahneSayisi, karakterSayisi} = req.body;
   if(!tip || !tur) return res.status(400).json({error:"tip ve tur zorunlu"});
 
-  // Özel istekten kişi adı/gerçek olay referanslarını temizle
   var temizIstek = ozelIstek || "";
 
-var prompt = `Sen Türkiye'nin en iyi senaryo yazarısın. ${tip} formatında, ${tur} türünde özgün ve çarpıcı bir senaryo fikri üret.
+  var prompt = `Sen Türkiye'nin en iyi senaryo yazarısın. ${tip} formatında, ${tur} türünde özgün ve çarpıcı bir senaryo fikri üret.
 
 ZORUNLU KURALLAR:
 - Tüm karakter isimleri MUTLAKA Türkçe/Türk ismi olmalı (Ayşe, Kemal, Zeynep, Tarık, Defne, Murat, Hira, Serdar, Leyla, Caner, Bora, Naz, Ece, Selim, Melis gibi)
@@ -18,8 +19,9 @@ ZORUNLU KURALLAR:
 - Açılış sahnesi seyirciyi anında içine çekecek güçte olsun
 - Tagline akılda kalıcı, film postere yazılabilecek nitelikte olsun
 - Ana fikir somut çatışma ve dramatik gerilim içersin
-${sahneSayisi ? `\nSahne sayısı: yaklaşık ${sahneSayisi} sahne olsun` : ""}\n${karakterSayisi ? `Karakter sayısı: tam olarak ${karakterSayisi} ana karakter olsun` : ""}\n${ozelIstek ? `Kullanıcının özel isteği (kesinlikle uygula): ${temizIstek}
-ÖNEMLİ: Özel istekte gerçek kişi adları varsa (örn: "Caner", "Ahmet" gibi), bunları kurgusal karakter isimleri olarak kullan. Gerçek kişileri değil, ilham alınan kurgusal karakterleri yaz.` : ""}
+${sahneSayisi ? `\nSahne sayısı: yaklaşık ${sahneSayisi} sahne olsun` : ""}
+${karakterSayisi ? `Karakter sayısı: tam olarak ${karakterSayisi} ana karakter olsun` : ""}
+${temizIstek ? `Kullanıcının özel isteği (kesinlikle uygula): ${temizIstek}\nÖNEMLİ: Özel istekte gerçek kişi adları varsa, bunları kurgusal karakter isimleri olarak kullan.` : ""}
 
 SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama veya markdown ekleme:
 {
@@ -51,17 +53,13 @@ SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama veya markdow
       throw new Error("Groq API hatası: " + groqRes.status + " — " + errText);
     }
 
-    var data = await groqRes.json();
-    var text = data.choices?.[0]?.message?.content || "";
-
-    // JSON'u ayıkla — kod bloğu varsa temizle
-    text = text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+    var data  = await groqRes.json();
+    var text  = data.choices?.[0]?.message?.content || "";
+    text      = text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
     var match = text.match(/\{[\s\S]*\}/);
-    if(!match) throw new Error("Geçerli JSON bulunamadı — model yanıtı: " + text.slice(0,200));
+    if(!match) throw new Error("Geçerli JSON bulunamadı: " + text.slice(0,200));
 
-    var parsed = JSON.parse(match[0]);
-
-    // Zorunlu alanları kontrol et
+    var parsed   = JSON.parse(match[0]);
     var required = ["baslik","tagline","ana_fikir","karakter","acilis_sahnesi","buyuk_soru"];
     for(var field of required){
       if(!parsed[field]) parsed[field] = "";
@@ -73,3 +71,5 @@ SADECE aşağıdaki JSON formatında yanıt ver, hiçbir açıklama veya markdow
     res.status(500).json({error: e.message});
   }
 }
+
+export default withAuth(handler);
