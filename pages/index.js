@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/useAuth";
 
 // ── MIDNIGHT ASSASSIN TEMA ────────────────────────────────────────────────────
 var G = {
@@ -391,6 +392,9 @@ function AltNav({active="/"}){
 
 // ── ANA SAYFA ─────────────────────────────────────────────────────────────────
 export default function Index(){
+  var {user, profil, authHazir} = useAuth();
+  var avatarUrl=profil?.avatar_url||null;
+  var username=profil?.username||(user?user.email.split("@")[0]:"");
   var [gonderiler,setGonderiler]=useState([]);
   var [storyler,setStoryler]=useState([]);
   var [yukleniyor,setYukleniyor]=useState(false);

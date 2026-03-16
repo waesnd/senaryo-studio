@@ -212,7 +212,7 @@ export default function Mesajlar(){
     if(data)setKullaniciSonuc(data);
   }
 
-  if(!loaded)return(
+  if(!authHazir)return(
     <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
