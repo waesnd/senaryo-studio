@@ -158,8 +158,7 @@ export default function Topluluk(){
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email.split("@")[0]:"");
 
-  useEffect(()=>{      }
-    });
+  useEffect(()=>{
     loadChallenglar();
     loadTopSenaristler();
   },[]);

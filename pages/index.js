@@ -395,7 +395,7 @@ export default function Index(){
   var [gonderiler,setGonderiler]=useState([]);
   var [storyler,setStoryler]=useState([]);
   var [yukleniyor,setYukleniyor]=useState(false);
-  var [!authHazir,setAuthYukleniyor]=useState(true);
+
   var [sekme,setSekme]=useState("kesfet");
   var [drawer,setDrawer]=useState(false);
   var [sayfa,setSayfa]=useState(0);
