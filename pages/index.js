@@ -190,6 +190,8 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
   var [saved,setSaved]=useState(gonderi._saved||false);
   var [showYorum,setShowYorum]=useState(false);
   var [yorumText,setYorumText]=useState("");
+  var [raporModal,setRaporModal]=useState(false);
+  var [raporGonderildi,setRaporGonderildi]=useState(false);
   var rozet=getRozet(gonderi.profiles?.senaryo_sayisi);
 
   // Türe göre soluk neon renk tonu
@@ -206,6 +208,26 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
     var n=!liked;setLiked(n);setLikeCount(c=>n?c+1:c-1);
     onBegen&&onBegen(gonderi.id,n);
   }
+  async function handleRapor(sebep){
+    if(!user) return;
+    await supabase.from("raporlar").insert([{
+      rapor_eden: user.id,
+      icerik_turu: "gonderi",
+      icerik_id: gonderi.id,
+      sebep,
+    }]);
+    // 5 rapor eşiği — otomatik gizle
+    var { count } = await supabase.from("raporlar")
+      .select("*",{count:"exact",head:true})
+      .eq("icerik_id", gonderi.id)
+      .eq("icerik_turu", "gonderi");
+    if(count >= 5){
+      await supabase.from("gonderiler").update({paylasim_acik:false}).eq("id",gonderi.id);
+    }
+    setRaporGonderildi(true);
+    setRaporModal(false);
+  }
+
   async function handleYorumGonder(e){
     e.stopPropagation();
     if(!yorumText.trim()||!user)return;
@@ -297,6 +319,11 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
             <button onClick={e=>{e.stopPropagation();if(navigator.share)navigator.share({title:gonderi.baslik,url:`${window.location.origin}/senaryo/${gonderi.id}`});}} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:10,background:"transparent",border:"1px solid transparent",color:G.textMuted,fontSize:12}}>
               <Icon id="share" size={14} color={G.textMuted}/>
             </button>
+            {user&&gonderi.profiles?.username!==user.email?.split("@")[0]&&!raporGonderildi&&(
+              <button onClick={e=>{e.stopPropagation();setRaporModal(true);}} style={{display:"flex",alignItems:"center",gap:3,padding:"7px 10px",borderRadius:10,background:"transparent",border:"1px solid transparent",color:G.textDim,fontSize:11,cursor:"pointer"}} title="Raporla">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </button>
+            )}
           </div>
 
           {showYorum&&(
@@ -306,6 +333,24 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
             </div>
           )}
         </div>
+
+        {/* Rapor Modal */}
+        {raporModal&&<>
+          <div onClick={()=>setRaporModal(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(10px)"}}/>
+          <div style={{position:"fixed",inset:"auto 16px 20px",zIndex:401,background:G.surface,border:`1px solid ${G.red}30`,borderRadius:20,padding:"20px",boxShadow:G.shadow,animation:"fadeUp 0.2s ease"}}>
+            <p style={{fontFamily:G.fontDisp,fontSize:16,letterSpacing:"0.05em",color:G.text,marginBottom:4}}>RAPORLA</p>
+            <p style={{fontSize:11,color:G.textMuted,marginBottom:16}}>Neden raporluyorsun?</p>
+            {["Spam / Alakasız içerik","Küçültücü / Hakaret","Telif ihlali","Uygunsuz içerik"].map(s=>(
+              <button key={s} onClick={()=>handleRapor(s)}
+                style={{display:"block",width:"100%",padding:"12px 16px",marginBottom:8,borderRadius:12,border:`1px solid ${G.border}`,background:G.card,color:G.textMuted,fontSize:13,textAlign:"left",cursor:"pointer",transition:"all 0.15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=G.red+"40";e.currentTarget.style.color=G.red;e.currentTarget.style.background=`${G.red}08`;}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.color=G.textMuted;e.currentTarget.style.background=G.card;}}>
+                {s}
+              </button>
+            ))}
+            <button onClick={()=>setRaporModal(false)} style={{width:"100%",padding:"10px",borderRadius:12,background:"none",border:`1px solid ${G.border}`,color:G.textDim,fontSize:12,cursor:"pointer"}}>İptal</button>
+          </div>
+        </>}
 
         {/* Alt şerit */}
         <div style={{height:4,background:`linear-gradient(90deg,transparent,${accent}15,transparent)`}}/>
