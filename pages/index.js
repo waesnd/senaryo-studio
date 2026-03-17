@@ -452,7 +452,7 @@ function AltNav({active="/"}){
 
 // ── ANA SAYFA ─────────────────────────────────────────────────────────────────
 export default function Index(){
-  var {user, profil, authHazir, okunmayanBildirim} = useAuth();
+  var {user, profil, authHazir, okunmayanBildirim, authDebug} = useAuth();
   var [kesfetGonderiler,setKesfetGonderiler]=useState([]);
   var [takipGonderiler,setTakipGonderiler]=useState([]);
   var [storyler,setStoryler]=useState([]);
@@ -463,13 +463,15 @@ export default function Index(){
   var [drawer,setDrawer]=useState(false);
   var [sayfa,setSayfa]=useState(0);
   var [bitti,setBitti]=useState(false);
+  var [pageDebug,setPageDebug]=useState("index başladı");
   var loaderRef=useRef(null);
   var LIMIT=10;
 
   var avatarUrl=profil?.avatar_url||null;
-  var username=profil?.username||(user?user.email.split("@")[0]:"");
+  var username=profil?.username||(user?.email?user.email.split("@")[0]:"");
 
   useEffect(()=>{
+    setPageDebug("storyler yükleme tetiklendi");
     loadStoryler();
   },[]);
 
@@ -477,8 +479,9 @@ export default function Index(){
   var ilkYuklemeRef = useRef(false);
 
   useEffect(()=>{
-    if(!authHazir) return;
+    if(!authHazir) { setPageDebug("authHazir bekleniyor"); return; }
     if(ilkYuklemeRef.current) return;
+    setPageDebug("ilk gönderi yükleme başlıyor");
     ilkYuklemeRef.current = true;
     loadGonderiler(0,true,"kesfet");
   },[authHazir]);
@@ -486,6 +489,7 @@ export default function Index(){
   // Sekme değişince — ilk yükleme tamamlandıktan sonra
   useEffect(()=>{
     if(!ilkYuklemeRef.current) return;
+    setPageDebug("sekme değişti: " + sekme);
     var mevcut=sekme==="takip"?takipGonderiler:kesfetGonderiler;
     if(mevcut.length>0) setIlkYukleniyor(false); // cache varsa skeleton yok
     setSayfa(0);setBitti(false);
@@ -494,6 +498,7 @@ export default function Index(){
 
 
   async function loadStoryler() {
+    setPageDebug("storyler yükleniyor");
     try {
       var { data, error } = await supabase
         .from("storyler")
@@ -503,12 +508,15 @@ export default function Index(){
 
       if (error) {
         console.error("[index] storyler yüklenemedi:", error.message);
+        setPageDebug("storyler hata: " + error.message);
         return;
       }
 
       if (data) setStoryler(data);
+      setPageDebug("storyler tamam: " + (data?.length || 0));
     } catch (err) {
       console.error("[index] loadStoryler beklenmeyen hata:", err);
+      setPageDebug("storyler beklenmeyen hata: " + (err?.message || "bilinmiyor"));
     }
   }
   async function storySil(id){
@@ -517,6 +525,7 @@ export default function Index(){
   }
   async function loadGonderiler(page = 0, reset = false, aktivSekme) {
     var hedefSekme = aktivSekme || sekme;
+    setPageDebug("gönderiler yükleniyor: " + hedefSekme + " / sayfa " + page);
 
     try {
       if (reset) setIlkYukleniyor(true);
@@ -536,7 +545,9 @@ export default function Index(){
 
         if (takipError) {
           console.error("[index] takipler yüklenemedi:", takipError.message);
+          setPageDebug("takip sorgusu hata: " + takipError.message);
           if (reset) setTakipGonderiler([]);
+          setPageDebug("takip sekmesinde takip edilen yok");
           setBitti(true);
           return;
         }
@@ -559,6 +570,7 @@ export default function Index(){
 
         if (res.error) {
           console.error("[index] takip gönderileri yüklenemedi:", res.error.message);
+          setPageDebug("takip gönderileri hata: " + res.error.message);
           return;
         }
 
@@ -573,6 +585,7 @@ export default function Index(){
 
         if (res.error) {
           console.error("[index] keşfet gönderileri yüklenemedi:", res.error.message);
+          setPageDebug("keşfet gönderileri hata: " + res.error.message);
           return;
         }
 
@@ -588,8 +601,10 @@ export default function Index(){
       }
 
       setBitti(data.length < LIMIT);
+      setPageDebug("gönderiler tamam: " + (data?.length || 0));
     } catch (err) {
       console.error("[index] loadGonderiler beklenmeyen hata:", err);
+      setPageDebug("gönderiler beklenmeyen hata: " + (err?.message || "bilinmiyor"));
       setBitti(true);
     } finally {
       setYukleniyor(false);
@@ -627,7 +642,21 @@ export default function Index(){
 
   var gonderiler=sekme==="takip"?takipGonderiler:kesfetGonderiler;
 
-  if(!authHazir)return(<div style={{minHeight:"100vh",background:"#0A0F1E",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14}}><div style={{width:36,height:36,border:"2px solid rgba(56,189,248,0.15)",borderTopColor:"#38BDF8",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><p style={{fontFamily:"Bebas Neue,sans-serif",fontSize:14,letterSpacing:"0.15em",color:"rgba(241,245,249,0.25)"}}>SCRİPTİFY</p><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
+  if(!authHazir)return(
+    <div style={{minHeight:"100vh",background:"#0A0F1E",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14,padding:"24px"}}>
+      <div style={{width:36,height:36,border:"2px solid rgba(56,189,248,0.15)",borderTopColor:"#38BDF8",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+      <p style={{fontFamily:"Bebas Neue,sans-serif",fontSize:14,letterSpacing:"0.15em",color:"rgba(241,245,249,0.25)"}}>SCRİPTİFY</p>
+      <div style={{maxWidth:360,width:"100%",background:"rgba(15,23,42,0.95)",border:"1px solid rgba(56,189,248,0.18)",borderRadius:12,padding:"12px 14px",color:"#cbd5e1",fontSize:12,lineHeight:1.5}}>
+        <div><b>AUTH DEBUG</b></div>
+        <div>authHazir: {String(authHazir)}</div>
+        <div>user: {user?.id || "yok"}</div>
+        <div>step: {authDebug?.step || "-"}</div>
+        <div>detail: {authDebug?.detail || "-"}</div>
+        <div>page: {pageDebug}</div>
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   // Giriş yapmamış kullanıcıya landing page göster
   if(!user)return(
@@ -798,6 +827,14 @@ export default function Index(){
         )}
       </div>
 
+      <div style={{position:"fixed",left:10,right:10,bottom:86,zIndex:9999,background:"rgba(2,6,23,0.92)",border:"1px solid rgba(56,189,248,0.22)",borderRadius:12,padding:"10px 12px",fontSize:11,color:"#cbd5e1",lineHeight:1.45,backdropFilter:"blur(10px)",maxWidth:520,margin:"0 auto"}}>
+        <div style={{fontWeight:800,color:"#7dd3fc",marginBottom:4}}>DEBUG PANEL</div>
+        <div>authHazir: {String(authHazir)} | user: {user?.id ? "var" : "yok"} | profil: {profil?.id ? "var" : "yok"}</div>
+        <div>auth step: {authDebug?.step || "-"} / {authDebug?.detail || "-"}</div>
+        <div>page: {pageDebug}</div>
+        <div>ilkYukleniyor: {String(ilkYukleniyor)} | yukleniyor: {String(yukleniyor)} | sekme: {sekme} | sayfa: {sayfa} | bitti: {String(bitti)}</div>
+        <div>storyler: {storyler.length} | kesfet: {kesfetGonderiler.length} | takip: {takipGonderiler.length}</div>
+      </div>
       <AltNav active="/"/>
       {drawer&&<Drawer user={user} profil={profil} avatarUrl={avatarUrl} username={username} onClose={()=>setDrawer(false)}/>}
     </div>
