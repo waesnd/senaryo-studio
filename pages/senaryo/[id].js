@@ -47,6 +47,11 @@ function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
   if(id==="clock")return<svg {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
   if(id==="eye")return<svg {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
   if(id==="film")return<svg {...p}><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/></svg>;
+  if(id==="layers")return<svg {...p}><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 12l10 5 10-5"/><path d="M2 17l10 5 10-5"/></svg>;
+  if(id==="copy")return<svg {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
+  if(id==="check")return<svg {...p}><polyline points="20 6 9 17 4 12"/></svg>;
+  if(id==="logout")return<svg {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+  if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
   if(id==="send")return<svg {...p}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
   if(id==="flag")return<svg {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>;
   if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
@@ -176,93 +181,179 @@ export default function SenaryoDetay(){
   var [menu,setMenu]=useState(false);
   var [yorumGonderiyor,setYorumGonderiyor]=useState(false);
   var [kopyalandi,setKopyalandi]=useState(false);
+  var [yukleniyor,setYukleniyor]=useState(true);
+  var [hata,setHata]=useState("");
 
   var benim=user&&senaryo&&user.id===senaryo.user_id;
   var turRenk=TURLER_RENK[senaryo?.tur]||G.blue;
 
-  useEffect(()=>{if(id)yukle();},[id,user]);
+  useEffect(()=>{
+    if(!authHazir || !id) return;
+    yukle();
+  },[id,user,authHazir]);
 
   async function yukle(){
-    var{data:s}=await supabase.from("senaryolar").select("*, profiles(id,username,avatar_url,bio,dogrulandi)").eq("id",id).single();
-    if(!s)return;
-    setSenaryo(s);
-    // Throttle: aynı senaryo için 1 saat içinde tekrar sayma
     try{
-      var viewKey="sf_view_"+id;
-      var lastView=localStorage.getItem(viewKey);
-      var now=Date.now();
-      if(!lastView||now-parseInt(lastView)>3600000){
-        // Kendi senaryosunu sayma
-        if(!u||u.id!==s.user_id){
-          supabase.from("senaryolar").update({goruntuleme_sayisi:(s.goruntuleme_sayisi||0)+1}).eq("id",id);
-          localStorage.setItem(viewKey,String(now));
-        }
+      setYukleniyor(true);
+      setHata("");
+
+      var { data:s, error:senaryoError } = await supabase
+        .from("senaryolar")
+        .select("*, profiles(id,username,avatar_url,bio,dogrulandi)")
+        .eq("id",id)
+        .single();
+
+      if(senaryoError){
+        throw senaryoError;
       }
-    }catch(e){}
-    var[y,v]=await Promise.all([
-      supabase.from("yorumlar").select("*, profiles(username,avatar_url)").eq("senaryo_id",id).order("created_at",{ascending:true}),
-      supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id",id).order("versiyon",{ascending:false}),
-    ]);
-    if(y.data)setYorumlar(y.data);
-    if(v.data)setVersiyonlar(v.data);
-    if(user){
-      supabase.from("begeniler").select("*").eq("user_id",user.id).eq("senaryo_id",id).single().then(({data})=>setBegendi(!!data));
-      supabase.from("kaydedilenler").select("*").eq("user_id",user.id).eq("senaryo_id",id).single().then(({data})=>setKaydetti(!!data));
+
+      if(!s){
+        setHata("Senaryo bulunamadı.");
+        return;
+      }
+
+      setSenaryo(s);
+
+      try{
+        var viewKey="sf_view_"+id;
+        var lastView=localStorage.getItem(viewKey);
+        var now=Date.now();
+        if(!lastView || now-parseInt(lastView, 10) > 3600000){
+          if(!user || user.id!==s.user_id){
+            await supabase.from("senaryolar").update({goruntuleme_sayisi:(s.goruntuleme_sayisi||0)+1}).eq("id",id);
+            localStorage.setItem(viewKey,String(now));
+            setSenaryo(prev=>prev?({...prev,goruntuleme_sayisi:(prev.goruntuleme_sayisi||0)+1}):prev);
+          }
+        }
+      }catch(e){
+        console.error("[senaryo] görüntüleme sayısı güncellenemedi:", e?.message || e);
+      }
+
+      var sonuclar = await Promise.allSettled([
+        supabase.from("yorumlar").select("*, profiles(username,avatar_url)").eq("senaryo_id",id).order("created_at",{ascending:true}),
+        supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id",id).order("versiyon",{ascending:false}),
+        user
+          ? supabase.from("begeniler").select("*").eq("user_id",user.id).eq("senaryo_id",id).single()
+          : Promise.resolve({ data:null }),
+        user
+          ? supabase.from("kaydedilenler").select("*").eq("user_id",user.id).eq("senaryo_id",id).single()
+          : Promise.resolve({ data:null }),
+      ]);
+
+      var yorumRes = sonuclar[0].status === "fulfilled" ? sonuclar[0].value : null;
+      var versiyonRes = sonuclar[1].status === "fulfilled" ? sonuclar[1].value : null;
+      var begeniRes = sonuclar[2].status === "fulfilled" ? sonuclar[2].value : null;
+      var kaydetRes = sonuclar[3].status === "fulfilled" ? sonuclar[3].value : null;
+
+      if(yorumRes?.data) setYorumlar(yorumRes.data);
+      else setYorumlar([]);
+
+      if(versiyonRes?.data) setVersiyonlar(versiyonRes.data);
+      else setVersiyonlar([]);
+
+      setBegendi(!!begeniRes?.data);
+      setKaydetti(!!kaydetRes?.data);
+    }catch(e){
+      console.error("[senaryo] yukle hatası:", e?.message || e);
+      setHata("Senaryo yüklenemedi.");
+    }finally{
+      setYukleniyor(false);
     }
   }
 
   async function begeniToggle(){
-    if(!user)return;
-    if(begendi){
-      await supabase.from("begeniler").delete().eq("user_id",user.id).eq("senaryo_id",id);
-      await supabase.from("senaryolar").update({begeni_sayisi:Math.max(0,(senaryo.begeni_sayisi||0)-1)}).eq("id",id);
-      setSenaryo(p=>({...p,begeni_sayisi:Math.max(0,(p.begeni_sayisi||0)-1)}));
-      setBegendi(false);
-    }else{
-      await supabase.from("begeniler").insert([{user_id:user.id,senaryo_id:id}]);
-      await supabase.from("senaryolar").update({begeni_sayisi:(senaryo.begeni_sayisi||0)+1}).eq("id",id);
-      setSenaryo(p=>({...p,begeni_sayisi:(p.begeni_sayisi||0)+1}));
-      setBegendi(true);
-      if(senaryo.profiles?.id&&senaryo.profiles.id!==user.id)
-        supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"begeni",senaryo_id:parseInt(id)}]);
+    if(!user || !senaryo) return;
+    try{
+      if(begendi){
+        await supabase.from("begeniler").delete().eq("user_id",user.id).eq("senaryo_id",id);
+        await supabase.from("senaryolar").update({begeni_sayisi:Math.max(0,(senaryo.begeni_sayisi||0)-1)}).eq("id",id);
+        setSenaryo(p=>p?({...p,begeni_sayisi:Math.max(0,(p.begeni_sayisi||0)-1)}):p);
+        setBegendi(false);
+      }else{
+        await supabase.from("begeniler").insert([{user_id:user.id,senaryo_id:id}]);
+        await supabase.from("senaryolar").update({begeni_sayisi:(senaryo.begeni_sayisi||0)+1}).eq("id",id);
+        setSenaryo(p=>p?({...p,begeni_sayisi:(p.begeni_sayisi||0)+1}):p);
+        setBegendi(true);
+        if(senaryo.profiles?.id && senaryo.profiles.id!==user.id){
+          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"begeni",senaryo_id:parseInt(id)}]);
+        }
+      }
+    }catch(e){
+      console.error("[senaryo] begeniToggle hatası:", e?.message || e);
     }
   }
 
   async function kaydetToggle(){
     if(!user)return;
-    if(kaydetti){await supabase.from("kaydedilenler").delete().eq("user_id",user.id).eq("senaryo_id",id);setKaydetti(false);}
-    else{await supabase.from("kaydedilenler").insert([{user_id:user.id,senaryo_id:id}]);setKaydetti(true);}
+    try{
+      if(kaydetti){
+        await supabase.from("kaydedilenler").delete().eq("user_id",user.id).eq("senaryo_id",id);
+        setKaydetti(false);
+      }else{
+        await supabase.from("kaydedilenler").insert([{user_id:user.id,senaryo_id:id}]);
+        setKaydetti(true);
+      }
+    }catch(e){
+      console.error("[senaryo] kaydetToggle hatası:", e?.message || e);
+    }
   }
 
   async function yorumGonderFn(){
     if(!user||!yeniYorum.trim()||yorumGonderiyor)return;
-    setYorumGonderiyor(true);
-    var{data}=await supabase.from("yorumlar").insert([{user_id:user.id,senaryo_id:parseInt(id),metin:yeniYorum}]).select("*, profiles(username,avatar_url)").single();
-    if(data){
-      setYorumlar(p=>[...p,data]);setYeniYorum("");
-      if(senaryo.profiles?.id&&senaryo.profiles.id!==user.id)
-        supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"yorum",senaryo_id:parseInt(id),icerik:yeniYorum.slice(0,80)}]);
+    try{
+      setYorumGonderiyor(true);
+      var yorumMetni = yeniYorum.trim();
+      var { data, error } = await supabase
+        .from("yorumlar")
+        .insert([{user_id:user.id,senaryo_id:parseInt(id),metin:yorumMetni}])
+        .select("*, profiles(username,avatar_url)")
+        .single();
+
+      if(error) throw error;
+
+      if(data){
+        setYorumlar(p=>[...p,data]);
+        setYeniYorum("");
+        if(senaryo.profiles?.id&&senaryo.profiles.id!==user.id){
+          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"yorum",senaryo_id:parseInt(id),icerik:yorumMetni.slice(0,80)}]);
+        }
+      }
+    }catch(e){
+      console.error("[senaryo] yorumGonderFn hatası:", e?.message || e);
+    }finally{
+      setYorumGonderiyor(false);
     }
-    setYorumGonderiyor(false);
   }
 
   async function yorumSil(yorumId){
-    await supabase.from("yorumlar").delete().eq("id",yorumId);
-    setYorumlar(p=>p.filter(y=>y.id!==yorumId));
+    try{
+      await supabase.from("yorumlar").delete().eq("id",yorumId);
+      setYorumlar(p=>p.filter(y=>y.id!==yorumId));
+    }catch(e){
+      console.error("[senaryo] yorumSil hatası:", e?.message || e);
+    }
   }
 
   async function versiyonKaydet(){
     if(!user||!senaryo)return;
-    var sonVersiyon=versiyonlar.length>0?versiyonlar[0].versiyon:0;
-    await supabase.from("senaryo_versiyonlar").insert([{senaryo_id:parseInt(id),user_id:user.id,versiyon:sonVersiyon+1,baslik:senaryo.baslik,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.sahne}]);
-    var{data:v}=await supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id",id).order("versiyon",{ascending:false});
-    if(v)setVersiyonlar(v);
+    try{
+      var sonVersiyon=versiyonlar.length>0?versiyonlar[0].versiyon:0;
+      await supabase.from("senaryo_versiyonlar").insert([{senaryo_id:parseInt(id),user_id:user.id,versiyon:sonVersiyon+1,baslik:senaryo.baslik,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.sahne}]);
+      var{data:v}=await supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id",id).order("versiyon",{ascending:false});
+      if(v)setVersiyonlar(v);
+    }catch(e){
+      console.error("[senaryo] versiyonKaydet hatası:", e?.message || e);
+    }
   }
 
   async function raporGonder(sebep){
     if(!user)return;
-    await supabase.from("raporlar").insert([{rapor_eden:user.id,senaryo_id:parseInt(id),sebep}]);
-    setRaporModal(false);
+    try{
+      await supabase.from("raporlar").insert([{rapor_eden:user.id,senaryo_id:parseInt(id),sebep}]);
+      setRaporModal(false);
+    }catch(e){
+      console.error("[senaryo] raporGonder hatası:", e?.message || e);
+    }
   }
 
   function paylas(platform){
@@ -278,11 +369,21 @@ export default function SenaryoDetay(){
     if(platform!=="kopyala")setPaylasModal(false);
   }
 
-  if(!authHazir||!senaryo)return(
+  if(!authHazir || yukleniyor)return(
     <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
       <div style={{width:32,height:32,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
       <p style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim,letterSpacing:"0.1em"}}>YÜKLENİYOR</p>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  if(hata || !senaryo)return(
+    <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{maxWidth:360,width:"100%",background:`linear-gradient(145deg,${G.deep},${G.card})`,border:`1px solid ${G.border}`,borderRadius:20,padding:"24px",textAlign:"center",boxShadow:G.shadow}}>
+        <p style={{fontFamily:G.fontDisp,fontSize:24,letterSpacing:"0.08em",color:G.text,marginBottom:10}}>SENARYO BULUNAMADI</p>
+        <p style={{fontSize:13,color:G.textMuted,marginBottom:18}}>{hata || "İçerik şu anda görüntülenemiyor."}</p>
+        <button onClick={()=>router.push("/")} style={{padding:"12px 18px",borderRadius:12,background:G.blueGrad,border:"none",color:G.black,fontSize:13,fontWeight:800}}>Ana Sayfa</button>
+      </div>
     </div>
   );
 
