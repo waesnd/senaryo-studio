@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/useAuth";
 
@@ -33,6 +33,7 @@ var BILDIRIM={
 function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
   var p={width:size,height:size,fill:"none",stroke:color,strokeWidth,viewBox:"0 0 24 24"};
   if(id==="home")return<svg {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>;
+  if(id==="film")return<svg {...p}><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/></svg>;
   if(id==="compass")return<svg {...p}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>;
   if(id==="users")return<svg {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>;
   if(id==="chat")return<svg {...p}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>;
@@ -40,6 +41,7 @@ function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
   if(id==="bell")return<svg {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>;
   if(id==="trash")return<svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>;
   if(id==="arrow-left")return<svg {...p}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;
+  if(id==="logout")return<svg {...p}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
   return null;
 }
 
@@ -61,7 +63,6 @@ function Av({url,size}){
     </div>
   );
 }
-
 
 function SimpleDrawer({user,username,avatarUrl,onClose}){
   var LINKS=[
@@ -95,6 +96,9 @@ function SimpleDrawer({user,username,avatarUrl,onClose}){
             </a>
           );
         })}
+        <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${G.border}`}}>
+          {user&&<button onClick={async()=>{try{await supabase.auth.signOut();}finally{onClose();window.location.href="/";}}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",borderRadius:10,color:G.red,background:`${G.red}08`,border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:700,cursor:"pointer"}}><Icon id="logout" size={16} color={G.red}/><span>Çıkış Yap</span></button>}
+        </div>
       </nav>
     </div>
   </>);
@@ -105,11 +109,14 @@ function AltNav(){
   return(
     <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderTop:`1px solid ${G.border}`,padding:"8px 0 env(safe-area-inset-bottom,10px)",display:"flex",justifyContent:"space-around",alignItems:"center"}}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}30,transparent)`,pointerEvents:"none"}}/>
-      {items.map(item=>(
-        <a key={item.href} href={item.href} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 16px",borderRadius:12,opacity:0.35}}>
-          <Icon id={item.id} size={22} color="#94A3B8"/>
-        </a>
-      ))}
+      {items.map(item=>{
+        var active=item.href==="/bildirimler" ? false : item.href==="/mesajlar" ? false : false;
+        return(
+          <a key={item.href} href={item.href} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 16px",borderRadius:12,opacity:0.35}}>
+            <Icon id={item.id} size={22} color="#94A3B8"/>
+          </a>
+        );
+      })}
     </div>
   );
 }
@@ -129,57 +136,112 @@ export default function Bildirimler(){
   var [bildirimler,setBildirimler]=useState([]);
   var [tab,setTab]=useState("hepsi");
   var [silOnay,setSilOnay]=useState(false);
+  var [yukleniyor,setYukleniyor]=useState(true);
+  var [hata,setHata]=useState("");
+  var temizlemeRef=useRef(null);
 
   useEffect(()=>{
-    if(!user) return;
-    var kanal;
-    yukle(user).then(k=>{ kanal=k; });
-    return ()=>{ if(kanal) supabase.removeChannel(kanal); };
-  },[user]);
+    if(!authHazir){
+      setYukleniyor(true);
+      return;
+    }
+    if(!user){
+      setYukleniyor(false);
+      return;
+    }
 
-  async function yukle(u){
-    var{data}=await supabase.from("bildirimler")
+    var aktif = true;
+    var kanal = null;
+
+    async function init(){
+      setYukleniyor(true);
+      setHata("");
+      try{
+        kanal = await yukle(user, aktif);
+      }catch(err){
+        console.error("[bildirimler] init hatası:", err);
+        if(aktif) setHata("Bildirimler yüklenemedi.");
+      }finally{
+        if(aktif) setYukleniyor(false);
+      }
+    }
+
+    init();
+
+    return ()=>{
+      aktif = false;
+      if(temizlemeRef.current){
+        clearTimeout(temizlemeRef.current);
+        temizlemeRef.current = null;
+      }
+      if(kanal) supabase.removeChannel(kanal);
+    };
+  },[authHazir, user]);
+
+  async function yukle(u, aktif){
+    var {data, error} = await supabase.from("bildirimler")
       .select("*, gonderen:profiles!gonderen_id(username,avatar_url,dogrulandi)")
       .eq("alici_id",u.id)
       .order("created_at",{ascending:false})
       .limit(80);
-    if(data) setBildirimler(data);
 
-    // Realtime — yeni bildirim gelince listeye ekle + okundu işaretle
-    var kanal = supabase.channel("bildirimleri_"+u.id)
+    if(error){
+      throw new Error(error.message);
+    }
+
+    if(aktif && data) setBildirimler(data);
+
+    var yeniKanal = supabase.channel("bildirimleri_"+u.id)
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"bildirimler",filter:"alici_id=eq."+u.id},
         async payload=>{
-          // Gönderen profili çek
-          var {data:gnd} = await supabase.from("profiles")
-            .select("username,avatar_url,dogrulandi")
-            .eq("id", payload.new.gonderen_id)
-            .single();
-          var yeni = {...payload.new, gonderen: gnd||null};
-          setBildirimler(prev=>[yeni,...prev]);
+          try{
+            var {data:gnd} = await supabase.from("profiles")
+              .select("username,avatar_url,dogrulandi")
+              .eq("id", payload.new.gonderen_id)
+              .single();
+            var yeni = {...payload.new, gonderen: gnd||null};
+            setBildirimler(prev=>[yeni,...prev]);
+          }catch(err){
+            console.error("[bildirimler] realtime profil hatası:", err);
+            setBildirimler(prev=>[payload.new,...prev]);
+          }
         })
       .subscribe();
 
-    // Sayfa açılınca okundu işaretle (küçük gecikme — listeyi görsün önce)
-    setTimeout(async ()=>{
-      await supabase.from("bildirimler")
-        .update({okundu:true})
-        .eq("alici_id",u.id)
-        .eq("okundu",false);
-      setBildirimler(prev=>prev.map(b=>({...b,okundu:true})));
+    temizlemeRef.current = setTimeout(async ()=>{
+      try{
+        await supabase.from("bildirimler")
+          .update({okundu:true})
+          .eq("alici_id",u.id)
+          .eq("okundu",false);
+        if(aktif){
+          setBildirimler(prev=>prev.map(b=>({...b,okundu:true})));
+        }
+      }catch(err){
+        console.error("[bildirimler] okundu güncelleme hatası:", err);
+      }
     }, 1500);
 
-    return kanal;
+    return yeniKanal;
   }
 
   async function tumunuSil(){
-    await supabase.from("bildirimler").delete().eq("alici_id",user.id);
-    setBildirimler([]);setSilOnay(false);
+    if(!user) return;
+    try{
+      var { error } = await supabase.from("bildirimler").delete().eq("alici_id",user.id);
+      if(error) throw new Error(error.message);
+      setBildirimler([]);
+      setSilOnay(false);
+    }catch(err){
+      console.error("[bildirimler] tumunuSil:", err);
+      alert("Bildirimler silinemedi.");
+    }
   }
 
   var okunmayanSayi=bildirimler.filter(b=>!b.okundu).length;
   var goruntu=tab==="hepsi"?bildirimler:bildirimler.filter(b=>!b.okundu);
 
-  if(!authHazir)return(
+  if(!authHazir || yukleniyor)return(
     <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -207,7 +269,6 @@ export default function Bildirimler(){
         ::selection{background:rgba(56,189,248,0.2);color:${G.blueL};}
       `}</style>
 
-      {/* TOPBAR */}
       <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:12}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
         <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
@@ -225,7 +286,6 @@ export default function Bildirimler(){
         )}
       </div>
 
-      {/* TABS */}
       <div style={{maxWidth:680,margin:"0 auto",borderBottom:`1px solid ${G.border}`,display:"flex",background:`rgba(10,15,30,0.5)`}}>
         {[{id:"hepsi",label:"Hepsi",count:bildirimler.length},{id:"okunmayan",label:"Okunmamış",count:okunmayanSayi}].map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
@@ -237,7 +297,12 @@ export default function Bildirimler(){
       </div>
 
       <div style={{maxWidth:680,margin:"0 auto"}}>
-        {goruntu.length===0?(
+        {hata?(
+          <div style={{textAlign:"center",padding:"70px 20px"}}>
+            <div style={{fontFamily:G.fontDisp,fontSize:34,color:G.red,letterSpacing:"0.08em",marginBottom:10}}>HATA</div>
+            <p style={{fontSize:14,color:G.textMuted}}>{hata}</p>
+          </div>
+        ):goruntu.length===0?(
           <div style={{textAlign:"center",padding:"80px 20px"}}>
             <div style={{width:64,height:64,borderRadius:"50%",background:`${G.blue}10`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:G.glowBlue}}>
               <Icon id="bell" size={28} color={G.blue}/>
@@ -255,8 +320,6 @@ export default function Bildirimler(){
               style={{display:"flex",alignItems:"center",gap:13,padding:"14px 20px",borderBottom:`1px solid ${G.border}`,background:!b.okundu?`${info.renk}06`:"transparent",animation:i<10?`fadeUp 0.2s ${i*0.02}s both`:"none",transition:"background 0.15s"}}
               onMouseEnter={e=>e.currentTarget.style.background=`${info.renk}09`}
               onMouseLeave={e=>e.currentTarget.style.background=!b.okundu?`${info.renk}06`:"transparent"}>
-
-              {/* Avatar + ikon badge */}
               <div style={{position:"relative",flexShrink:0}}>
                 <div style={{width:46,height:46,borderRadius:"50%",overflow:"hidden",background:`linear-gradient(135deg,${G.deep},${G.surface})`,border:`1.5px solid rgba(56,189,248,0.15)`,display:"flex",alignItems:"center",justifyContent:"center"}}>
                   {b.gonderen?.avatar_url
@@ -267,8 +330,6 @@ export default function Bildirimler(){
                   {info.ikon}
                 </div>
               </div>
-
-              {/* İçerik */}
               <div style={{flex:1,minWidth:0}}>
                 <p style={{fontSize:13,color:G.text,lineHeight:1.5}}>
                   <strong style={{color:G.text,fontWeight:800}}>@{b.gonderen?.username||"Birisi"}</strong>
@@ -278,15 +339,12 @@ export default function Bildirimler(){
                 {b.icerik&&<p style={{fontSize:12,color:G.textDim,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>"{b.icerik}"</p>}
                 <p style={{fontSize:11,color:G.textDim,marginTop:4}}>{zaman(b.created_at)}</p>
               </div>
-
-              {/* Okunmamış nokta */}
               {!b.okundu&&<div style={{width:8,height:8,borderRadius:"50%",background:info.renk,flexShrink:0,boxShadow:`0 0 8px ${info.renk}80`}}/>}
             </a>
           );
         })}
       </div>
 
-      {/* SİL ONAY */}
       {silOnay&&<>
         <div onClick={()=>setSilOnay(false)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)"}}/>
         <div style={{position:"fixed",inset:0,zIndex:301,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
@@ -303,7 +361,7 @@ export default function Bildirimler(){
       </>}
 
       <AltNav/>
-      {drawer&&<SimpleDrawer user={user} username={profil?.username||(user?.email?.split("@")[0]||"")} avatarUrl={profil?.avatar_url||null} onClose={()=>setDrawer(false)}/>}
+      {drawer&&<SimpleDrawer user={user} username={profil?.username||(user?.email?.split("@")[0]||"")} avatarUrl={profil?.avatar_url||null} onClose={()=>setDrawer(false)}/>} 
     </div>
   );
 }
