@@ -149,7 +149,7 @@ function zaman(ts){
 
 export default function Mesajlar(){
   var router = useRouter();
-  var {user, profil, authHazir, okunmayanBildirim=0} = useAuth();
+  var {user, profil, authHazir, setProfil, okunmayanBildirim=0} = useAuth();
   var [konusmalar,setKonusmalar]=useState([]);
   var [aktif,setAktif]=useState(null);
   var [mesajlar,setMesajlar]=useState([]);
@@ -207,25 +207,51 @@ export default function Mesajlar(){
     return()=>supabase.removeChannel(kanal);
   },[aktif,user]);
 
-  function yukle(u){
-    supabase.from("profiles").select("*").eq("id",u.id).single().then(({data})=>{if(data)setProfil(data);});
-    supabase.from("mesajlar")
-      .select("*, gonderen_profil:profiles!gonderen(id,username,avatar_url), alici_profil:profiles!alan(id,username,avatar_url)")
-      .or("gonderen.eq."+u.id+",alan.eq."+u.id)
-      .order("created_at",{ascending:false})
-      .then(({data, error})=>{
-        if(error){ console.error("[mesajlar] yukle hatası:", error.message); return; }
-        if(!data||data.length===0){ setKonusmalar([]); return; }
-        var grup={};
-        data.forEach(m=>{
-          var digerId=m.gonderen===u.id?m.alan:m.gonderen;
-          var diger=m.gonderen===u.id?m.alici_profil:m.gonderen_profil;
-          if(!grup[digerId])grup[digerId]={id:digerId,diger,mesajlar:[],okunmayan:0};
-          grup[digerId].mesajlar.push(m);
-          if(!m.okundu&&m.alan===u.id)grup[digerId].okunmayan++;
-        });
-        setKonusmalar(Object.values(grup));
+  async function yukle(u){
+    try{
+      var { data: profilData, error: profilError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", u.id)
+        .single();
+
+      if(profilError){
+        console.error("[mesajlar] profil yüklenemedi:", profilError.message);
+      } else if(profilData){
+        setProfil(profilData);
+      }
+
+      var { data, error } = await supabase
+        .from("mesajlar")
+        .select("*, gonderen_profil:profiles!gonderen(id,username,avatar_url), alici_profil:profiles!alan(id,username,avatar_url)")
+        .or("gonderen.eq." + u.id + ",alan.eq." + u.id)
+        .order("created_at", { ascending:false });
+
+      if(error){
+        console.error("[mesajlar] yukle hatası:", error.message);
+        setKonusmalar([]);
+        return;
+      }
+
+      if(!data || data.length===0){
+        setKonusmalar([]);
+        return;
+      }
+
+      var grup={};
+      data.forEach(m=>{
+        var digerId=m.gonderen===u.id?m.alan:m.gonderen;
+        var diger=m.gonderen===u.id?m.alici_profil:m.gonderen_profil;
+        if(!grup[digerId])grup[digerId]={id:digerId,diger,mesajlar:[],okunmayan:0};
+        grup[digerId].mesajlar.push(m);
+        if(!m.okundu&&m.alan===u.id)grup[digerId].okunmayan++;
       });
+
+      setKonusmalar(Object.values(grup));
+    }catch(err){
+      console.error("[mesajlar] yukle beklenmeyen hata:", err);
+      setKonusmalar([]);
+    }
   }
 
   async function sohbetAc(k){
