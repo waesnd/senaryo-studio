@@ -248,10 +248,19 @@ export default function Mesajlar(){
     var icerik=yeniMesaj.trim();
     if(!icerik&&!medyaUrl&&!sesUrl)return;
     var yeni={gonderen:user.id,alan:aktif.id,icerik:icerik||null,medya_url:medyaUrl||null,ses_url:sesUrl||null,okundu:false};
-    var{data}=await supabase.from("mesajlar").insert([yeni]).select().single();
-    if(data)setMesajlar(p=>[...p,data]);
+    var{data,error}=await supabase.from("mesajlar").insert([yeni]).select().single();
+    if(error){ console.error("[mesajGonder]", error.message); return; }
+    if(data){
+      setMesajlar(p=>[...p,data]);
+      // Konuşma listesini güncelle — bu kişiyle konuşma yoksa ekle
+      setKonusmalar(p=>{
+        var mevcut=p.find(k=>k.id===aktif.id);
+        if(mevcut) return [{...mevcut,mesajlar:[...mevcut.mesajlar,data]},...p.filter(k=>k.id!==aktif.id)];
+        // Yeni konuşma — listeye ekle
+        return [{id:aktif.id,diger:aktif.diger,mesajlar:[data],okunmayan:0},...p];
+      });
+    }
     setYeniMesaj("");
-    setKonusmalar(p=>{var v=p.find(k=>k.id===aktif.id);if(v)return[{...v,mesajlar:[...v.mesajlar,data]},...p.filter(k=>k.id!==aktif.id)];return p;});
   }
 
   async function gorselGonder(e){
