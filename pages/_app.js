@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import Head from "next/head";
 import { AuthProvider } from "../lib/useAuth";
 
-
 export const MIDNIGHT = {
   black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
   border:"rgba(56,189,248,0.12)", borderHov:"rgba(56,189,248,0.4)",
@@ -23,10 +22,13 @@ export const MIDNIGHT = {
 };
 
 export default function App({ Component, pageProps }){
-
-  useEffect(()=>{
-    if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
-  },[]);
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((reg) => reg.unregister());
+      }).catch(() => {});
+    }
+  }, []);
 
   return(
     <>
@@ -67,32 +69,27 @@ export default function App({ Component, pageProps }){
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
           overflow-x: hidden;
-          /* Siber arka plan pattern */
           background-image:
             radial-gradient(ellipse at 20% 0%, rgba(56,189,248,0.04) 0%, transparent 50%),
             radial-gradient(ellipse at 80% 100%, rgba(139,92,246,0.04) 0%, transparent 50%);
           background-attachment: fixed;
         }
 
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-track { background: #0A0F1E; }
         ::-webkit-scrollbar-thumb { background: #0EA5E9; border-radius: 2px; }
         ::-webkit-scrollbar-thumb:hover { background: #38BDF8; }
 
-        /* Seçim */
         ::selection {
           background: rgba(56,189,248,0.2);
           color: #7DD3FC;
         }
 
-        /* Temel elemanlar */
         a { text-decoration: none; color: inherit; }
         button { font-family: 'DM Sans', sans-serif; cursor: pointer; }
         input, textarea { font-family: 'DM Sans', sans-serif; }
         input::placeholder, textarea::placeholder { color: rgba(241,245,249,0.25); }
 
-        /* ── ANİMASYONLAR ── */
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: none; }
@@ -131,12 +128,8 @@ export default function App({ Component, pageProps }){
           50%       { opacity: 0.4; }
         }
 
-        /* ── UTILITY SINIFLARI ── */
-
-        /* Fade animasyonu */
         .ma-fade { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
 
-        /* Neon mavi gradient yazı */
         .blue-text {
           background: linear-gradient(135deg, #0EA5E9 0%, #38BDF8 50%, #7DD3FC 100%);
           -webkit-background-clip: text;
@@ -144,7 +137,6 @@ export default function App({ Component, pageProps }){
           background-clip: text;
         }
 
-        /* Mor gradient yazı */
         .purple-text {
           background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #A78BFA 100%);
           -webkit-background-clip: text;
@@ -152,7 +144,6 @@ export default function App({ Component, pageProps }){
           background-clip: text;
         }
 
-        /* Skeleton loading */
         .skeleton {
           background: linear-gradient(
             90deg,
@@ -165,7 +156,6 @@ export default function App({ Component, pageProps }){
           border-radius: 8px;
         }
 
-        /* Neon kart */
         .neon-card {
           background: linear-gradient(145deg, #1E293B, #162032);
           border: 1px solid rgba(56,189,248,0.12);
@@ -177,7 +167,6 @@ export default function App({ Component, pageProps }){
           box-shadow: 0 0 24px rgba(56,189,248,0.12);
         }
 
-        /* Glass efekti */
         .glass {
           background: rgba(30,41,59,0.7);
           backdrop-filter: blur(20px);
@@ -185,7 +174,6 @@ export default function App({ Component, pageProps }){
           border: 1px solid rgba(56,189,248,0.1);
         }
 
-        /* Hover geçiş */
         .hover-lift {
           transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -193,18 +181,15 @@ export default function App({ Component, pageProps }){
           transform: translateY(-2px);
         }
 
-        /* Scroll gizle */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Overflow ellipsis */
         .truncate {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        /* 2 satır kırp */
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
@@ -212,7 +197,6 @@ export default function App({ Component, pageProps }){
           overflow: hidden;
         }
 
-        /* Siber ızgara arka plan */
         .cyber-grid {
           background-image:
             linear-gradient(rgba(56,189,248,0.04) 1px, transparent 1px),
@@ -220,7 +204,6 @@ export default function App({ Component, pageProps }){
           background-size: 40px 40px;
         }
 
-        /* Neon alt çizgi animasyonu */
         .neon-underline {
           position: relative;
         }
@@ -237,12 +220,10 @@ export default function App({ Component, pageProps }){
         }
         .neon-underline:hover::after { opacity: 1; }
 
-        /* PWA safe area */
         .safe-bottom {
           padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
         }
 
-        /* Responsive max-width konteyner */
         .container {
           max-width: 680px;
           margin: 0 auto;
