@@ -473,8 +473,9 @@ export default function Index(){
     loadStoryler();
   },[]);
 
-  // authHazir ilk kez true olunca yükle
+  // İlk yükleme ref'i — bir kez çalışsın
   var ilkYuklemeRef = useRef(false);
+
   useEffect(()=>{
     if(!authHazir) return;
     if(ilkYuklemeRef.current) return;
@@ -482,13 +483,12 @@ export default function Index(){
     loadGonderiler(0,true,"kesfet");
   },[authHazir]);
 
-  // Sekme değişince yükle — mevcut feed'i koru, arka planda yükle
+  // Sekme değişince — ilk yükleme tamamlandıktan sonra
   useEffect(()=>{
-    if(!authHazir || !ilkYuklemeRef.current) return;
-    setSayfa(0);setBitti(false);
-    // Cache varsa skeleton gösterme
+    if(!ilkYuklemeRef.current) return;
     var mevcut=sekme==="takip"?takipGonderiler:kesfetGonderiler;
-    if(mevcut.length>0) setIlkYukleniyor(false);
+    if(mevcut.length>0) setIlkYukleniyor(false); // cache varsa skeleton yok
+    setSayfa(0);setBitti(false);
     loadGonderiler(0,true,sekme);
   },[sekme]);
 

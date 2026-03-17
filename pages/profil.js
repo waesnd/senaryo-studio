@@ -370,24 +370,25 @@ export default function Profil(){
     setAvatarYukleniyor(true);
     var fd=new FormData();
     fd.append("file",file);fd.append("upload_preset","scriptify_avatars");
-    var res=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
-    var uploadData=await res.json();
+    var uploadRes=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
+    var uploadData=await uploadRes.json();
     if(uploadData.secure_url){
-      var url=uploadData.secure_url;
-      // DB güncelle + doğrula
+      // Cache buster ekle — tarayıcı eski görseli göstermesin
+      var url=uploadData.secure_url+"?v="+Date.now();
       var {data:updated, error}=await supabase
-        .from("profiles").update({avatar_url:url})
-        .eq("id",user.id).select().maybeSingle();
+        .from("profiles")
+        .update({avatar_url:url})
+        .eq("id",user.id)
+        .select()
+        .maybeSingle();
+      console.log("[avatar] DB update:", {updated, error});
       if(error){
-        console.error("[avatar] DB güncelleme hatası:", error.message);
         alert("Fotoğraf kaydedilemedi: "+error.message);
-      }else{
-        // Fonksiyonel güncelleme — stale closure riski yok
-        setProfilLokal(p=>({...p,avatar_url:url}));
-        setProfil(p=>p?({...p,avatar_url:url}):p);
+      }else if(updated){
+        setProfilLokal(p=>({...p,avatar_url:updated.avatar_url}));
+        setProfil(p=>p?({...p,avatar_url:updated.avatar_url}):p);
       }
     }else{
-      console.error("[avatar] Cloudinary hatası:", uploadData);
       alert("Fotoğraf yüklenemedi: "+(uploadData.error?.message||"Cloudinary hatası"));
     }
     setAvatarYukleniyor(false);
