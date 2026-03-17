@@ -160,60 +160,141 @@ export default function KullaniciProfil(){
 
   useEffect(()=>{
     if(!username)return;
+
+    var aktif=true;
     var temiz=username.startsWith("@")?username.slice(1):username;
-    yukle(temiz);
+
+    yukle(temiz, aktif);
+
+    return ()=>{
+      aktif=false;
+    };
   },[username]);
 
-  async function yukle(un){
+  async function yukle(un, aktif=true){
     setYukleniyor(true);
-    var{data:p}=await supabase.from("profiles").select("*").eq("username",un).single();
-    if(!p){setYukleniyor(false);return;}
-    setProfil(p);
-    var[s,g,tc,tp]=await Promise.all([
-      supabase.from("senaryolar").select("*").eq("user_id",p.id).eq("paylasim_acik",true).order("created_at",{ascending:false}),
-      supabase.from("gonderiler").select("*").eq("user_id",p.id).order("created_at",{ascending:false}),
-      supabase.from("takipler").select("*",{count:"exact"}).eq("takip_edilen",p.id),
-      supabase.from("takipler").select("*",{count:"exact"}).eq("takip_eden",p.id),
-    ]);
-    if(s.data)setSenaryolar(s.data);
-    if(g.data)setGonderiler(g.data);
-    setTakipci(tc.count||0);
-    setTakip(tp.count||0);
-    setYukleniyor(false);
+
+    try{
+      var {data:p,error:profilError}=await supabase.from("profiles").select("*").eq("username",un).single();
+
+      if(profilError) throw profilError;
+
+      if(!aktif) return;
+
+      if(!p){
+        setProfil(null);
+        return;
+      }
+
+      setProfil(p);
+
+      var [s,g,tc,tp]=await Promise.all([
+        supabase.from("senaryolar").select("*").eq("user_id",p.id).eq("paylasim_acik",true).order("created_at",{ascending:false}),
+        supabase.from("gonderiler").select("*").eq("user_id",p.id).order("created_at",{ascending:false}),
+        supabase.from("takipler").select("*",{count:"exact"}).eq("takip_edilen",p.id),
+        supabase.from("takipler").select("*",{count:"exact"}).eq("takip_eden",p.id),
+      ]);
+
+      if(s.error) throw s.error;
+      if(g.error) throw g.error;
+      if(tc.error) throw tc.error;
+      if(tp.error) throw tp.error;
+
+      if(!aktif) return;
+
+      setSenaryolar(s.data||[]);
+      setGonderiler(g.data||[]);
+      setTakipci(tc.count||0);
+      setTakip(tp.count||0);
+    }catch(err){
+      console.error("[@username] yükleme hatası:", err?.message || err);
+      if(!aktif) return;
+      setProfil(null);
+      setSenaryolar([]);
+      setGonderiler([]);
+      setTakipci(0);
+      setTakip(0);
+    }finally{
+      if(aktif) setYukleniyor(false);
+    }
   }
 
   useEffect(()=>{
     if(!user||!profil)return;
-    supabase.from("takipler").select("*").eq("takip_eden",user.id).eq("takip_edilen",profil.id).single().then(({data})=>setTakipEdiyorum(!!data));
-    supabase.from("engellemeler").select("*").eq("engelleyen",user.id).eq("engellened",profil.id).single().then(({data})=>setEngelledim(!!data));
+
+    var aktif=true;
+
+    async function iliskiBilgileriniYukle(){
+      try{
+        var [takipRes, engelRes] = await Promise.all([
+          supabase.from("takipler").select("*").eq("takip_eden",user.id).eq("takip_edilen",profil.id).single(),
+          supabase.from("engellemeler").select("*").eq("engelleyen",user.id).eq("engellenen",profil.id).single(),
+        ]);
+
+        if(!aktif) return;
+        setTakipEdiyorum(!!takipRes.data);
+        setEngelledim(!!engelRes.data);
+      }catch(err){
+        console.error("[@username] ilişki yükleme hatası:", err?.message || err);
+        if(!aktif) return;
+        setTakipEdiyorum(false);
+        setEngelledim(false);
+      }
+    }
+
+    iliskiBilgileriniYukle();
+
+    return ()=>{
+      aktif=false;
+    };
   },[user,profil]);
 
   async function takipToggle(){
     if(!user){window.location.href="/";return;}
-    if(takipEdiyorum){
-      await supabase.from("takipler").delete().eq("takip_eden",user.id).eq("takip_edilen",profil.id);
-      setTakipEdiyorum(false);setTakipci(p=>p-1);
-    }else{
-      await supabase.from("takipler").insert([{takip_eden:user.id,takip_edilen:profil.id}]);
-      setTakipEdiyorum(true);setTakipci(p=>p+1);
-      await supabase.from("bildirimler").insert([{alici_id:profil.id,gonderen_id:user.id,tip:"takip"}]);
+
+    try{
+      if(takipEdiyorum){
+        var {error} = await supabase.from("takipler").delete().eq("takip_eden",user.id).eq("takip_edilen",profil.id);
+        if(error) throw error;
+        setTakipEdiyorum(false);
+        setTakipci(p=>Math.max((p||0)-1,0));
+      }else{
+        var {error} = await supabase.from("takipler").insert([{takip_eden:user.id,takip_edilen:profil.id}]);
+        if(error) throw error;
+        setTakipEdiyorum(true);
+        setTakipci(p=>(p||0)+1);
+        await supabase.from("bildirimler").insert([{alici_id:profil.id,gonderen_id:user.id,tip:"takip"}]);
+      }
+    }catch(err){
+      console.error("[@username] takipToggle hatası:", err?.message || err);
     }
   }
 
   async function engelToggle(){
     if(!user)return;
-    if(engelledim){
-      await supabase.from("engellemeler").delete().eq("engelleyen",user.id).eq("engellened",profil.id);
-      setEngelledim(false);
-    }else{
-      await supabase.from("engellemeler").insert([{engelleyen:user.id,engellened:profil.id}]);
-      setEngelledim(true);
-      if(takipEdiyorum){
-        await supabase.from("takipler").delete().eq("takip_eden",user.id).eq("takip_edilen",profil.id);
-        setTakipEdiyorum(false);setTakipci(p=>p-1);
+
+    try{
+      if(engelledim){
+        var {error} = await supabase.from("engellemeler").delete().eq("engelleyen",user.id).eq("engellenen",profil.id);
+        if(error) throw error;
+        setEngelledim(false);
+      }else{
+        var {error} = await supabase.from("engellemeler").insert([{engelleyen:user.id,engellenen:profil.id}]);
+        if(error) throw error;
+        setEngelledim(true);
+
+        if(takipEdiyorum){
+          var {error: takipSilError} = await supabase.from("takipler").delete().eq("takip_eden",user.id).eq("takip_edilen",profil.id);
+          if(takipSilError) throw takipSilError;
+          setTakipEdiyorum(false);
+          setTakipci(p=>Math.max((p||0)-1,0));
+        }
       }
+    }catch(err){
+      console.error("[@username] engelToggle hatası:", err?.message || err);
+    }finally{
+      setMenu(false);
     }
-    setMenu(false);
   }
 
   if(!loaded||yukleniyor)return(
