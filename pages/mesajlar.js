@@ -180,10 +180,13 @@ export default function Mesajlar(){
     if(!authHazir || !user || !router.isReady) return;
     var dm = router.query.dm;
     if(!dm) return;
-    supabase.from("profiles").select("id,username,avatar_url").eq("username",dm).single()
-      .then(({data})=>{
-        if(data) sohbetAc({id:data.id, diger:data});
-      });
+    // yukle tamamlanmasını bekle
+    setTimeout(()=>{
+      supabase.from("profiles").select("id,username,avatar_url").eq("username",dm).single()
+        .then(({data})=>{
+          if(data) sohbetAc({id:data.id, diger:data});
+        });
+    }, 500);
   },[authHazir, user, router.isReady, router.query.dm]);
 
   useEffect(()=>{
@@ -472,7 +475,7 @@ export default function Mesajlar(){
                       <img src={m.medya_url} style={{maxWidth:220,borderRadius:14,display:"block",border:`1px solid ${G.border}`}} alt=""/>
                     ):(
                       <div style={{background:benim?G.blueGrad:`rgba(241,245,249,0.06)`,border:`1px solid ${benim?G.blue+"30":G.border}`,borderRadius:benim?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",boxShadow:benim?G.glowBlue:"none"}}>
-                        <p style={{fontSize:14,color:benim?G.black:G.text,lineHeight:1.5}}>{m.metin}</p>
+                        <p style={{fontSize:14,color:benim?G.black:G.text,lineHeight:1.5}}>{m.icerik}</p>
                       </div>
                     )}
                     <div style={{display:"flex",justifyContent:benim?"flex-end":"flex-start",gap:4,marginTop:3}}>
