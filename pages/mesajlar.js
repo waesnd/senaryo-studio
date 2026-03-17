@@ -460,7 +460,7 @@ export default function Mesajlar(){
           <div style={{flex:1,overflowY:"auto",padding:"16px 16px 100px"}}>
             {mesajlar.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:G.textMuted,fontSize:13}}>Konuşmayı sen başlat 👋</div>}
             {mesajlar.map((m,i)=>{
-              var benim=m.gonderen_profil===user.id;
+              var benim=m.gonderen===user.id;
               var oncekiBenim=i>0&&mesajlar[i-1].gonderen===m.gonderen_profil;
               return(
                 <div key={m.id||i} style={{display:"flex",flexDirection:benim?"row-reverse":"row",gap:8,marginBottom:oncekiBenim?4:12,animation:"fadeUp 0.2s ease"}}>
