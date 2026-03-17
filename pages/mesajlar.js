@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/useAuth";
 
@@ -169,8 +170,20 @@ export default function Mesajlar(){
   var username=profil?.username||user?.email?.split("@")[0]||"";
 
   useEffect(()=>{
-    if(authHazir && user) yukle(user);
+    if(!authHazir || !user) return;
+    yukle(user);
   },[authHazir, user]);
+
+  // ?dm=username ile gelinince o kullanıcıyla sohbet aç
+  useEffect(()=>{
+    if(!authHazir || !user || !router.isReady) return;
+    var dm = router.query.dm;
+    if(!dm) return;
+    supabase.from("profiles").select("id,username,avatar_url").eq("username",dm).single()
+      .then(({data})=>{
+        if(data) sohbetAc({id:data.id, diger:data});
+      });
+  },[authHazir, user, router.isReady, router.query.dm]);
 
   useEffect(()=>{
     if(mesajSonuRef.current)mesajSonuRef.current.scrollIntoView({behavior:"smooth"});
@@ -180,7 +193,7 @@ export default function Mesajlar(){
     if(!aktif||!user)return;
     var kanal=supabase.channel("mesajlar_"+aktif.id)
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"mesajlar",filter:"konusma_id=eq."+aktif.id},(payload)=>{
-        if(payload.new.gonderen_id!==user.id){
+        if(payload.new.gonderen!==user.id){
           setMesajlar(p=>[...p,payload.new]);
           supabase.from("mesajlar").update({okundu:true}).eq("id",payload.new.id);
         }
@@ -191,19 +204,19 @@ export default function Mesajlar(){
   function yukle(u){
     supabase.from("profiles").select("*").eq("id",u.id).single().then(({data})=>{if(data)setProfil(data);});
     supabase.from("mesajlar")
-      .select("*, gonderen:profiles!gonderen_id(id,username,avatar_url), alici:profiles!alici_id(id,username,avatar_url)")
-      .or("gonderen_id.eq."+u.id+",alici_id.eq."+u.id)
+      .select("*, gonderen_profil:profiles!gonderen(id,username,avatar_url), alici_profil:profiles!alan(id,username,avatar_url)")
+      .or("gonderen.eq."+u.id+",alan.eq."+u.id)
       .order("created_at",{ascending:false})
       .then(({data, error})=>{
         if(error){ console.error("[mesajlar] yukle hatası:", error.message); return; }
         if(!data||data.length===0){ setKonusmalar([]); return; }
         var grup={};
         data.forEach(m=>{
-          var digerId=m.gonderen_id===u.id?m.alici_id:m.gonderen_id;
-          var diger=m.gonderen_id===u.id?m.alici:m.gonderen;
+          var digerId=m.gonderen===u.id?m.alan:m.gonderen;
+          var diger=m.gonderen===u.id?m.alici_profil:m.gonderen_profil;
           if(!grup[digerId])grup[digerId]={id:digerId,diger,mesajlar:[],okunmayan:0};
           grup[digerId].mesajlar.push(m);
-          if(!m.okundu&&m.alici_id===u.id)grup[digerId].okunmayan++;
+          if(!m.okundu&&m.alan===u.id)grup[digerId].okunmayan++;
         });
         setKonusmalar(Object.values(grup));
       });
@@ -213,19 +226,20 @@ export default function Mesajlar(){
     setAktif(k);setYeniSohbet(false);
     try{var kayitliNot=localStorage.getItem("sf_not_"+k.id);setNotMetin(kayitliNot||"");}catch(e){setNotMetin("");}
     setNotAcik(false);
-    var{data}=await supabase.from("mesajlar").select("*")
-      .or("gonderen_id.eq."+user.id+",alici_id.eq."+user.id)
-      .or("gonderen_id.eq."+k.id+",alici_id.eq."+k.id)
+    // İki kullanıcı arasındaki mesajları çek
+    var{data,error}=await supabase.from("mesajlar").select("*")
+      .or("and(gonderen.eq."+user.id+",alan.eq."+k.id+"),and(gonderen.eq."+k.id+",alan.eq."+user.id+")")
       .order("created_at",{ascending:true});
-    if(data)setMesajlar(data.filter(m=>(m.gonderen_id===user.id&&m.alici_id===k.id)||(m.gonderen_id===k.id&&m.alici_id===user.id)));
-    await supabase.from("mesajlar").update({okundu:true}).eq("alici_id",user.id).eq("gonderen_id",k.id);
+    if(error) console.error("[sohbetAc]", error.message);
+    if(data) setMesajlar(data);
+    await supabase.from("mesajlar").update({okundu:true}).eq("alan",user.id).eq("gonderen",k.id);
     setKonusmalar(p=>p.map(kn=>kn.id===k.id?{...kn,okunmayan:0}:kn));
   }
 
   async function mesajGonder(medyaUrl,medyaTip,sesUrl){
     if(!user||!aktif)return;
     if(!yeniMesaj.trim()&&!medyaUrl&&!sesUrl)return;
-    var yeni={gonderen_id:user.id,alici_id:aktif.id,metin:yeniMesaj.trim()||null,medya_url:medyaUrl||null,medya_tip:medyaTip||null,ses_url:sesUrl||null,okundu:false};
+    var yeni={gonderen:user.id,alan:aktif.id,icerik:yeniMesaj.trim()||null,medya_url:medyaUrl||null,ses_url:sesUrl||null,okundu:false};
     var{data}=await supabase.from("mesajlar").insert([yeni]).select().single();
     if(data)setMesajlar(p=>[...p,data]);
     setYeniMesaj("");
@@ -438,8 +452,8 @@ export default function Mesajlar(){
           <div style={{flex:1,overflowY:"auto",padding:"16px 16px 100px"}}>
             {mesajlar.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:G.textMuted,fontSize:13}}>Konuşmayı sen başlat 👋</div>}
             {mesajlar.map((m,i)=>{
-              var benim=m.gonderen_id===user.id;
-              var oncekiBenim=i>0&&mesajlar[i-1].gonderen_id===m.gonderen_id;
+              var benim=m.gonderen_profil===user.id;
+              var oncekiBenim=i>0&&mesajlar[i-1].gonderen===m.gonderen_profil;
               return(
                 <div key={m.id||i} style={{display:"flex",flexDirection:benim?"row-reverse":"row",gap:8,marginBottom:oncekiBenim?4:12,animation:"fadeUp 0.2s ease"}}>
                   {!benim&&!oncekiBenim&&<Av url={aktif.diger?.avatar_url} size={28}/>}
