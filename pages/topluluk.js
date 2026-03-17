@@ -151,8 +151,8 @@ export default function Topluluk(){
   var {user, profil, authHazir, okunmayanBildirim} = useAuth();
   var [challengelar,setChallenglar]=useState([]);
   var [topSenaristler,setTopSenaristler]=useState([]);
-  var [yukleniyorC,setYukleniyorC]=useState(true);
-  var [yukleniyorS,setYukleniyorS]=useState(true);
+  var [yukleniyorC,setYukleniyorC]=useState(false);
+  var [yukleniyorS,setYukleniyorS]=useState(false);
   var [drawer,setDrawer]=useState(false);
   var [sekme,setSekme]=useState("challenge");
 

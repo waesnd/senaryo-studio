@@ -159,7 +159,7 @@ function Drawer({user,profil,avatarUrl,username,kaydedilenler,senaryolar,onClose
         </div>
 
         {/* Kaydedilenler */}
-        <button onClick={()=>{window.location.href="/profil?sekme=kaydedilenler";onClose();}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:12,marginBottom:2,color:G.textMuted,background:"transparent",border:"none",width:"100%",textAlign:"left",cursor:"pointer",transition:"all 0.15s"}}
+        <button onClick={()=>{window.location.href="/kaydedilenler";onClose();}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:12,marginBottom:2,color:G.textMuted,background:"transparent",border:"none",width:"100%",textAlign:"left",cursor:"pointer",transition:"all 0.15s"}}
           onMouseEnter={e=>e.currentTarget.style.background=`${G.blue}08`}
           onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
           <div style={{width:32,height:32,borderRadius:8,background:`${G.blue}10`,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon id="bookmark" size={15} color={G.blue}/></div>
@@ -451,14 +451,12 @@ export default function Profil(){
       {/* TOPBAR */}
       <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.95)`,backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`,padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
-        <a href="/" style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <Icon id="home" size={16} color={G.textMuted}/>
+        <a href="/" style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",padding:0}}>
+          <img src="/logo.png" alt="Scriptify" style={{height:40,objectFit:"contain",maxWidth:120}}/>
         </a>
-        <span style={{fontFamily:G.fontDisp,fontSize:18,letterSpacing:"0.12em",color:G.text}}>PROFİL</span>
         <button onClick={()=>setDrawer(true)} style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <Icon id="menu" size={16} color={G.blue}/>
         </button>
-        <img src="/logo.png" alt="Scriptify" style={{height:40,objectFit:"contain",maxWidth:120,marginLeft:6}}/>
       </div>
 
       {/* BANNER */}

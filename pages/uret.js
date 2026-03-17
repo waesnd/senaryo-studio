@@ -226,6 +226,7 @@ export default function Uret(){
   var [pitchYukleniyor,setPitchYukleniyor]=useState(false);
   var [heroJourney,setHeroJourney]=useState(null);
   var [heroYukleniyor,setHeroYukleniyor]=useState(false);
+  var [sahneSekme,setSahneSekme]=useState("stc");
 
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email.split("@")[0]:"");
@@ -258,7 +259,7 @@ export default function Uret(){
 
   async function senaryoUret(){
     if(limitDoldu) return;
-    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);
+    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");
     try{
       var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi});
       // Kalan üretim hakkını header'dan oku
