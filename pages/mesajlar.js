@@ -169,8 +169,8 @@ export default function Mesajlar(){
   var username=profil?.username||user?.email?.split("@")[0]||"";
 
   useEffect(()=>{
-    if(user) yukle(user);
-  },[user]);
+    if(authHazir && user) yukle(user);
+  },[authHazir, user]);
 
   useEffect(()=>{
     if(mesajSonuRef.current)mesajSonuRef.current.scrollIntoView({behavior:"smooth"});
@@ -194,8 +194,9 @@ export default function Mesajlar(){
       .select("*, gonderen:profiles!gonderen_id(id,username,avatar_url), alici:profiles!alici_id(id,username,avatar_url)")
       .or("gonderen_id.eq."+u.id+",alici_id.eq."+u.id)
       .order("created_at",{ascending:false})
-      .then(({data})=>{
-        if(!data)return;
+      .then(({data, error})=>{
+        if(error){ console.error("[mesajlar] yukle hatası:", error.message); return; }
+        if(!data||data.length===0){ setKonusmalar([]); return; }
         var grup={};
         data.forEach(m=>{
           var digerId=m.gonderen_id===u.id?m.alici_id:m.gonderen_id;

@@ -477,7 +477,7 @@ export default function Index(){
   // sekme veya auth değişince yükle
   useEffect(()=>{
     if(!authHazir) return;
-    setSayfa(0);setBitti(false);setBitti(false);
+    setSayfa(0);setBitti(false);
     loadGonderiler(0,true,sekme);
   },[sekme,authHazir]);
 
