@@ -493,68 +493,125 @@ export default function Index(){
   },[sekme]);
 
 
-  async function loadStoryler(){
-    var{data}=await supabase.from("storyler").select("*,profiles(username,avatar_url)").order("created_at",{ascending:false}).limit(15);
-    if(data)setStoryler(data);
+  async function loadStoryler() {
+    try {
+      var { data, error } = await supabase
+        .from("storyler")
+        .select("*,profiles(username,avatar_url)")
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      if (error) {
+        console.error("[index] storyler yüklenemedi:", error.message);
+        return;
+      }
+
+      if (data) setStoryler(data);
+    } catch (err) {
+      console.error("[index] loadStoryler beklenmeyen hata:", err);
+    }
   }
   async function storySil(id){
     await supabase.from("storyler").delete().eq("id",id).eq("user_id",user.id);
     setStoryler(p=>p.filter(s=>s.id!==id));
   }
-  async function loadGonderiler(page=0,reset=false,aktivSekme){
-    var hedefSekme=aktivSekme||sekme;
-    if(reset) setIlkYukleniyor(true);
-    else setYukleniyor(true);
-    var data=null;
+  async function loadGonderiler(page = 0, reset = false, aktivSekme) {
+    var hedefSekme = aktivSekme || sekme;
 
-    if(hedefSekme==="takip"&&!user){
-      // Giriş yapmamış — keşfet gibi yükle
-      hedefSekme="kesfet";
-    }
-    if(hedefSekme==="takip"&&user){
-      var{data:takipler}=await supabase.from("takipler").select("takip_edilen").eq("takip_eden",user.id);
-      var takipIDs=(takipler||[]).map(t=>t.takip_edilen);
-      if(takipIDs.length===0){
-        if(reset)setTakipGonderiler([]);
-        setBitti(true);setYukleniyor(false);return;
-      }
-      var res=await supabase.from("gonderiler")
-        .select("*,profiles(username,avatar_url,dogrulandi,senaryo_sayisi)")
-        .eq("paylasim_acik",true).in("user_id",takipIDs)
-        .order("created_at",{ascending:false}).range(page*LIMIT,(page+1)*LIMIT-1);
-      data=res.data;
-    }else{
-      var res=await supabase.from("gonderiler")
-        .select("*,profiles(username,avatar_url,dogrulandi,senaryo_sayisi)")
-        .eq("paylasim_acik",true)
-        .order("created_at",{ascending:false}).range(page*LIMIT,(page+1)*LIMIT-1);
-      data=res.data;
-    }
+    try {
+      if (reset) setIlkYukleniyor(true);
+      else setYukleniyor(true);
 
-    if(data){
-      if(hedefSekme==="takip"){
-        if(reset)setTakipGonderiler(data);
-        else setTakipGonderiler(p=>[...p,...data]);
-      }else{
-        if(reset)setKesfetGonderiler(data);
-        else setKesfetGonderiler(p=>[...p,...data]);
+      var data = null;
+
+      if (hedefSekme === "takip" && !user) {
+        hedefSekme = "kesfet";
       }
-      setBitti(data.length<LIMIT);
+
+      if (hedefSekme === "takip" && user) {
+        var { data: takipler, error: takipError } = await supabase
+          .from("takipler")
+          .select("takip_edilen")
+          .eq("takip_eden", user.id);
+
+        if (takipError) {
+          console.error("[index] takipler yüklenemedi:", takipError.message);
+          if (reset) setTakipGonderiler([]);
+          setBitti(true);
+          return;
+        }
+
+        var takipIDs = (takipler || []).map((t) => t.takip_edilen);
+
+        if (takipIDs.length === 0) {
+          if (reset) setTakipGonderiler([]);
+          setBitti(true);
+          return;
+        }
+
+        var res = await supabase
+          .from("gonderiler")
+          .select("*,profiles(username,avatar_url,dogrulandi,senaryo_sayisi)")
+          .eq("paylasim_acik", true)
+          .in("user_id", takipIDs)
+          .order("created_at", { ascending: false })
+          .range(page * LIMIT, (page + 1) * LIMIT - 1);
+
+        if (res.error) {
+          console.error("[index] takip gönderileri yüklenemedi:", res.error.message);
+          return;
+        }
+
+        data = res.data || [];
+      } else {
+        var res = await supabase
+          .from("gonderiler")
+          .select("*,profiles(username,avatar_url,dogrulandi,senaryo_sayisi)")
+          .eq("paylasim_acik", true)
+          .order("created_at", { ascending: false })
+          .range(page * LIMIT, (page + 1) * LIMIT - 1);
+
+        if (res.error) {
+          console.error("[index] keşfet gönderileri yüklenemedi:", res.error.message);
+          return;
+        }
+
+        data = res.data || [];
+      }
+
+      if (hedefSekme === "takip") {
+        if (reset) setTakipGonderiler(data);
+        else setTakipGonderiler((p) => [...p, ...data]);
+      } else {
+        if (reset) setKesfetGonderiler(data);
+        else setKesfetGonderiler((p) => [...p, ...data]);
+      }
+
+      setBitti(data.length < LIMIT);
+    } catch (err) {
+      console.error("[index] loadGonderiler beklenmeyen hata:", err);
+      setBitti(true);
+    } finally {
+      setYukleniyor(false);
+      setIlkYukleniyor(false);
     }
-    setYukleniyor(false);
-    setIlkYukleniyor(false);
   }
 
-  useEffect(()=>{
-    if(!loaderRef.current)return;
-    var obs=new IntersectionObserver(entries=>{
-      if(entries[0].isIntersecting&&!yukleniyor&&!bitti){
-        var next=sayfa+1;setSayfa(next);loadGonderiler(next,false,sekme);
+  useEffect(() => {
+    if (!loaderRef.current) return;
+
+    var obs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !yukleniyor && !bitti) {
+        var next = sayfa + 1;
+        setSayfa(next);
+        loadGonderiler(next, false, sekme);
       }
-    },{threshold:0.1});
+    }, { threshold: 0.1 });
+
     obs.observe(loaderRef.current);
-    return()=>obs.disconnect();
-  },[yukleniyor,bitti,sayfa]);
+
+    return () => obs.disconnect();
+  }, [yukleniyor, bitti, sayfa, sekme, user]);
 
   async function handleBegen(id,liked){
     if(!user)return;
