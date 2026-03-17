@@ -65,33 +65,75 @@ export default function Kaydedilenler(){
   var [yukleniyor, setYukleniyor] = useState(false);
 
   useEffect(()=>{
-    if(!authHazir || !user) return;
-    yukle();
+    let aktif = true;
+
+    async function init(){
+      if(!authHazir || !user) return;
+      await yukle(aktif);
+    }
+
+    init();
+
+    return ()=>{
+      aktif = false;
+    };
   },[authHazir, user]);
 
-  async function yukle(){
-    setYukleniyor(true);
-    var [g, s] = await Promise.all([
-      supabase.from("kaydedilenler")
-        .select("*, gonderiler(*, profiles(username,avatar_url,dogrulandi))")
-        .eq("user_id", user.id)
-        .order("created_at",{ascending:false})
-        .limit(50),
-      supabase.from("senaryolar")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("paylasim_acik", true)
-        .order("created_at",{ascending:false})
-        .limit(50),
-    ]);
-    if(g.data) setGonderi(g.data.filter(k=>k.gonderiler));
-    if(s.data) setSenaryolar(s.data);
-    setYukleniyor(false);
+  async function yukle(aktif = true){
+    if(!user?.id) return;
+
+    try{
+      if(aktif) setYukleniyor(true);
+
+      var [g, s] = await Promise.all([
+        supabase.from("kaydedilenler")
+          .select("*, gonderiler(*, profiles(username,avatar_url,dogrulandi))")
+          .eq("user_id", user.id)
+          .order("created_at",{ascending:false})
+          .limit(50),
+        supabase.from("senaryolar")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("paylasim_acik", true)
+          .order("created_at",{ascending:false})
+          .limit(50),
+      ]);
+
+      if(g.error){
+        console.error("[kaydedilenler] gonderiler yuklenemedi:", g.error.message);
+      }
+      if(s.error){
+        console.error("[kaydedilenler] senaryolar yuklenemedi:", s.error.message);
+      }
+
+      if(aktif && g.data) setGonderi(g.data.filter(k=>k.gonderiler));
+      if(aktif && s.data) setSenaryolar(s.data);
+    }catch(err){
+      console.error("[kaydedilenler] yukle beklenmeyen hata:", err);
+    }finally{
+      if(aktif) setYukleniyor(false);
+    }
   }
 
   async function kaydettenCikar(gonderiId){
-    await supabase.from("kaydedilenler").delete().eq("gonderi_id",gonderiId).eq("user_id",user.id);
-    setGonderi(prev=>prev.filter(k=>k.gonderi_id!==gonderiId));
+    if(!user?.id) return;
+
+    try{
+      var { error } = await supabase
+        .from("kaydedilenler")
+        .delete()
+        .eq("gonderi_id",gonderiId)
+        .eq("user_id",user.id);
+
+      if(error){
+        console.error("[kaydedilenler] kayit silinemedi:", error.message);
+        return;
+      }
+
+      setGonderi(prev=>prev.filter(k=>k.gonderi_id!==gonderiId));
+    }catch(err){
+      console.error("[kaydedilenler] kaydettenCikar beklenmeyen hata:", err);
+    }
   }
 
   function zaman(ts){

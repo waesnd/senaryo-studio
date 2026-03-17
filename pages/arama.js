@@ -134,24 +134,77 @@ export default function Arama(){
   var avatarUrl=profil?.avatar_url||null;
 
   useEffect(()=>{
-    setTimeout(()=>inputRef.current?.focus(),50);
-    supabase.from("senaryolar").select("baslik,tur,begeni_sayisi").eq("paylasim_acik",true).order("begeni_sayisi",{ascending:false}).limit(6).then(({data})=>{if(data)setPopuler(data);});
+    let aktif = true;
+    var focusTimer = setTimeout(()=>inputRef.current?.focus(),50);
+
+    async function populerleriYukle(){
+      try{
+        var { data, error } = await supabase
+          .from("senaryolar")
+          .select("baslik,tur,begeni_sayisi")
+          .eq("paylasim_acik",true)
+          .order("begeni_sayisi",{ascending:false})
+          .limit(6);
+
+        if(error){
+          console.error("[arama] populer senaryolar yuklenemedi:", error.message);
+          return;
+        }
+
+        if(aktif && data) setPopuler(data);
+      }catch(err){
+        console.error("[arama] populerleriYukle beklenmeyen hata:", err);
+      }
+    }
+
+    populerleriYukle();
+
+    return ()=>{
+      aktif = false;
+      clearTimeout(focusTimer);
+      clearTimeout(timerRef.current);
+    };
   },[]);
 
   function aramaYap(kelime){
-    if(!kelime.trim()){setSonuclar({kullanici:[],senaryo:[],gonderi:[]});setAramaYapildi(false);return;}
+    var temizKelime = kelime.trim();
+
+    if(!temizKelime){
+      clearTimeout(timerRef.current);
+      setSonuclar({kullanici:[],senaryo:[],gonderi:[]});
+      setAramaYapildi(false);
+      setYukleniyor(false);
+      return;
+    }
+
     clearTimeout(timerRef.current);
     timerRef.current=setTimeout(async()=>{
-      setYukleniyor(true);
-      var q="%"+kelime+"%";
-      var[k,s,g]=await Promise.all([
-        supabase.from("profiles").select("id,username,bio,avatar_url,dogrulandi").ilike("username",q).limit(8),
-        supabase.from("senaryolar").select("id,baslik,tagline,tur,tip,begeni_sayisi,profiles(username)").eq("paylasim_acik",true).or("baslik.ilike."+q+",tur.ilike."+q).limit(10),
-        supabase.from("gonderiler").select("id,metin,begeni_sayisi,created_at,profiles(username,avatar_url)").ilike("metin",q).limit(10),
-      ]);
-      setSonuclar({kullanici:k.data||[],senaryo:s.data||[],gonderi:g.data||[]});
-      setAramaYapildi(true);
-      setYukleniyor(false);
+      try{
+        setYukleniyor(true);
+        var q="%"+temizKelime+"%";
+        var[k,s,g]=await Promise.all([
+          supabase.from("profiles").select("id,username,bio,avatar_url,dogrulandi").ilike("username",q).limit(8),
+          supabase.from("senaryolar").select("id,baslik,tagline,tur,tip,begeni_sayisi,profiles(username)").eq("paylasim_acik",true).or("baslik.ilike."+q+",tur.ilike."+q).limit(10),
+          supabase.from("gonderiler").select("id,metin,begeni_sayisi,created_at,profiles(username,avatar_url)").ilike("metin",q).limit(10),
+        ]);
+
+        if(k.error) console.error("[arama] kullanici arama hatasi:", k.error.message);
+        if(s.error) console.error("[arama] senaryo arama hatasi:", s.error.message);
+        if(g.error) console.error("[arama] gonderi arama hatasi:", g.error.message);
+
+        setSonuclar({
+          kullanici:k.data||[],
+          senaryo:s.data||[],
+          gonderi:g.data||[],
+        });
+        setAramaYapildi(true);
+      }catch(err){
+        console.error("[arama] aramaYap beklenmeyen hata:", err);
+        setSonuclar({kullanici:[],senaryo:[],gonderi:[]});
+        setAramaYapildi(true);
+      }finally{
+        setYukleniyor(false);
+      }
     },350);
   }
 
@@ -159,6 +212,13 @@ export default function Arama(){
   var gosterKullanici=tab==="hepsi"||tab==="kullanici";
   var gosterSenaryo=tab==="hepsi"||tab==="senaryo";
   var gosterGonderi=tab==="hepsi"||tab==="gonderi";
+
+  if(!authHazir)return(
+    <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   return(
     <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:90}}>
