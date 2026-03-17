@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/useAuth";
@@ -47,6 +48,9 @@ function Icon({id,size=22,color="currentColor",strokeWidth=1.8,fill="none"}){
   if(id==="heart")return<svg {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>;
   if(id==="camera")return<svg {...p}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>;
   if(id==="bell")return<svg {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>;
+if(id==="heart")return<svg {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>;
+  if(id==="camera")return<svg {...p}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>;
+  if(id==="bell")return<svg {...p}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>;
   if(id==="search")return<svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
   if(id==="menu")return<svg {...p}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
   if(id==="x")return<svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
@@ -80,7 +84,6 @@ function Av({url,size,ring=false,onClick}){
     </div>
   );
 }
-
 // ── DRAWER ────────────────────────────────────────────────────────────────────
 var DRAWER_ITEMS=[
   {href:"/",        label:"Ana Sayfa",    id:"home"},
@@ -137,7 +140,7 @@ function Drawer({user,profil,avatarUrl,username,kaydedilenler,senaryolar,onClose
               </div>
             </div>
           ))}
-        </div>
+</div>
 
         {/* Rozetler */}
         <div style={{marginBottom:10,padding:"12px",background:G.surface,borderRadius:12,border:`1px solid ${G.border}`}}>
@@ -187,8 +190,7 @@ function Drawer({user,profil,avatarUrl,username,kaydedilenler,senaryolar,onClose
             </a>
           );
         })}
-
-        <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${G.border}`}}>
+<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${G.border}`}}>
           {user&&<button onClick={()=>setExitModal(true)} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:12,color:G.red,fontSize:14,background:`${G.red}08`,border:"none",width:"100%",textAlign:"left",cursor:"pointer"}}>
             <div style={{width:32,height:32,borderRadius:8,background:`${G.red}10`,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon id="logout" size={15} color={G.red}/></div>
             <span style={{fontWeight:600}}>Çıkış Yap</span>
@@ -235,7 +237,6 @@ function AltNav({active="/profil"}){
     </div>
   );
 }
-
 // ── BANNER ────────────────────────────────────────────────────────────────────
 function ProfileBanner({senaryolar}){
   var turAccent={"Gerilim":G.red,"Drama":G.blue,"Bilim Kurgu":G.blueL,"Komedi":"#FBBF24","Romantik":"#F472B6","Korku":G.purple,"Aksiyon":G.red,"Fantastik":G.purpleL};
@@ -283,7 +284,6 @@ function ProfileBanner({senaryolar}){
     </div>
   );
 }
-
 // ── SENARYO KARTI ─────────────────────────────────────────────────────────────
 function SenaryoKarti({s}){
   var [hov,setHov]=useState(false);
@@ -340,17 +340,42 @@ export default function Profil(){
   var ilerleme=sonraki?Math.min(100,Math.round(((profil?.senaryo_sayisi||0)-rozet.min)/(sonraki.min-rozet.min)*100)):100;
 
   // authProfil hazır olunca local state'i doldur
-  useEffect(()=>{
-    if(!authHazir) return;
-    if(!user){ window.location.href="/"; return; }
-    if(authProfil){
-      setProfilLokal(authProfil);
-      setEditData({bio:authProfil.bio||"",website:authProfil.website||"",nickname:authProfil.nickname||""});
+  useEffect(() => {
+    let aktif = true;
+
+    async function init() {
+      if (!authHazir) return;
+
+      if (!user) {
+        window.location.href = "/";
+        return;
+      }
+
+      try {
+        if (authProfil && aktif) {
+          setProfilLokal(authProfil);
+          setEditData({
+            bio: authProfil.bio || "",
+            website: authProfil.website || "",
+            nickname: authProfil.nickname || "",
+          });
+        }
+
+        await Promise.all([
+          loadSenaryolar(user.id),
+          loadKaydedilenler(user.id),
+        ]);
+      } finally {
+        if (aktif) setYukleniyor(false);
+      }
     }
-    loadSenaryolar(user.id);
-    loadKaydedilenler(user.id);
-    setYukleniyor(false);
-  },[authHazir, user, authProfil]);
+
+    init();
+
+    return () => {
+      aktif = false;
+    };
+  }, [authHazir, user, authProfil]);
 
   async function loadProfil(u){
     var{data}=await supabase.from("profiles").select("*").eq("id",u.id).single();
@@ -367,54 +392,118 @@ export default function Profil(){
   async function avatarDegistir(e){
     var file=e.target.files?.[0];
     if(!file||!user)return;
+
     setAvatarYukleniyor(true);
-    var fd=new FormData();
-    fd.append("file",file);fd.append("upload_preset","scriptify_avatars");
-    var uploadRes=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
-    var uploadData=await uploadRes.json();
-    if(uploadData.secure_url){
-      // Cache buster ekle — tarayıcı eski görseli göstermesin
+
+    try{
+      var fd=new FormData();
+      fd.append("file",file);
+      fd.append("upload_preset","scriptify_avatars");
+
+      var uploadRes=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{
+        method:"POST",
+        body:fd
+      });
+
+      var uploadData=await uploadRes.json();
+
+      if(!uploadData.secure_url){
+        throw new Error(uploadData.error?.message||"Cloudinary hatası");
+      }
+
       var url=uploadData.secure_url+"?v="+Date.now();
-      var {data:updated, error}=await supabase
+
+      var {data:updated,error}=await supabase
         .from("profiles")
         .update({avatar_url:url})
         .eq("id",user.id)
         .select()
         .maybeSingle();
-      console.log("[avatar] DB update:", {updated, error});
+
       if(error){
-        alert("Fotoğraf kaydedilemedi: "+error.message);
-      }else if(updated){
-        setProfilLokal(p=>({...p,avatar_url:updated.avatar_url}));
+        throw new Error(error.message);
+      }
+
+      if(updated){
+        setProfilLokal(p=>p?({...p,avatar_url:updated.avatar_url}):p);
         setProfil(p=>p?({...p,avatar_url:updated.avatar_url}):p);
       }
-    }else{
-      alert("Fotoğraf yüklenemedi: "+(uploadData.error?.message||"Cloudinary hatası"));
+
+      setAvatarModal(false);
+    }catch(err){
+      alert("Fotoğraf yüklenemedi: "+err.message);
+    }finally{
+      setAvatarYukleniyor(false);
+      if(e.target) e.target.value="";
     }
-    setAvatarYukleniyor(false);
   }
   async function bannerDegistir(e){
     var file=e.target.files?.[0];
     if(!file||!user)return;
+
     setBannerYukleniyor(true);
-    var fd=new FormData();
-    fd.append("file",file);fd.append("upload_preset","scriptify_avatars");
-    var res=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
-    var data=await res.json();
-    if(data.secure_url){
-      await supabase.from("profiles").update({banner_url:data.secure_url}).eq("id",user.id);
-      setProfilLokal(p=>({...p,banner_url:data.secure_url}));
-      setProfil(p=>({...p,banner_url:data.secure_url}));
+
+    try{
+      var fd=new FormData();
+      fd.append("file",file);
+      fd.append("upload_preset","scriptify_avatars");
+
+      var res=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{
+        method:"POST",
+        body:fd
+      });
+
+      var data=await res.json();
+
+      if(!data.secure_url){
+        throw new Error(data.error?.message||"Banner yüklenemedi");
+      }
+
+      var bannerUrl=data.secure_url+"?v="+Date.now();
+
+      var {data:updated,error}=await supabase
+        .from("profiles")
+        .update({banner_url:bannerUrl})
+        .eq("id",user.id)
+        .select()
+        .maybeSingle();
+
+      if(error){
+        throw new Error(error.message);
+      }
+
+      if(updated){
+        setProfilLokal(p=>p?({...p,banner_url:updated.banner_url}):p);
+        setProfil(p=>p?({...p,banner_url:updated.banner_url}):p);
+      }
+
+      setBannerModal(false);
+    }catch(err){
+      alert("Banner kaydedilemedi: "+err.message);
+    }finally{
+      setBannerYukleniyor(false);
+      if(e.target) e.target.value="";
     }
-    setBannerYukleniyor(false);
-    setBannerModal(false);
   }
   async function bannerSil(){
     if(!user)return;
-    await supabase.from("profiles").update({banner_url:null}).eq("id",user.id);
-    setProfilLokal(p=>({...p,banner_url:null}));
-    setProfil(p=>({...p,banner_url:null}));
-    setBannerModal(false);
+
+    try{
+      var {error}=await supabase
+        .from("profiles")
+        .update({banner_url:null})
+        .eq("id",user.id);
+
+      if(error){
+        throw new Error(error.message);
+      }
+
+      setProfilLokal(p=>p?({...p,banner_url:null}):p);
+      setProfil(p=>p?({...p,banner_url:null}):p);
+      setBannerModal(false);
+    }catch(err){
+      alert("Banner silinemedi: "+err.message);
+    }
   }
   // URL güvenlik kontrolü — sadece http/https kabul et
   function guvenliUrl(url){
@@ -434,10 +523,41 @@ export default function Profil(){
 
   async function profilKaydet(){
     if(!user)return;
-    var temizWebsite = editData.website ? guvenliUrl(editData.website) : null;
-    await supabase.from("profiles").update({bio:editData.bio,website:temizWebsite,nickname:editData.nickname}).eq("id",user.id);
-    setProfilLokal(p=>({...p,...editData}));
-    setEditMode(false);
+
+    try{
+      var temizWebsite = editData.website ? guvenliUrl(editData.website) : null;
+
+      var payload = {
+        bio: editData.bio || "",
+        website: temizWebsite,
+        nickname: editData.nickname || "",
+      };
+
+      var {data:updated,error}=await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id",user.id)
+        .select()
+        .maybeSingle();
+
+      if(error){
+        throw new Error(error.message);
+      }
+
+      if(updated){
+        setProfilLokal(updated);
+        setProfil(updated);
+        setEditData({
+          bio: updated.bio || "",
+          website: updated.website || "",
+          nickname: updated.nickname || "",
+        });
+      }
+
+      setEditMode(false);
+    }catch(err){
+      alert("Profil kaydedilemedi: "+err.message);
+    }
   }
 
   if(yukleniyor)return(
@@ -484,7 +604,7 @@ export default function Profil(){
             <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse at 80% 30%,${G.purple}06,transparent 50%)`}}/>
           </div>
         }
-        {/* Banner düzenle butonu */}
+{/* Banner düzenle butonu */}
         <div style={{position:"absolute",bottom:10,right:12,display:"flex",gap:6}}>
           <button onClick={e=>{e.stopPropagation();setBannerModal(true);}}
             style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:20,background:"rgba(10,15,30,0.75)",backdropFilter:"blur(8px)",border:`1px solid ${G.border}`,color:G.text,fontSize:11,fontWeight:700,cursor:"pointer"}}>
@@ -559,11 +679,7 @@ export default function Profil(){
                 }
               </div>
             ))}
-            <button onClick={profilKaydet} style={{width:"100%",padding:"12px",borderRadius:12,background:G.blueGrad,border:"none",color:G.black,fontSize:13,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",boxShadow:G.glowBlue}}>Kaydet</button>
-          </div>
-        )}
-
-        {/* İlerleme çubuğu */}
+{/* İlerleme çubuğu */}
         {sonraki&&(
           <div style={{background:G.surface,border:`1px solid ${G.border}`,borderRadius:14,padding:"12px 14px",marginBottom:16,position:"relative"}}>
             <NeonCorners color={rozet.color} size={8}/>
@@ -656,8 +772,7 @@ export default function Profil(){
           )}
         </div>
       </>}
-
-            {avatarModal&&<>
+{avatarModal&&<>
         <div onClick={()=>setAvatarModal(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,5,20,0.9)",backdropFilter:"blur(12px)"}}/>
         <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:401,background:G.deep,border:`1px solid ${G.borderHov}`,borderRadius:"24px 24px 0 0",padding:"24px 20px env(safe-area-inset-bottom,24px)",boxShadow:`0 -20px 60px rgba(0,0,0,0.8),${G.glowBlue}`}}>
           <div style={{width:36,height:3,borderRadius:2,background:G.border,margin:"0 auto 20px"}}/>
@@ -680,7 +795,17 @@ export default function Profil(){
             </div>
           </button>
           {/* Sil */}
-          {avatarUrl&&<button onClick={async()=>{await supabase.from("profiles").update({avatar_url:null}).eq("id",user.id);setProfilLokal(p=>({...p,avatar_url:null}));setAvatarModal(false);}}
+          {avatarUrl&&<button onClick={async()=>{
+            try{
+              var {error}=await supabase.from("profiles").update({avatar_url:null}).eq("id",user.id);
+              if(error) throw new Error(error.message);
+              setProfilLokal(p=>p?({...p,avatar_url:null}):p);
+              setProfil(p=>p?({...p,avatar_url:null}):p);
+              setAvatarModal(false);
+            }catch(err){
+              alert("Fotoğraf silinemedi: "+err.message);
+            }
+          }}
             style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 16px",borderRadius:14,background:`${G.red}08`,border:`1px solid ${G.red}20`,color:G.red,fontSize:14,cursor:"pointer"}}
             onMouseEnter={e=>e.currentTarget.style.background=`${G.red}15`}
             onMouseLeave={e=>e.currentTarget.style.background=`${G.red}08`}>
