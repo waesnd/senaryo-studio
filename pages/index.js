@@ -453,12 +453,11 @@ function AltNav({active="/"}){
 // ── ANA SAYFA ─────────────────────────────────────────────────────────────────
 export default function Index(){
   var {user, profil, authHazir, okunmayanBildirim} = useAuth();
-  var avatarUrl=profil?.avatar_url||null;
-  var username=profil?.username||(user?user.email.split("@")[0]:"");
   var [kesfetGonderiler,setKesfetGonderiler]=useState([]);
   var [takipGonderiler,setTakipGonderiler]=useState([]);
   var [storyler,setStoryler]=useState([]);
-  var [yukleniyor,setYukleniyor]=useState(false);
+  var [ilkYukleniyor,setIlkYukleniyor]=useState(true); // ilk açılış skeleton
+  var [yukleniyor,setYukleniyor]=useState(false); // sayfalama spinner
 
   var [sekme,setSekme]=useState("kesfet");
   var [drawer,setDrawer]=useState(false);
@@ -474,12 +473,24 @@ export default function Index(){
     loadStoryler();
   },[]);
 
-  // sekme veya auth değişince yükle
+  // authHazir ilk kez true olunca yükle
+  var ilkYuklemeRef = useRef(false);
   useEffect(()=>{
     if(!authHazir) return;
+    if(ilkYuklemeRef.current) return;
+    ilkYuklemeRef.current = true;
+    loadGonderiler(0,true,"kesfet");
+  },[authHazir]);
+
+  // Sekme değişince yükle — mevcut feed'i koru, arka planda yükle
+  useEffect(()=>{
+    if(!authHazir || !ilkYuklemeRef.current) return;
     setSayfa(0);setBitti(false);
+    // Cache varsa skeleton gösterme
+    var mevcut=sekme==="takip"?takipGonderiler:kesfetGonderiler;
+    if(mevcut.length>0) setIlkYukleniyor(false);
     loadGonderiler(0,true,sekme);
-  },[sekme,authHazir]);
+  },[sekme]);
 
 
   async function loadStoryler(){
@@ -492,7 +503,8 @@ export default function Index(){
   }
   async function loadGonderiler(page=0,reset=false,aktivSekme){
     var hedefSekme=aktivSekme||sekme;
-    setYukleniyor(true);
+    if(reset) setIlkYukleniyor(true);
+    else setYukleniyor(true);
     var data=null;
 
     if(hedefSekme==="takip"&&!user){
@@ -530,6 +542,7 @@ export default function Index(){
       setBitti(data.length<LIMIT);
     }
     setYukleniyor(false);
+    setIlkYukleniyor(false);
   }
 
   useEffect(()=>{
@@ -686,7 +699,7 @@ export default function Index(){
 
       {/* FEED */}
       <div style={{maxWidth:640,margin:"0 auto",padding:"12px 16px"}}>
-        {yukleniyor&&gonderiler.length===0
+        {ilkYukleniyor
           ?Array(4).fill(0).map((_,i)=><FilmCardSkeleton key={i}/>)
           :gonderiler.map(g=><FilmCard key={g.id} gonderi={g} user={user} onBegen={handleBegen} onYorum={handleYorum} onKaydet={handleKaydet}/>)
         }

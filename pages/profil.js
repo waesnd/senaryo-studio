@@ -371,14 +371,24 @@ export default function Profil(){
     var fd=new FormData();
     fd.append("file",file);fd.append("upload_preset","scriptify_avatars");
     var res=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
-    var data=await res.json();
-    if(data.secure_url){
-      await supabase.from("profiles").update({avatar_url:data.secure_url}).eq("id",user.id);
-      setProfilLokal(p=>({...p,avatar_url:data.secure_url}));
-      setProfil({...profil, avatar_url:data.secure_url});
+    var uploadData=await res.json();
+    if(uploadData.secure_url){
+      var url=uploadData.secure_url;
+      // DB güncelle + doğrula
+      var {data:updated, error}=await supabase
+        .from("profiles").update({avatar_url:url})
+        .eq("id",user.id).select().single();
+      if(error){
+        console.error("[avatar] DB güncelleme hatası:", error.message);
+        alert("Fotoğraf kaydedilemedi: "+error.message);
+      }else{
+        // Fonksiyonel güncelleme — stale closure riski yok
+        setProfilLokal(p=>({...p,avatar_url:url}));
+        setProfil(p=>p?({...p,avatar_url:url}):p);
+      }
     }else{
-      console.error("[avatar] Cloudinary hatası:", data);
-      alert("Fotoğraf yüklenemedi: "+(data.error?.message||"Cloudinary hatası"));
+      console.error("[avatar] Cloudinary hatası:", uploadData);
+      alert("Fotoğraf yüklenemedi: "+(uploadData.error?.message||"Cloudinary hatası"));
     }
     setAvatarYukleniyor(false);
   }
