@@ -314,7 +314,7 @@ export default function KullaniciProfil(){
                 <a href="/profil" style={{padding:"8px 18px",borderRadius:20,border:`1.5px solid ${G.border}`,color:G.text,fontSize:12,fontWeight:700,textDecoration:"none",background:G.surface,letterSpacing:"0.04em"}}>Profili Düzenle</a>
               ):(
                 <>
-                  <button onClick={()=>window.location.href="/mesajlar"}
+                  <button onClick={()=>window.location.href="/mesajlar?dm="+username}
                     style={{width:38,height:38,borderRadius:12,background:G.surface,border:`1.5px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor=G.blue;e.currentTarget.style.boxShadow=G.glowBlue;}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.boxShadow="none";}}>
@@ -349,7 +349,7 @@ export default function KullaniciProfil(){
 
             {profil.bio&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.7,marginBottom:8}}>{profil.bio}</p>}
             {profil.website&&(
-              <a href={profil.website} target="_blank"
+              <a href={profil.website} target="_blank" rel="noopener noreferrer"
                 style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,color:G.blue,fontWeight:600,padding:"4px 10px",borderRadius:20,background:`${G.blue}10`,border:`1px solid ${G.blue}20`}}>
                 <Icon id="link" size={11} color={G.blue}/>
                 {profil.website.replace(/https?:\/\//,"")}
