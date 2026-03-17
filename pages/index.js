@@ -474,15 +474,10 @@ export default function Index(){
     loadStoryler();
   },[]);
 
-  // authHazir olunca kesfet feed'ini yükle
+  // sekme veya auth değişince yükle
   useEffect(()=>{
     if(!authHazir) return;
-    loadGonderiler(0,true,"kesfet");
-  },[authHazir]);
-
-  useEffect(()=>{
-    if(!authHazir) return;
-    setSayfa(0);setBitti(false);
+    setSayfa(0);setBitti(false);setBitti(false);
     loadGonderiler(0,true,sekme);
   },[sekme,authHazir]);
 
@@ -582,7 +577,7 @@ export default function Index(){
         <img src="/logo.png" alt="Scriptify" style={{height:32,objectFit:"contain"}}/>
         <div style={{display:"flex",gap:10}}>
           <a href="/kesfet" style={{padding:"8px 18px",borderRadius:20,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600}}>Keşfet</a>
-          <button onClick={()=>supabase.auth.signInWithOAuth({provider:"google"})} style={{padding:"8px 20px",borderRadius:20,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,boxShadow:G.glowBlue,border:"none",cursor:"pointer"}}>Giriş Yap</button>
+          <button onClick={()=>supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:"https://senaryo-studio-git-main-waesnds-projects.vercel.app/auth/callback"}})} style={{padding:"8px 20px",borderRadius:20,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,boxShadow:G.glowBlue,border:"none",cursor:"pointer"}}>Giriş Yap</button>
         </div>
       </nav>
 

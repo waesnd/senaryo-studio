@@ -375,6 +375,10 @@ export default function Profil(){
     if(data.secure_url){
       await supabase.from("profiles").update({avatar_url:data.secure_url}).eq("id",user.id);
       setProfilLokal(p=>({...p,avatar_url:data.secure_url}));
+      setProfil(p=>({...p,avatar_url:data.secure_url}));
+    }else{
+      console.error("[avatar] Cloudinary hatası:", data);
+      alert("Fotoğraf yüklenemedi: "+(data.error?.message||"Cloudinary hatası"));
     }
     setAvatarYukleniyor(false);
   }
