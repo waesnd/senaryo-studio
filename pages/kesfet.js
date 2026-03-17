@@ -25,6 +25,7 @@ var TURLER_RENK={
 };
 
 function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
+
   var p={width:size,height:size,fill:"none",stroke:color,strokeWidth,viewBox:"0 0 24 24"};
   if(id==="home")return<svg {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>;
   if(id==="search")return<svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
@@ -234,20 +235,42 @@ export default function Kesfet(){
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||(user?user.email?.split("@")[0]:"");
 
-  useEffect(()=>{    loadVeriler();
-  },[]);
+  useEffect(() => {
+    let aktif = true;
 
-  async function loadVeriler(){
-    setYukleniyor(true);
-    var[{data:g},{data:p},{data:h}]=await Promise.all([
-      supabase.from("gonderiler").select("*,profiles(username,avatar_url,dogrulandi)").eq("paylasim_acik",true).order("created_at",{ascending:false}).limit(30),
-      supabase.from("profiles").select("*").order("senaryo_sayisi",{ascending:false}).limit(20),
-      supabase.from("hashtagler").select("*").order("kullanim_sayisi",{ascending:false}).limit(20),
-    ]);
-    if(g)setGonderiler(g);
-    if(p)setKisiler(p);
-    if(h)setHashtagler(h);
-    setYukleniyor(false);
+    async function init() {
+      await loadVeriler(aktif);
+    }
+
+    init();
+
+    return () => {
+      aktif = false;
+    };
+  }, []);
+
+  async function loadVeriler(aktif = true) {
+    if (aktif) setYukleniyor(true);
+
+    try {
+      var [{ data: g, error: gErr }, { data: p, error: pErr }, { data: h, error: hErr }] = await Promise.all([
+        supabase.from("gonderiler").select("*,profiles(username,avatar_url,dogrulandi)").eq("paylasim_acik", true).order("created_at", { ascending: false }).limit(30),
+        supabase.from("profiles").select("*").order("senaryo_sayisi", { ascending: false }).limit(20),
+        supabase.from("hashtagler").select("*").order("kullanim_sayisi", { ascending: false }).limit(20),
+      ]);
+
+      if (gErr) console.error("[kesfet] gonderiler yüklenemedi:", gErr.message);
+      if (pErr) console.error("[kesfet] kisiler yüklenemedi:", pErr.message);
+      if (hErr) console.error("[kesfet] hashtagler yüklenemedi:", hErr.message);
+
+      if (aktif && g) setGonderiler(g);
+      if (aktif && p) setKisiler(p);
+      if (aktif && h) setHashtagler(h);
+    } catch (err) {
+      console.error("[kesfet] loadVeriler beklenmeyen hata:", err);
+    } finally {
+      if (aktif) setYukleniyor(false);
+    }
   }
 
   async function handleBegen(id,liked){
@@ -267,6 +290,15 @@ export default function Kesfet(){
     return turOk&&aramaOk;
   });
   var filtreliKisiler=kisiler.filter(p=>!arama.trim()||(p.username||"").toLowerCase().includes(arama.toLowerCase())||(p.bio||"").toLowerCase().includes(arama.toLowerCase()));
+
+  if(!authHazir){
+    return(
+      <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
 
   return(
     <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:80}}>
