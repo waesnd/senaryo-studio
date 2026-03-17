@@ -377,7 +377,7 @@ export default function Profil(){
       // DB güncelle + doğrula
       var {data:updated, error}=await supabase
         .from("profiles").update({avatar_url:url})
-        .eq("id",user.id).select().single();
+        .eq("id",user.id).select().maybeSingle();
       if(error){
         console.error("[avatar] DB güncelleme hatası:", error.message);
         alert("Fotoğraf kaydedilemedi: "+error.message);
