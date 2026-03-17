@@ -133,27 +133,55 @@ export default function HashtagSayfa(){
 
   useEffect(()=>{
     if(!tag)return;
-    setYukleniyor(true);
-    Promise.all([
-      supabase.from("gonderiler").select("*, profiles(username,avatar_url,dogrulandi)")
-        .ilike("metin","%#"+tag+"%")
-        .order("begeni_sayisi",{ascending:false})
-        .limit(40),
-      supabase.from("senaryolar").select("*, profiles(username,avatar_url,dogrulandi)")
-        .eq("paylasim_acik",true)
-        .or(`baslik.ilike.%${tag}%,ana_fikir.ilike.%${tag}%`)
-        .order("begeni_sayisi",{ascending:false})
-        .limit(20),
-    ]).then(([g,s])=>{
-      var gd=g.data||[];
-      var sd=s.data||[];
-      setGonderiler(gd);
-      setSenaryolar(sd);
-      var topBegeni=gd.reduce((a,x)=>a+(x.begeni_sayisi||0),0);
-      var topGoruntuleme=gd.reduce((a,x)=>a+(x.goruntuleme_sayisi||0),0);
-      setIstatistik({toplam:gd.length+sd.length,begeni:topBegeni,goruntuleme:topGoruntuleme});
-      setYukleniyor(false);
-    });
+
+    var aktif=true;
+
+    async function yukleVeri(){
+      setYukleniyor(true);
+
+      try{
+        var temizTag=Array.isArray(tag)?tag[0]:tag;
+
+        var [g,s]=await Promise.all([
+          supabase.from("gonderiler").select("*, profiles(username,avatar_url,dogrulandi)")
+            .ilike("metin","%#"+temizTag+"%")
+            .order("begeni_sayisi",{ascending:false})
+            .limit(40),
+          supabase.from("senaryolar").select("*, profiles(username,avatar_url,dogrulandi)")
+            .eq("paylasim_acik",true)
+            .or(`baslik.ilike.%${temizTag}%,ana_fikir.ilike.%${temizTag}%`)
+            .order("begeni_sayisi",{ascending:false})
+            .limit(20),
+        ]);
+
+        if(g.error) throw g.error;
+        if(s.error) throw s.error;
+
+        if(!aktif) return;
+
+        var gd=g.data||[];
+        var sd=s.data||[];
+        setGonderiler(gd);
+        setSenaryolar(sd);
+        var topBegeni=gd.reduce((a,x)=>a+(x.begeni_sayisi||0),0);
+        var topGoruntuleme=gd.reduce((a,x)=>a+(x.goruntuleme_sayisi||0),0);
+        setIstatistik({toplam:gd.length+sd.length,begeni:topBegeni,goruntuleme:topGoruntuleme});
+      }catch(err){
+        console.error("[hashtag] yükleme hatası:", err?.message || err);
+        if(!aktif) return;
+        setGonderiler([]);
+        setSenaryolar([]);
+        setIstatistik({toplam:0,begeni:0,goruntuleme:0});
+      }finally{
+        if(aktif) setYukleniyor(false);
+      }
+    }
+
+    yukleVeri();
+
+    return ()=>{
+      aktif=false;
+    };
   },[tag]);
 
   // Hashtag'e göre renk belirle
@@ -166,6 +194,15 @@ export default function HashtagSayfa(){
     else if(t.includes("komedi"))tagRenk="#FBBF24";
     else if(t.includes("romantik"))tagRenk="#F472B6";
   }
+
+
+  if(!authHazir)return(
+    <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
+      <div style={{width:32,height:32,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
+      <p style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim,letterSpacing:"0.1em"}}>YÜKLENİYOR</p>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   return(
     <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:80}}>
