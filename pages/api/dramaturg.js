@@ -1,13 +1,38 @@
-// pages/api/dramaturg.js
 import { withAuth } from "../../lib/withAuth";
 import { callGroq } from "../../lib/groq";
-async function handler(req, res){
-  if(req.method !== "POST") return res.status(405).json({error:"Method not allowed"});
 
-  var {senaryo, tip, tur} = req.body;
-  if(!senaryo) return res.status(400).json({error:"senaryo zorunlu"});
+function sendError(res, status, error, code) {
+  return res.status(status).json({ error, code });
+}
 
-  // Her seferinde farklı bir dramaturg perspektifi
+function sanitizeText(value, maxLength = 4000) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, maxLength);
+}
+
+function normalizeResult(sonuc, perspektif) {
+  var safe = sonuc && typeof sonuc === "object" && !Array.isArray(sonuc) ? sonuc : {};
+  if (typeof safe.genel_puan === "string") safe.genel_puan = parseInt(safe.genel_puan, 10) || 70;
+  if (!Array.isArray(safe.guc_noktalari)) safe.guc_noktalari = [];
+  if (!Array.isArray(safe.zayif_noktalar)) safe.zayif_noktalar = [];
+  if (!safe.perspektif) safe.perspektif = perspektif;
+  ["turk_dizi_uyumu","gerilim_analizi","karakter_motivasyon","oneri_1","oneri_2","oneri_3","sonuc"].forEach((key)=>{
+    if (typeof safe[key] !== "string") safe[key] = safe[key] ? String(safe[key]) : "";
+  });
+  return safe;
+}
+
+async function handler(req, res) {
+  if (req.method !== "POST") return sendError(res, 405, "Method not allowed", "METHOD_NOT_ALLOWED");
+
+  var senaryo = req.body?.senaryo;
+  var tip = sanitizeText(req.body?.tip, 100);
+  var tur = sanitizeText(req.body?.tur, 100);
+
+  if (!senaryo || typeof senaryo !== "object") {
+    return sendError(res, 400, "senaryo zorunlu", "VALIDATION_ERROR");
+  }
+
   var perspektifler = [
     "Bir Yeşilçam ustası",
     "Netflix Türkiye içerik direktörü",
@@ -19,12 +44,12 @@ async function handler(req, res){
 
   var prompt = `Sen ${perspektif} gözüyle değerlendirme yapıyorsun. Aşağıdaki senaryoyu bu perspektiften, eleştirel ve özgün biçimde analiz et. Klişe yorumlardan kaçın, bu senaryoya özel tespitler yap.
 
-Senaryo: ${senaryo.baslik} (${tur} — ${tip})
-Tagline: ${senaryo.tagline||""}
-Ana Fikir: ${senaryo.ana_fikir}
-Karakterler: ${senaryo.karakter}
-Açılış Sahnesi: ${senaryo.acilis_sahnesi}
-Büyük Dramatik Soru: ${senaryo.buyuk_soru}
+Senaryo: ${sanitizeText(senaryo.baslik, 300)} (${tur} — ${tip})
+Tagline: ${sanitizeText(senaryo.tagline, 500)}
+Ana Fikir: ${sanitizeText(senaryo.ana_fikir, 2500)}
+Karakterler: ${sanitizeText(senaryo.karakter, 2500)}
+Açılış Sahnesi: ${sanitizeText(senaryo.acilis_sahnesi, 2500)}
+Büyük Dramatik Soru: ${sanitizeText(senaryo.buyuk_soru, 800)}
 
 Değerlendirirken şunlara bak:
 - Bu spesifik senaryo için benzersiz güçlü yanlar neler?
@@ -48,15 +73,16 @@ SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
   "sonuc": "Bu senaryoya özel final karar — 1-2 cümle"
 }`;
 
-  try{
-    var sonuc = await callGroq(prompt, { temperature: 0.88, max_tokens: 1500 });
-    if(typeof sonuc.genel_puan === "string") sonuc.genel_puan = parseInt(sonuc.genel_puan)||70;
-    if(!Array.isArray(sonuc.guc_noktalari)) sonuc.guc_noktalari = [];
-    if(!Array.isArray(sonuc.zayif_noktalar)) sonuc.zayif_noktalar = [];
-    res.status(200).json(sonuc);
-  }catch(e){
-    console.error("[dramaturg]", e.message);
-    res.status(500).json({error: e.message});
+  try {
+    var sonuc = await callGroq(prompt, {
+      temperature: 0.88,
+      max_tokens: 1500,
+      systemPrompt: "Sadece geçerli JSON üret. Markdown ve açıklama yazma.",
+    });
+    return res.status(200).json(normalizeResult(sonuc, perspektif));
+  } catch (e) {
+    console.error("[dramaturg]", e);
+    return sendError(res, 500, "Dramaturg analizi oluşturulamadı.", "DRAMATURG_FAILED");
   }
 }
 
