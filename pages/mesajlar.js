@@ -193,10 +193,12 @@ export default function Mesajlar(){
   useEffect(()=>{
     if(!aktif||!user)return;
     var kanal=supabase.channel("mesajlar_"+aktif.id)
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"mesajlar",filter:"konusma_id=eq."+aktif.id},(payload)=>{
-        if(payload.new.gonderen!==user.id){
-          setMesajlar(p=>[...p,payload.new]);
-          supabase.from("mesajlar").update({okundu:true}).eq("id",payload.new.id);
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"mesajlar",filter:"alan.eq."+user.id},(payload)=>{
+        var m=payload.new;
+        // Sadece bu sohbete ait mesajları ekle
+        if(m.gonderen===aktif.id||m.alan===aktif.id){
+          setMesajlar(p=>[...p,m]);
+          supabase.from("mesajlar").update({okundu:true}).eq("id",m.id);
         }
       }).subscribe();
     return()=>supabase.removeChannel(kanal);
@@ -240,7 +242,9 @@ export default function Mesajlar(){
   async function mesajGonder(medyaUrl,medyaTip,sesUrl){
     if(!user||!aktif)return;
     if(!yeniMesaj.trim()&&!medyaUrl&&!sesUrl)return;
-    var yeni={gonderen:user.id,alan:aktif.id,icerik:yeniMesaj.trim()||null,medya_url:medyaUrl||null,ses_url:sesUrl||null,okundu:false};
+    var icerik=yeniMesaj.trim();
+    if(!icerik&&!medyaUrl&&!sesUrl)return;
+    var yeni={gonderen:user.id,alan:aktif.id,icerik:icerik||null,medya_url:medyaUrl||null,ses_url:sesUrl||null,okundu:false};
     var{data}=await supabase.from("mesajlar").insert([yeni]).select().single();
     if(data)setMesajlar(p=>[...p,data]);
     setYeniMesaj("");
