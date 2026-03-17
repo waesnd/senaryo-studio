@@ -148,6 +148,7 @@ function zaman(ts){
 }
 
 export default function Mesajlar(){
+  var router = useRouter();
   var {user, profil, authHazir, okunmayanBildirim=0} = useAuth();
   var [konusmalar,setKonusmalar]=useState([]);
   var [aktif,setAktif]=useState(null);
