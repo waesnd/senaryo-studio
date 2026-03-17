@@ -157,26 +157,69 @@ export default function Topluluk(){
   var [sekme,setSekme]=useState("challenge");
 
   var avatarUrl=profil?.avatar_url||null;
-  var username=profil?.username||(user?user.email.split("@")[0]:"");
+  var username=profil?.username||(user?user.email?.split("@")[0]:"");
 
-  useEffect(()=>{
+  useEffect(() => {
+    if (!authHazir) return;
     loadChallenglar();
     loadTopSenaristler();
-  },[]);
+  }, [authHazir]);
 
-  async function loadChallenglar(){
-    setYukleniyorC(true);
-    var{data}=await supabase.from("challengelar").select("*").eq("aktif",true).order("olusturulma_tarihi",{ascending:false}).limit(10);
-    setChallenglar(data||[]);
-    setYukleniyorC(false);
+  async function loadChallenglar() {
+    try {
+      setYukleniyorC(true);
+      var { data, error } = await supabase
+        .from("challengelar")
+        .select("*")
+        .eq("aktif", true)
+        .order("olusturulma_tarihi", { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error("[topluluk] challengelar yüklenemedi:", error.message);
+        setChallenglar([]);
+        return;
+      }
+
+      setChallenglar(data || []);
+    } catch (err) {
+      console.error("[topluluk] loadChallenglar beklenmeyen hata:", err);
+      setChallenglar([]);
+    } finally {
+      setYukleniyorC(false);
+    }
   }
 
-  async function loadTopSenaristler(){
-    setYukleniyorS(true);
-    var{data}=await supabase.from("profiles").select("*").order("senaryo_sayisi",{ascending:false}).limit(10);
-    setTopSenaristler(data||[]);
-    setYukleniyorS(false);
+  async function loadTopSenaristler() {
+    try {
+      setYukleniyorS(true);
+      var { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("senaryo_sayisi", { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error("[topluluk] top senaristler yüklenemedi:", error.message);
+        setTopSenaristler([]);
+        return;
+      }
+
+      setTopSenaristler(data || []);
+    } catch (err) {
+      console.error("[topluluk] loadTopSenaristler beklenmeyen hata:", err);
+      setTopSenaristler([]);
+    } finally {
+      setYukleniyorS(false);
+    }
   }
+
+  if (!authHazir) return(
+    <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   return(
     <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:90}}>
