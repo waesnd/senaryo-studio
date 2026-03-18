@@ -195,6 +195,8 @@ export default function Uret(){
   var [senaryo,setSenaryo]=useState(null);
   var [kaydedildi,setKaydedildi]=useState(false);
   var [kaydetYukleniyor,setKaydetYukleniyor]=useState(false);
+  var [kayitliSenaryoId,setKayitliSenaryoId]=useState(null);
+  var [paylasimYukleniyor,setPaylasimYukleniyor]=useState(false);
   var [arsivAcik,setArsivAcik]=useState(false);
   var [arsiv,setArsiv]=useState([]);
   var [arsivYukleniyor,setArsivYukleniyor]=useState(false);
@@ -258,9 +260,145 @@ export default function Uret(){
     return fetch(url, {method:"POST", headers, body:JSON.stringify(body)});
   }
 
+  function senaryoPayloadOlustur() {
+    if (!user || !senaryo) return null;
+    return {
+      user_id: user.id,
+      tip,
+      tur,
+      baslik: senaryo.baslik,
+      tagline: senaryo.tagline,
+      ana_fikir: senaryo.ana_fikir,
+      karakter: senaryo.karakter,
+      sahne: senaryo.acilis_sahnesi,
+      soru: senaryo.buyuk_soru,
+      paylasim_acik: !!paylasimAcik,
+      begeni_sayisi: 0,
+      goruntuleme_sayisi: 0,
+      yorum_sayisi: 0
+    };
+  }
+
+  async function profilSayisiniGuncelle() {
+    if (!user) return;
+    try {
+      var { count } = await supabase
+        .from("senaryolar")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      if (typeof count === "number") {
+        var { data: updatedProfile } = await supabase
+          .from("profiles")
+          .update({ senaryo_sayisi: count })
+          .eq("id", user.id)
+          .select()
+          .maybeSingle();
+
+        if (updatedProfile && setProfil) {
+          setProfil(updatedProfile);
+        } else if (setProfil && profil) {
+          setProfil({ ...profil, senaryo_sayisi: count });
+        }
+      }
+    } catch (profileErr) {
+      console.error("[uret] senaryo_sayisi güncellenemedi:", profileErr?.message || profileErr);
+    }
+  }
+
+  async function gonderiPaylas(senaryoId) {
+    if (!user || !senaryoId || !senaryo) return { ok: false, error: "Eksik veri" };
+
+    var gonderiPayload = {
+      senaryo_id: senaryoId,
+      user_id: user.id,
+      tip,
+      tur,
+      baslik: senaryo.baslik,
+      tagline: senaryo.tagline,
+      ana_fikir: senaryo.ana_fikir,
+      karakter: senaryo.karakter,
+      sahne: senaryo.acilis_sahnesi,
+      soru: senaryo.buyuk_soru,
+      paylasim_acik: true,
+      begeni_sayisi: 0,
+      goruntuleme_sayisi: 0,
+      yorum_sayisi: 0,
+      kaydetme_sayisi: 0
+    };
+
+    var { error } = await supabase
+      .from("gonderiler")
+      .upsert([gonderiPayload], { onConflict: "senaryo_id" });
+
+    if (error) {
+      console.error("[uret] topluluğa paylaşma hatası:", error.message);
+      return { ok: false, error: error.message };
+    }
+
+    return { ok: true };
+  }
+
+  async function gonderiPaylasiminiKaldir(senaryoId) {
+    if (!senaryoId) return { ok: true };
+    var { error } = await supabase
+      .from("gonderiler")
+      .delete()
+      .eq("senaryo_id", senaryoId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("[uret] paylaşım kaldırma hatası:", error.message);
+      return { ok: false, error: error.message };
+    }
+
+    return { ok: true };
+  }
+
+  async function paylasimDurumunuDegistir(yeniDeger) {
+    setPaylasimAcik(yeniDeger);
+
+    if (!kayitliSenaryoId || paylasimYukleniyor) return;
+
+    setPaylasimYukleniyor(true);
+    try {
+      var { error: senaryoUpdateError } = await supabase
+        .from("senaryolar")
+        .update({ paylasim_acik: yeniDeger })
+        .eq("id", kayitliSenaryoId)
+        .eq("user_id", user.id);
+
+      if (senaryoUpdateError) {
+        alert("Paylaşım durumu güncellenemedi: " + senaryoUpdateError.message);
+        setPaylasimAcik(!yeniDeger);
+        return;
+      }
+
+      if (yeniDeger) {
+        var paylas = await gonderiPaylas(kayitliSenaryoId);
+        if (!paylas.ok) {
+          alert("Topluluğa paylaşma başarısız oldu: " + paylas.error);
+          setPaylasimAcik(false);
+        }
+      } else {
+        var sil = await gonderiPaylasiminiKaldir(kayitliSenaryoId);
+        if (!sil.ok) {
+          alert("Paylaşım geri alınamadı: " + sil.error);
+          setPaylasimAcik(true);
+        }
+      }
+    } catch (err) {
+      console.error("[uret] paylasimDurumunuDegistir:", err);
+      setPaylasimAcik(!yeniDeger);
+    } finally {
+      setPaylasimYukleniyor(false);
+    }
+  }
+
+
   async function senaryoUret(){
     if(limitDoldu) return;
-    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");
+    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");setKaydedildi(false);setKayitliSenaryoId(null);
     try{
       var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi});
       var kalan=res.headers.get("X-Kalan-Uretim");
@@ -297,8 +435,8 @@ export default function Uret(){
     try{
       var res=await authFetch("/api/generate", {tip,tur,ozelIstek:"Şu senaryoyu tamamen revize et, daha güçlü yap. Aynı tema: "+senaryo.baslik+" — "+(senaryo.ana_fikir?.slice(0,200)||"")});
       var data=await res.json();
-      if(data?.ok&&data?.data?.senaryo)setSenaryo(data.data.senaryo);
-      else if(data?.senaryo)setSenaryo(data.senaryo);
+      if(data?.ok&&data?.data?.senaryo){setSenaryo(data.data.senaryo);setKaydedildi(false);setKayitliSenaryoId(null);}
+      else if(data?.senaryo){setSenaryo(data.senaryo);setKaydedildi(false);setKayitliSenaryoId(null);}
     }catch(e){console.error("[uret] revizeEt", e);}finally{setRevizeYukleniyor(false);}
   }
 
@@ -429,21 +567,7 @@ export default function Uret(){
     setKaydetYukleniyor(true);
 
     try{
-      var senaryoPayload = {
-        user_id: user.id,
-        tip,
-        tur,
-        baslik: senaryo.baslik,
-        tagline: senaryo.tagline,
-        ana_fikir: senaryo.ana_fikir,
-        karakter: senaryo.karakter,
-        sahne: senaryo.acilis_sahnesi,
-        soru: senaryo.buyuk_soru,
-        paylasim_acik: paylasimAcik,
-        begeni_sayisi: 0,
-        goruntuleme_sayisi: 0,
-        yorum_sayisi: 0
-      };
+      var senaryoPayload = senaryoPayloadOlustur();
 
       var { data: savedSenaryo, error: senaryoError } = await supabase
         .from("senaryolar")
@@ -456,61 +580,25 @@ export default function Uret(){
         return;
       }
 
+      setKayitliSenaryoId(savedSenaryo?.id || null);
+
+      var paylasimHatasi = null;
       if(paylasimAcik && savedSenaryo?.id){
-        var gonderiPayload = {
-          id: savedSenaryo.id,
-          user_id: user.id,
-          tip,
-          tur,
-          baslik: senaryo.baslik,
-          tagline: senaryo.tagline,
-          ana_fikir: senaryo.ana_fikir,
-          karakter: senaryo.karakter,
-          sahne: senaryo.acilis_sahnesi,
-          soru: senaryo.buyuk_soru,
-          paylasim_acik: true,
-          begeni_sayisi: 0,
-          goruntuleme_sayisi: 0,
-          yorum_sayisi: 0,
-          kaydetme_sayisi: 0
-        };
-
-        var { error: gonderiError } = await supabase
-          .from("gonderiler")
-          .upsert([gonderiPayload], { onConflict: "id" });
-
-        if(gonderiError){
-          console.error("[uret] topluluğa paylaşma hatası:", gonderiError.message);
-          alert("Senaryo kaydedildi ama topluluk paylaşımı başarısız oldu: " + gonderiError.message);
+        var paylas = await gonderiPaylas(savedSenaryo.id);
+        if(!paylas.ok){
+          paylasimHatasi = paylas.error || "Bilinmeyen hata";
         }
       }
 
-      try{
-        var { count } = await supabase
-          .from("senaryolar")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
-
-        if(typeof count === "number"){
-          var { data: updatedProfile } = await supabase
-            .from("profiles")
-            .update({ senaryo_sayisi: count })
-            .eq("id", user.id)
-            .select()
-            .maybeSingle();
-
-          if(updatedProfile && setProfil){
-            setProfil(updatedProfile);
-          } else if(setProfil && profil) {
-            setProfil({ ...profil, senaryo_sayisi: count });
-          }
-        }
-      }catch(profileErr){
-        console.error("[uret] senaryo_sayisi güncellenemedi:", profileErr?.message || profileErr);
-      }
+      await profilSayisiniGuncelle();
 
       setKaydedildi(true);
-      alert(paylasimAcik ? "Senaryo kaydedildi ve topluluğa paylaşıldı." : "Senaryo kaydedildi.");
+
+      if (paylasimHatasi) {
+        alert("Senaryo kaydedildi ama topluluğa paylaşma başarısız oldu: " + paylasimHatasi);
+      } else {
+        alert(paylasimAcik ? "Senaryo kaydedildi ve topluluğa paylaşıldı." : "Senaryo kaydedildi.");
+      }
     }catch(err){
       console.error("[uret] profilKaydet beklenmeyen hata:", err);
       alert("Kaydetme sırasında beklenmeyen bir hata oluştu.");
@@ -897,8 +985,8 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   }
                 </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:G.surface,borderRadius:12,border:`1px solid ${G.border}`}}>
-                  <div><p style={{fontSize:13,fontWeight:600,color:G.text}}>Topluluğa Paylaş</p><p style={{fontSize:11,color:G.textMuted,marginTop:1}}>Herkes görebilsin</p></div>
-                  <div onClick={()=>setPaylasimAcik(!paylasimAcik)} style={{width:44,height:24,borderRadius:12,background:paylasimAcik?G.blue:G.border,position:"relative",transition:"background 0.2s",cursor:"pointer",flexShrink:0,boxShadow:paylasimAcik?G.glowBlue:"none"}}>
+                  <div><p style={{fontSize:13,fontWeight:600,color:G.text}}>Topluluğa Paylaş</p><p style={{fontSize:11,color:G.textMuted,marginTop:1}}>{paylasimYukleniyor?"Güncelleniyor...":"Herkes görebilsin"}</p></div>
+                  <div onClick={()=>{if(!paylasimYukleniyor) paylasimDurumunuDegistir(!paylasimAcik);}} style={{width:44,height:24,borderRadius:12,background:paylasimAcik?G.blue:G.border,position:"relative",transition:"background 0.2s",cursor:paylasimYukleniyor?"default":"pointer",flexShrink:0,boxShadow:paylasimAcik?G.glowBlue:"none",opacity:paylasimYukleniyor?0.7:1}}>
                     <div style={{position:"absolute",top:3,left:paylasimAcik?23:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                   </div>
                 </div>

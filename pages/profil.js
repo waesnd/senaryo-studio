@@ -392,7 +392,14 @@ export default function Profil(){
         return;
       }
 
-      if(data)setSenaryolar(data);
+      var liste = data || [];
+      setSenaryolar(liste);
+
+      if (profil && typeof profil.senaryo_sayisi === "number" && profil.senaryo_sayisi !== liste.length) {
+        var yeniProfil = { ...profil, senaryo_sayisi: liste.length };
+        setProfilLokal(yeniProfil);
+        if (setProfil) setProfil(yeniProfil);
+      }
     }catch(err){
       console.error("[profil] loadSenaryolar beklenmeyen hata:", err);
       setSenaryolar([]);
