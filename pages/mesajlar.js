@@ -169,6 +169,7 @@ export default function Mesajlar(){
   var mesajSonuRef=useRef(null);
   var dosyaRef=useRef(null);
   var restoreSkipRef=useRef(false);
+  var restoreTokenRef=useRef(0);
 
   async function cikisYap() {
     try {
@@ -184,20 +185,15 @@ export default function Mesajlar(){
   }
 
   function sohbetKaydet(k) {
-    if (!k?.id) return;
-    try {
-      localStorage.setItem(
-        "scriptify_last_chat",
-        JSON.stringify({ id: k.id, username: k.diger?.username || "" })
-      );
-    } catch (_) {}
+    return k;
   }
 
   async function sohbetTemizle() {
     restoreSkipRef.current = true;
-    try {
-      localStorage.removeItem("scriptify_last_chat");
-    } catch (_) {}
+    restoreTokenRef.current += 1;
+    setAktif(null);
+    setMesajlar([]);
+    setYeniSohbet(false);
 
     try {
       if (router.isReady) {
@@ -206,12 +202,9 @@ export default function Mesajlar(){
     } catch (err) {
       console.error("[mesajlar] sohbet temizleme route hatası:", err?.message || err);
     } finally {
-      setAktif(null);
-      setMesajlar([]);
-      setYeniSohbet(false);
       setTimeout(() => {
         restoreSkipRef.current = false;
-      }, 250);
+      }, 400);
     }
   }
 
@@ -231,12 +224,13 @@ export default function Mesajlar(){
     }
   }, [router.isReady, router.query.chat, router.query.dm]);
 
-  // Query veya localStorage üzerinden son aktif sohbeti geri yükle
+  // Query üzerinden aktif sohbeti geri yükle
   useEffect(() => {
     if (!authHazir || !user || !router.isReady) return;
     if (aktif) return;
     if (restoreSkipRef.current) return;
 
+    const token = ++restoreTokenRef.current;
     let cancelled = false;
 
     async function restoreChat() {
@@ -247,7 +241,9 @@ export default function Mesajlar(){
         if (chatId) {
           const existing = konusmalar.find((k) => String(k.id) === String(chatId));
           if (existing) {
-            if (!cancelled) await sohbetAc(existing, { persist: false });
+            if (!cancelled && restoreTokenRef.current === token) {
+              await sohbetAc(existing, { persist: false });
+            }
             return;
           }
 
@@ -257,7 +253,7 @@ export default function Mesajlar(){
             .eq("id", chatId)
             .maybeSingle();
 
-          if (!cancelled && data) {
+          if (!cancelled && restoreTokenRef.current === token && data) {
             await sohbetAc({ id: data.id, diger: data }, { persist: false });
             return;
           }
@@ -270,30 +266,8 @@ export default function Mesajlar(){
             .eq("username", dm)
             .maybeSingle();
 
-          if (!cancelled && data) {
+          if (!cancelled && restoreTokenRef.current === token && data) {
             await sohbetAc({ id: data.id, diger: data }, { persist: true });
-            return;
-          }
-        }
-
-        if (konusmalar.length > 0) {
-          let raw = null;
-          try {
-            raw = localStorage.getItem("scriptify_last_chat");
-          } catch (_) {}
-
-          if (!raw) return;
-
-          let parsed = null;
-          try {
-            parsed = JSON.parse(raw);
-          } catch (_) {}
-
-          if (!parsed?.id) return;
-
-          const existing = konusmalar.find((k) => String(k.id) === String(parsed.id));
-          if (existing && !cancelled) {
-            await sohbetAc(existing, { persist: true });
           }
         }
       } catch (err) {
