@@ -257,33 +257,56 @@ export default function Uret(){
     return fetch(url, {method:"POST", headers, body:JSON.stringify(body)});
   }
 
+  function cozulmusApiData(payload){
+    if(payload && typeof payload === "object" && payload.ok === true && payload.data){
+      return payload.data;
+    }
+    return payload || {};
+  }
+
+  function apiHataMesaji(payload, fallback){
+    if(payload && typeof payload === "object" && payload.error){
+      return payload.error;
+    }
+    return fallback || "Bir hata oluştu.";
+  }
+
   async function senaryoUret(){
     if(limitDoldu) return;
     setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");
     try{
       var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi});
-      // Kalan üretim hakkını header'dan oku
       var kalan=res.headers.get("X-Kalan-Uretim");
       if(kalan!==null) setKalanUretim(parseInt(kalan));
-      var data=await res.json();
+
+      var raw=await res.json();
+      var data=cozulmusApiData(raw);
+
       if(res.status===429){
         setLimitDoldu(true);
         setKalanUretim(0);
+        alert(apiHataMesaji(raw, "Günlük üretim limitine ulaştın."));
+      }else if(!res.ok){
+        alert(apiHataMesaji(raw, "Senaryo oluşturulamadı."));
       }else if(data.senaryo){
         setSenaryo(data.senaryo);
+        setKaydedildi(false);
       }else{
         alert("Senaryo oluşturulamadı.");
       }
-    }catch(e){alert("Hata: "+e.message);}
-    setYukleniyor(false);
+    }catch(e){
+      alert("Hata: "+e.message);
+    }finally{
+      setYukleniyor(false);
+    }
   }
-  async function beatUret(){if(!senaryo)return;setBeatYukleniyor(true);try{var res=await authFetch("/api/beatsheet", {senaryo,tip,tur});setBeatler(await res.json());}catch(e){}setBeatYukleniyor(false);}
-  async function karakterBibleUret(){if(!senaryo)return;setBibleYukleniyor(true);try{var res=await authFetch("/api/karakterbible", {senaryo,tur});setKarakterBible(await res.json());}catch(e){}setBibleYukleniyor(false);}
-  async function dramaturgCalistir(){if(!senaryo)return;setDraturagYukleniyor(true);try{var res=await authFetch("/api/dramaturg", {senaryo,tip,tur});setDraturagAnaliz(await res.json());}catch(e){}setDraturagYukleniyor(false);}
-  async function puanHesapla(){if(!senaryo)return;setPuanYukleniyor(true);try{var res=await authFetch("/api/puan", {senaryo,tip,tur});setPuan(await res.json());}catch(e){}setPuanYukleniyor(false);}
+  async function beatUret(){if(!senaryo)return;setBeatYukleniyor(true);try{var res=await authFetch("/api/beatsheet", {senaryo,tip,tur});var raw=await res.json();setBeatler(cozulmusApiData(raw));}catch(e){}setBeatYukleniyor(false);}
+  async function karakterBibleUret(){if(!senaryo)return;setBibleYukleniyor(true);try{var res=await authFetch("/api/karakterbible", {senaryo,tur});var raw=await res.json();setKarakterBible(cozulmusApiData(raw));}catch(e){}setBibleYukleniyor(false);}
+  async function dramaturgCalistir(){if(!senaryo)return;setDraturagYukleniyor(true);try{var res=await authFetch("/api/dramaturg", {senaryo,tip,tur});var raw=await res.json();setDraturagAnaliz(cozulmusApiData(raw));}catch(e){}setDraturagYukleniyor(false);}
+  async function puanHesapla(){if(!senaryo)return;setPuanYukleniyor(true);try{var res=await authFetch("/api/puan", {senaryo,tip,tur});var raw=await res.json();setPuan(cozulmusApiData(raw));}catch(e){}setPuanYukleniyor(false);}
   async function sequelUret(){
     if(!senaryo)return;setSequelYukleniyor(true);setSequel(null);
-    try{var res=await authFetch("/api/generate", {tip,tur,ozelIstek:"Bu senaryonun devamını yaz: "+senaryo.baslik+". Ana fikir: "+(senaryo.ana_fikir?.slice(0,200)||"")});var data=await res.json();if(data.senaryo)setSequel(data.senaryo);}catch(e){}
+    try{var res=await authFetch("/api/generate", {tip,tur,ozelIstek:"Bu senaryonun devamını yaz: "+senaryo.baslik+". Ana fikir: "+(senaryo.ana_fikir?.slice(0,200)||"")});var raw=await res.json();var data=cozulmusApiData(raw);if(data.senaryo)setSequel(data.senaryo);}catch(e){}
     setSequelYukleniyor(false);
   }
   // Revize — senaryoyu yeniden yaz
@@ -292,8 +315,9 @@ export default function Uret(){
     setRevizeYukleniyor(true);
     try{
       var res=await authFetch("/api/generate", {tip,tur,ozelIstek:"Şu senaryoyu tamamen revize et, daha güçlü yap. Aynı tema: "+senaryo.baslik+" — "+(senaryo.ana_fikir?.slice(0,200)||"")});
-      var data=await res.json();
-      if(data.senaryo)setSenaryo(data.senaryo);
+      var raw=await res.json();
+      var data=cozulmusApiData(raw);
+      if(data.senaryo){setSenaryo(data.senaryo);setKaydedildi(false);}
     }catch(e){}
     setRevizeYukleniyor(false);
   }
@@ -304,7 +328,8 @@ export default function Uret(){
     setDiyalogYukleniyor(true);
     try{
       var res=await authFetch("/api/diyalog", {metin:diyalogMetin,tur});
-      var data=await res.json();
+      var raw=await res.json();
+      var data=cozulmusApiData(raw);
       setDiyalogSonuc(data.sonuc||"");
     }catch(e){alert("Hata: "+e.message);}
     setDiyalogYukleniyor(false);
