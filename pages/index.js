@@ -201,12 +201,13 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
     "Aksiyon":G.red,"Fantastik":G.purpleL,"Suç":"#94A3B8","Tarihi":"#D97706"
   };
   var accent=turAccent[gonderi.tur]||G.blue;
+  var hedefId=gonderi.senaryo_id||gonderi.id;
 
   function handleBegen(e){
     e.stopPropagation();
     if(!user)return;
     var n=!liked;setLiked(n);setLikeCount(c=>n?c+1:c-1);
-    onBegen&&onBegen(gonderi.id,n);
+    onBegen&&onBegen(hedefId,n);
   }
   async function handleRapor(sebep){
     if(!user) return;
@@ -231,7 +232,7 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
   async function handleYorumGonder(e){
     e.stopPropagation();
     if(!yorumText.trim()||!user)return;
-    onYorum&&await onYorum(gonderi.id,yorumText);
+    onYorum&&await onYorum(hedefId,yorumText);
     setYorumText("");setShowYorum(false);
   }
 
@@ -239,7 +240,7 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
     <div
       onMouseEnter={()=>setHovered(true)}
       onMouseLeave={()=>setHovered(false)}
-      onClick={()=>window.location.href=`/senaryo/${gonderi.id}`}
+      onClick={()=>window.location.href=`/senaryo/${hedefId}`}
       style={{position:"relative",marginBottom:16,animation:"fadeUp 0.4s ease both",cursor:"pointer"}}
     >
       <div style={{
@@ -630,14 +631,14 @@ export default function Index(){
 
   async function handleBegen(id,liked){
     if(!user)return;
-    if(liked)await supabase.from("begeniler").insert([{gonderi_id:id,user_id:user.id}]);
-    else await supabase.from("begeniler").delete().eq("gonderi_id",id).eq("user_id",user.id);
+    if(liked)await supabase.from("begeniler").insert([{senaryo_id:id,user_id:user.id}]);
+    else await supabase.from("begeniler").delete().eq("senaryo_id",id).eq("user_id",user.id);
   }
-  async function handleYorum(id,text){if(!user)return;await supabase.from("yorumlar").insert([{gonderi_id:id,user_id:user.id,icerik:text}]);}
+  async function handleYorum(id,text){if(!user)return;await supabase.from("yorumlar").insert([{senaryo_id:id,user_id:user.id,metin:text}]);}
   async function handleKaydet(id,saved){
     if(!user)return;
-    if(saved)await supabase.from("kaydedilenler").insert([{gonderi_id:id,user_id:user.id}]);
-    else await supabase.from("kaydedilenler").delete().eq("gonderi_id",id).eq("user_id",user.id);
+    if(saved)await supabase.from("kaydedilenler").insert([{senaryo_id:id,user_id:user.id}]);
+    else await supabase.from("kaydedilenler").delete().eq("senaryo_id",id).eq("user_id",user.id);
   }
 
   var gonderiler=sekme==="takip"?takipGonderiler:kesfetGonderiler;

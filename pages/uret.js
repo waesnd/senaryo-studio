@@ -321,22 +321,53 @@ export default function Uret(){
       sahne: senaryo.acilis_sahnesi,
       soru: senaryo.buyuk_soru,
       paylasim_acik: true,
-      begeni_sayisi: 0,
-      goruntuleme_sayisi: 0,
-      yorum_sayisi: 0,
+      begeni_sayisi: senaryo.begeni_sayisi || 0,
+      goruntuleme_sayisi: senaryo.goruntuleme_sayisi || 0,
+      yorum_sayisi: senaryo.yorum_sayisi || 0,
       kaydetme_sayisi: 0
     };
 
-    var { error } = await supabase
-      .from("gonderiler")
-      .upsert([gonderiPayload], { onConflict: "senaryo_id" });
+    try{
+      var { data: mevcut, error: selectError } = await supabase
+        .from("gonderiler")
+        .select("id")
+        .eq("senaryo_id", senaryoId)
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    if (error) {
-      console.error("[uret] topluluğa paylaşma hatası:", error.message);
-      return { ok: false, error: error.message };
+      if(selectError){
+        console.error("[uret] mevcut paylaşım sorgu hatası:", selectError.message);
+      }
+
+      if(mevcut?.id){
+        var { error: updateError } = await supabase
+          .from("gonderiler")
+          .update(gonderiPayload)
+          .eq("id", mevcut.id)
+          .eq("user_id", user.id);
+
+        if(updateError){
+          console.error("[uret] paylaşım update hatası:", updateError.message);
+          return { ok: false, error: updateError.message };
+        }
+
+        return { ok: true, mode: "update" };
+      }
+
+      var { error: insertError } = await supabase
+        .from("gonderiler")
+        .insert([gonderiPayload]);
+
+      if(insertError){
+        console.error("[uret] paylaşım insert hatası:", insertError.message);
+        return { ok: false, error: insertError.message };
+      }
+
+      return { ok: true, mode: "insert" };
+    }catch(err){
+      console.error("[uret] gonderiPaylas beklenmeyen hata:", err);
+      return { ok: false, error: err?.message || "Beklenmeyen hata" };
     }
-
-    return { ok: true };
   }
 
   async function gonderiPaylasiminiKaldir(senaryoId) {

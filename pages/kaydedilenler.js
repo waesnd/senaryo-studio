@@ -85,52 +85,103 @@ export default function Kaydedilenler(){
     try{
       if(aktif) setYukleniyor(true);
 
-      var [g, s] = await Promise.all([
-        supabase.from("kaydedilenler")
-          .select("*, gonderiler(*, profiles(username,avatar_url,dogrulandi))")
-          .eq("user_id", user.id)
-          .order("created_at",{ascending:false})
-          .limit(50),
-        supabase.from("senaryolar")
+      var { data: kayitlar, error: kayitError } = await supabase
+        .from("kaydedilenler")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at",{ascending:false})
+        .limit(50);
+
+      if(kayitError){
+        console.error("[kaydedilenler] kayıtlar yüklenemedi:", kayitError.message);
+        if(aktif){
+          setGonderi([]);
+          setSenaryolar([]);
+        }
+        return;
+      }
+
+      var savedRows = kayitlar || [];
+      var senaryoIds = Array.from(new Set(savedRows.map(k => k.senaryo_id).filter(Boolean)));
+
+      var senaryoMap = {};
+      if(senaryoIds.length > 0){
+        var { data: senaryoRows, error: senaryoError } = await supabase
+          .from("senaryolar")
           .select("*")
-          .eq("user_id", user.id)
-          .eq("paylasim_acik", true)
-          .order("created_at",{ascending:false})
-          .limit(50),
-      ]);
+          .in("id", senaryoIds);
 
-      if(g.error){
-        console.error("[kaydedilenler] gonderiler yuklenemedi:", g.error.message);
-      }
-      if(s.error){
-        console.error("[kaydedilenler] senaryolar yuklenemedi:", s.error.message);
+        if(senaryoError){
+          console.error("[kaydedilenler] kaydedilen senaryolar yüklenemedi:", senaryoError.message);
+        }else{
+          (senaryoRows || []).forEach(function(s){ senaryoMap[s.id] = s; });
+        }
       }
 
-      if(aktif && g.data) setGonderi(g.data.filter(k=>k.gonderiler));
-      if(aktif && s.data) setSenaryolar(s.data);
+      var userIds = Array.from(new Set(Object.values(senaryoMap).map(s => s.user_id).filter(Boolean)));
+      var profileMap = {};
+      if(userIds.length > 0){
+        var { data: profileRows, error: profileError } = await supabase
+          .from("profiles")
+          .select("id,username,avatar_url,dogrulandi")
+          .in("id", userIds);
+
+        if(profileError){
+          console.error("[kaydedilenler] profil bilgileri yüklenemedi:", profileError.message);
+        }else{
+          (profileRows || []).forEach(function(p){ profileMap[p.id] = p; });
+        }
+      }
+
+      var savedSenaryolar = savedRows
+        .map(function(k){
+          var s = senaryoMap[k.senaryo_id];
+          if(!s) return null;
+          return {
+            ...k,
+            senaryo: {
+              ...s,
+              profiles: profileMap[s.user_id] || null
+            }
+          };
+        })
+        .filter(Boolean);
+
+      var benimPaylasilanlar = Object.values(senaryoMap)
+        .filter(function(s){ return s.user_id === user.id && s.paylasim_acik; })
+        .sort(function(a,b){ return String(b.created_at||"").localeCompare(String(a.created_at||"")); });
+
+      if(aktif){
+        setGonderi(savedSenaryolar);
+        setSenaryolar(benimPaylasilanlar);
+      }
     }catch(err){
       console.error("[kaydedilenler] yukle beklenmeyen hata:", err);
+      if(aktif){
+        setGonderi([]);
+        setSenaryolar([]);
+      }
     }finally{
       if(aktif) setYukleniyor(false);
     }
   }
 
-  async function kaydettenCikar(gonderiId){
+  async function kaydettenCikar(senaryoId){
     if(!user?.id) return;
 
     try{
       var { error } = await supabase
         .from("kaydedilenler")
         .delete()
-        .eq("gonderi_id",gonderiId)
+        .eq("senaryo_id",senaryoId)
         .eq("user_id",user.id);
 
       if(error){
-        console.error("[kaydedilenler] kayit silinemedi:", error.message);
+        console.error("[kaydedilenler] kayıt silinemedi:", error.message);
         return;
       }
 
-      setGonderi(prev=>prev.filter(k=>k.gonderi_id!==gonderiId));
+      setGonderi(prev=>prev.filter(k=>k.senaryo_id!==senaryoId));
     }catch(err){
       console.error("[kaydedilenler] kaydettenCikar beklenmeyen hata:", err);
     }
@@ -217,15 +268,15 @@ export default function Kaydedilenler(){
               <p style={{fontSize:13,color:G.textMuted}}>Henüz kaydedilen gönderi yok.</p>
             </div>
           ):gonderi.map((k,i)=>{
-            var g = k.gonderiler;
+            var g = k.senaryo || k.gonderiler;
             var turRenk = TURLER_RENK[g.tur] || G.blue;
             return(
-              <div key={k.id} style={{borderBottom:`1px solid ${G.border}`,padding:"16px 20px",animation:`fadeUp 0.2s ${i*0.04}s both ease`,position:"relative"}}
+              <a key={k.id} href={`/senaryo/${g.id || k.senaryo_id}`} style={{display:"block",borderBottom:`1px solid ${G.border}`,padding:"16px 20px",animation:`fadeUp 0.2s ${i*0.04}s both ease`,position:"relative"}}
                 onMouseEnter={e=>e.currentTarget.style.background=`${G.blue}03`}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <div style={{position:"absolute",left:0,top:"10%",bottom:"10%",width:2,background:turRenk,opacity:0.4,borderRadius:1}}/>
                 <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10}}>
-                  <a href={`/@${g.profiles?.username}`} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+                  <a href={g.profiles?.username?`/@${g.profiles.username}`:"#"} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
                     <div style={{width:34,height:34,borderRadius:"50%",background:G.surface,border:`1px solid ${G.border}`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       {g.profiles?.avatar_url?<img src={g.profiles.avatar_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={14} color={G.textDim}/>}
                     </div>
@@ -234,20 +285,20 @@ export default function Kaydedilenler(){
                       <p style={{fontSize:10,color:G.textDim}}>{zaman(k.created_at)}</p>
                     </div>
                   </a>
-                  <button onClick={()=>kaydettenCikar(k.gonderi_id)}
+                  <button onClick={()=>kaydettenCikar(k.senaryo_id || g.id)}
                     style={{padding:"5px 10px",borderRadius:8,background:`${G.red}08`,border:`1px solid ${G.red}20`,color:G.red,fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                     <Icon id="trash" size={10} color={G.red}/>Kaldır
                   </button>
                 </div>
                 {g.baslik&&<p style={{fontSize:14,fontWeight:700,color:G.text,marginBottom:4}}>{g.baslik}</p>}
-                {g.metin&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.65}}>{g.metin}</p>}
-                {g.fotograf_url&&<img src={g.fotograf_url} style={{width:"100%",borderRadius:12,marginTop:8,maxHeight:280,objectFit:"cover",border:`1px solid ${G.border}`}} alt=""/>}
+                {(g.metin || g.ana_fikir)&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.65}}>{g.metin || g.ana_fikir}</p>}
+                {(g.fotograf_url || g.kapak_url || g.medya_url)&&<img src={g.fotograf_url || g.kapak_url || g.medya_url} style={{width:"100%",borderRadius:12,marginTop:8,maxHeight:280,objectFit:"cover",border:`1px solid ${G.border}`}} alt=""/>}
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10}}>
                   <Icon id="heart" size={11} color={G.red}/>
                   <span style={{fontSize:11,color:G.textDim}}>{g.begeni_sayisi||0}</span>
                   <a href={`/senaryo/${g.id}`} style={{marginLeft:"auto",fontSize:11,color:G.blue,fontWeight:600}}>Görüntüle →</a>
                 </div>
-              </div>
+              </a>
             );
           })
         )}

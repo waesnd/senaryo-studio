@@ -285,7 +285,7 @@ function ProfileBanner({senaryolar}){
 }
 
 // ── SENARYO KARTI ─────────────────────────────────────────────────────────────
-function SenaryoKarti({s}){
+function SenaryoKarti({s,onDelete}){
   var [hov,setHov]=useState(false);
   var turAccent={"Gerilim":G.red,"Drama":G.blue,"Bilim Kurgu":G.blueL,"Komedi":"#FBBF24","Romantik":"#F472B6","Korku":G.purple,"Aksiyon":G.red,"Fantastik":G.purpleL,"Suç":"#94A3B8","Tarihi":"#D97706"};
   var accent=turAccent[s.tur]||G.blue;
@@ -298,7 +298,12 @@ function SenaryoKarti({s}){
       {/* Tür rengi üst şerit */}
       <div style={{height:2,background:accent,opacity:hov?1:0.4,boxShadow:hov?`0 0 8px ${accent}`:"none",transition:"all 0.25s"}}/>
       <div style={{padding:"10px 10px 8px"}}>
-        <h3 style={{fontFamily:G.fontDisp,fontSize:16,color:G.text,lineHeight:1.2,marginBottom:6,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{s.baslik}</h3>
+        <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
+          <h3 style={{flex:1,fontFamily:G.fontDisp,fontSize:16,color:G.text,lineHeight:1.2,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{s.baslik}</h3>
+          {onDelete&&<button onClick={(e)=>{e.stopPropagation();onDelete(s.id);}} style={{background:`${G.red}10`,border:`1px solid ${G.red}25`,color:G.red,borderRadius:8,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+            <Icon id="trash" size={11} color={G.red}/>
+          </button>}
+        </div>
         <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
           <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,background:`${accent}15`,color:accent,border:`1px solid ${accent}25`,letterSpacing:"0.05em",textTransform:"uppercase"}}>{s.tur}</span>
           <span style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:"rgba(241,245,249,0.05)",color:G.textDim,border:`1px solid ${G.border}`}}>{s.tip}</span>
@@ -406,9 +411,83 @@ export default function Profil(){
     }
   }
   async function loadKaydedilenler(uid){
-    var{data}=await supabase.from("kaydedilenler").select("*,gonderiler(*)").eq("user_id",uid).order("created_at",{ascending:false});
-    if(data)setKaydedilenler(data.map(k=>k.gonderiler).filter(Boolean));
+    try{
+      var { data: kayitlar, error: kayitError } = await supabase
+        .from("kaydedilenler")
+        .select("*")
+        .eq("user_id", uid)
+        .order("created_at", { ascending:false });
+
+      if(kayitError){
+        console.error("[profil] kaydedilenler yüklenemedi:", kayitError.message);
+        setKaydedilenler([]);
+        return;
+      }
+
+      var senaryoIds = (kayitlar || []).map(k => k.senaryo_id).filter(Boolean);
+      if(senaryoIds.length===0){
+        setKaydedilenler([]);
+        return;
+      }
+
+      var { data: senaryoData, error: senaryoError } = await supabase
+        .from("senaryolar")
+        .select("*")
+        .in("id", senaryoIds);
+
+      if(senaryoError){
+        console.error("[profil] kaydedilen senaryolar yüklenemedi:", senaryoError.message);
+        setKaydedilenler([]);
+        return;
+      }
+
+      var map = {};
+      (senaryoData || []).forEach(s => { map[s.id] = s; });
+      setKaydedilenler((kayitlar || []).map(k => map[k.senaryo_id]).filter(Boolean));
+    }catch(err){
+      console.error("[profil] loadKaydedilenler beklenmeyen hata:", err);
+      setKaydedilenler([]);
+    }
   }
+
+  async function senaryoSil(senaryoId){
+    if(!user || !senaryoId) return;
+    if(!confirm("Bu senaryoyu silmek istediğine emin misin?")) return;
+
+    try{
+      await Promise.allSettled([
+        supabase.from("gonderiler").delete().eq("senaryo_id", senaryoId).eq("user_id", user.id),
+        supabase.from("kaydedilenler").delete().eq("senaryo_id", senaryoId),
+        supabase.from("begeniler").delete().eq("senaryo_id", senaryoId),
+        supabase.from("yorumlar").delete().eq("senaryo_id", senaryoId),
+        supabase.from("senaryo_versiyonlar").delete().eq("senaryo_id", senaryoId),
+      ]);
+
+      var { error } = await supabase
+        .from("senaryolar")
+        .delete()
+        .eq("id", senaryoId)
+        .eq("user_id", user.id);
+
+      if(error){
+        alert("Senaryo silinemedi: " + error.message);
+        return;
+      }
+
+      var yeniListe = senaryolar.filter(s => s.id !== senaryoId);
+      setSenaryolar(yeniListe);
+
+      if(profil){
+        var yeniProfil = { ...profil, senaryo_sayisi: Math.max(0, yeniListe.length) };
+        setProfilLokal(yeniProfil);
+        if(setProfil) setProfil(yeniProfil);
+      }
+    }catch(err){
+      console.error("[profil] senaryoSil beklenmeyen hata:", err);
+      alert("Senaryo silinemedi.");
+    }
+  }
+
   async function avatarDegistir(e){
     var file=e.target.files?.[0];
     if(!file||!user)return;
@@ -724,7 +803,7 @@ export default function Profil(){
         {/* SENARYO GRID */}
         {senaryolar.length>0?(
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,paddingBottom:20}}>
-            {senaryolar.map(s=><SenaryoKarti key={s.id} s={s}/>)}
+            {senaryolar.map(s=><SenaryoKarti key={s.id} s={s} onDelete={senaryoSil}/>)}
           </div>
         ):(
           <div style={{textAlign:"center",padding:"48px 20px"}}>
