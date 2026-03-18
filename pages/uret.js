@@ -187,13 +187,14 @@ function AIBtn({onClick,loading,loadLabel,label,color=G.blueGrad,glow=G.glowBlue
 var KART={background:`linear-gradient(145deg,#1E293B,#162032)`,border:`1px solid rgba(56,189,248,0.12)`,borderRadius:20,padding:"22px",marginBottom:16,position:"relative"};
 
 export default function Uret(){
-  var {user, profil, authHazir, okunmayanBildirim} = useAuth();
+  var {user, profil, authHazir, setProfil, okunmayanBildirim} = useAuth();
   var [tip,setTip]=useState("Dizi");
   var [tur,setTur]=useState("Gerilim");
   var [ozelIstek,setOzelIstek]=useState("");
   var [yukleniyor,setYukleniyor]=useState(false);
   var [senaryo,setSenaryo]=useState(null);
   var [kaydedildi,setKaydedildi]=useState(false);
+  var [kaydetYukleniyor,setKaydetYukleniyor]=useState(false);
   var [arsivAcik,setArsivAcik]=useState(false);
   var [arsiv,setArsiv]=useState([]);
   var [arsivYukleniyor,setArsivYukleniyor]=useState(false);
@@ -419,10 +420,103 @@ export default function Uret(){
   }
 
   async function profilKaydet(){
-    if(!user||!senaryo)return;
-    var { error } = await supabase.from("senaryolar").insert([{user_id:user.id,tip,tur,baslik:senaryo.baslik,tagline:senaryo.tagline,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.acilis_sahnesi,soru:senaryo.buyuk_soru,paylasim_acik:paylasimAcik,begeni_sayisi:0}]);
-    if(error){ alert("Kaydetme hatası: "+error.message); return; }
-    setKaydedildi(true);
+    if(!user){
+      alert("Kaydetmek için giriş yapman gerekiyor.");
+      return;
+    }
+    if(!senaryo || kaydetYukleniyor) return;
+
+    setKaydetYukleniyor(true);
+
+    try{
+      var senaryoPayload = {
+        user_id: user.id,
+        tip,
+        tur,
+        baslik: senaryo.baslik,
+        tagline: senaryo.tagline,
+        ana_fikir: senaryo.ana_fikir,
+        karakter: senaryo.karakter,
+        sahne: senaryo.acilis_sahnesi,
+        soru: senaryo.buyuk_soru,
+        paylasim_acik: paylasimAcik,
+        begeni_sayisi: 0,
+        goruntuleme_sayisi: 0,
+        yorum_sayisi: 0
+      };
+
+      var { data: savedSenaryo, error: senaryoError } = await supabase
+        .from("senaryolar")
+        .insert([senaryoPayload])
+        .select()
+        .single();
+
+      if(senaryoError){
+        alert("Kaydetme hatası: " + senaryoError.message);
+        return;
+      }
+
+      if(paylasimAcik && savedSenaryo?.id){
+        var gonderiPayload = {
+          id: savedSenaryo.id,
+          user_id: user.id,
+          tip,
+          tur,
+          baslik: senaryo.baslik,
+          tagline: senaryo.tagline,
+          ana_fikir: senaryo.ana_fikir,
+          karakter: senaryo.karakter,
+          sahne: senaryo.acilis_sahnesi,
+          soru: senaryo.buyuk_soru,
+          paylasim_acik: true,
+          begeni_sayisi: 0,
+          goruntuleme_sayisi: 0,
+          yorum_sayisi: 0,
+          kaydetme_sayisi: 0
+        };
+
+        var { error: gonderiError } = await supabase
+          .from("gonderiler")
+          .upsert([gonderiPayload], { onConflict: "id" });
+
+        if(gonderiError){
+          console.error("[uret] topluluğa paylaşma hatası:", gonderiError.message);
+          alert("Senaryo kaydedildi ama topluluk paylaşımı başarısız oldu: " + gonderiError.message);
+        }
+      }
+
+      try{
+        var { count } = await supabase
+          .from("senaryolar")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        if(typeof count === "number"){
+          var { data: updatedProfile } = await supabase
+            .from("profiles")
+            .update({ senaryo_sayisi: count })
+            .eq("id", user.id)
+            .select()
+            .maybeSingle();
+
+          if(updatedProfile && setProfil){
+            setProfil(updatedProfile);
+          } else if(setProfil && profil) {
+            setProfil({ ...profil, senaryo_sayisi: count });
+          }
+        }
+      }catch(profileErr){
+        console.error("[uret] senaryo_sayisi güncellenemedi:", profileErr?.message || profileErr);
+      }
+
+      setKaydedildi(true);
+      alert(paylasimAcik ? "Senaryo kaydedildi ve topluluğa paylaşıldı." : "Senaryo kaydedildi.");
+    }catch(err){
+      console.error("[uret] profilKaydet beklenmeyen hata:", err);
+      alert("Kaydetme sırasında beklenmeyen bir hata oluştu.");
+    }finally{
+      setKaydetYukleniyor(false);
+    }
   }
 
   function fdxIndir(){
@@ -787,8 +881,8 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   <button onClick={()=>setKartModal(true)} style={{flex:1,padding:"11px 8px",borderRadius:12,background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon id="share" size={13} color={G.textMuted}/>Paylaş</button>
                   {!kaydedildi
                     ?<div style={{flex:2,display:"flex",gap:4}}>
-                      <button onClick={profilKaydet} style={{flex:1,padding:"11px 8px",borderRadius:"12px 0 0 12px",background:G.blueGrad,border:"none",color:G.black,fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,boxShadow:G.glowBlue}}>
-                        <Icon id="save" size={12} color={G.black}/>{user?"Kaydet":"Giriş Yap"}
+                      <button onClick={profilKaydet} disabled={kaydetYukleniyor} style={{flex:1,padding:"11px 8px",borderRadius:"12px 0 0 12px",background:G.blueGrad,border:"none",color:G.black,fontSize:12,fontWeight:800,cursor:kaydetYukleniyor?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,boxShadow:G.glowBlue,opacity:kaydetYukleniyor?0.7:1}}>
+                        {kaydetYukleniyor?<div style={{width:12,height:12,border:"1.5px solid rgba(0,0,0,0.25)",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>:<Icon id="save" size={12} color={G.black}/>} {user?(kaydetYukleniyor?"Kaydediliyor":"Kaydet"):"Giriş Yap"}
                       </button>
                       <button onClick={versiyonKaydet} disabled={arsivKaydediliyor}
                         title="Arşive ekle — tüm analiz verileriyle"

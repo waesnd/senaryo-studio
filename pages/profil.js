@@ -379,8 +379,24 @@ export default function Profil(){
     if(data){ setProfilLokal(data); setProfil(data); setEditData({bio:data.bio||"",website:data.website||"",nickname:data.nickname||""}); }
   }
   async function loadSenaryolar(uid){
-    var{data}=await supabase.from("gonderiler").select("*").eq("user_id",uid).order("created_at",{ascending:false});
-    if(data)setSenaryolar(data);
+    try{
+      var{data,error}=await supabase
+        .from("senaryolar")
+        .select("*")
+        .eq("user_id",uid)
+        .order("created_at",{ascending:false});
+
+      if(error){
+        console.error("[profil] senaryolar yüklenemedi:", error.message);
+        setSenaryolar([]);
+        return;
+      }
+
+      if(data)setSenaryolar(data);
+    }catch(err){
+      console.error("[profil] loadSenaryolar beklenmeyen hata:", err);
+      setSenaryolar([]);
+    }
   }
   async function loadKaydedilenler(uid){
     var{data}=await supabase.from("kaydedilenler").select("*,gonderiler(*)").eq("user_id",uid).order("created_at",{ascending:false});
