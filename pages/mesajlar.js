@@ -171,6 +171,45 @@ export default function Mesajlar(){
   var restoreSkipRef=useRef(false);
   var restoreTokenRef=useRef(0);
 
+  function buildConversationMap(messageRows, currentUserId, profileMap) {
+    var grup = {};
+    (messageRows || []).forEach((m) => {
+      var digerId = m.gonderen === currentUserId ? m.alan : m.gonderen;
+      var diger = profileMap[digerId] || { id: digerId, username: "kullanici", avatar_url: null };
+      if (!grup[digerId]) grup[digerId] = { id: digerId, diger, mesajlar: [], okunmayan: 0 };
+      grup[digerId].mesajlar.push(m);
+      if (!m.okundu && m.alan === currentUserId) grup[digerId].okunmayan++;
+    });
+    return Object.values(grup).sort(function(a, b){
+      var aTs = a.mesajlar?.[0]?.created_at || "";
+      var bTs = b.mesajlar?.[0]?.created_at || "";
+      return String(bTs).localeCompare(String(aTs));
+    });
+  }
+
+  async function profilleriYukle(idler) {
+    if (!idler || idler.length === 0) return {};
+    try {
+      var { data, error } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url")
+        .in("id", idler);
+
+      if (error) {
+        console.error("[mesajlar] profiller yüklenemedi:", error.message);
+        return {};
+      }
+
+      return (data || []).reduce(function(acc, p){
+        acc[p.id] = p;
+        return acc;
+      }, {});
+    } catch (err) {
+      console.error("[mesajlar] profiller beklenmeyen hata:", err);
+      return {};
+    }
+  }
+
   async function cikisYap() {
     try {
       localStorage.removeItem("scriptify_last_chat");
@@ -294,6 +333,14 @@ export default function Mesajlar(){
         // Sadece bu sohbete ait mesajları ekle
         if(m.gonderen===aktif.id||m.alan===aktif.id){
           setMesajlar(p=>[...p,m]);
+          setKonusmalar(function(prev){
+            var mevcut = prev.find(function(k){ return k.id === aktif.id; });
+            if(mevcut){
+              var guncel = { ...mevcut, mesajlar:[m, ...(mevcut.mesajlar || [])], okunmayan:0 };
+              return [guncel].concat(prev.filter(function(k){ return k.id !== aktif.id; }));
+            }
+            return prev;
+          });
           supabase.from("mesajlar").update({okundu:true}).eq("id",m.id);
         }
       }).subscribe();
@@ -316,12 +363,12 @@ export default function Mesajlar(){
 
       var { data, error } = await supabase
         .from("mesajlar")
-        .select("*, gonderen_profil:profiles!gonderen(id,username,avatar_url), alici_profil:profiles!alan(id,username,avatar_url)")
+        .select("*")
         .or("gonderen.eq." + u.id + ",alan.eq." + u.id)
         .order("created_at", { ascending:false });
 
       if(error){
-        console.error("[mesajlar] yukle hatası:", error.message);
+        console.error("[mesajlar] mesaj listesi yüklenemedi:", error.message);
         setKonusmalar([]);
         return;
       }
@@ -331,16 +378,12 @@ export default function Mesajlar(){
         return;
       }
 
-      var grup={};
-      data.forEach(m=>{
-        var digerId=m.gonderen===u.id?m.alan:m.gonderen;
-        var diger=m.gonderen===u.id?m.alici_profil:m.gonderen_profil;
-        if(!grup[digerId])grup[digerId]={id:digerId,diger,mesajlar:[],okunmayan:0};
-        grup[digerId].mesajlar.push(m);
-        if(!m.okundu&&m.alan===u.id)grup[digerId].okunmayan++;
-      });
+      var partnerIds = Array.from(new Set(
+        data.map(function(m){ return m.gonderen === u.id ? m.alan : m.gonderen; }).filter(Boolean)
+      ));
 
-      setKonusmalar(Object.values(grup));
+      var profileMap = await profilleriYukle(partnerIds);
+      setKonusmalar(buildConversationMap(data, u.id, profileMap));
     }catch(err){
       console.error("[mesajlar] yukle beklenmeyen hata:", err);
       setKonusmalar([]);
@@ -393,8 +436,10 @@ export default function Mesajlar(){
       // Konuşma listesini güncelle — bu kişiyle konuşma yoksa ekle
       setKonusmalar(p=>{
         var mevcut=p.find(k=>k.id===aktif.id);
-        if(mevcut) return [{...mevcut,mesajlar:[...mevcut.mesajlar,data]},...p.filter(k=>k.id!==aktif.id)];
-        // Yeni konuşma — listeye ekle
+        if(mevcut){
+          var guncel = {...mevcut, mesajlar:[data, ...(mevcut.mesajlar || [])]};
+          return [guncel, ...p.filter(k=>k.id!==aktif.id)];
+        }
         return [{id:aktif.id,diger:aktif.diger,mesajlar:[data],okunmayan:0},...p];
       });
     }
