@@ -206,7 +206,7 @@ function Drawer({user,profil,avatarUrl,username,kaydedilenler,senaryolar,onClose
           <p style={{fontSize:13,color:G.textMuted,marginBottom:22}}>Hesabından çıkmak istediğine emin misin?</p>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setExitModal(false)} style={{flex:1,padding:"12px",borderRadius:12,background:"rgba(241,245,249,0.05)",border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600,cursor:"pointer"}}>İptal</button>
-            <button onClick={()=>{supabase.auth.signOut();window.location.href="/";}} style={{flex:1,padding:"12px",borderRadius:12,background:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:G.glowRed}}>Çıkış</button>
+            <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("[profil] çıkış hatası:", e?.message||e);}finally{window.location.replace("/");}}} style={{flex:1,padding:"12px",borderRadius:12,background:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:G.glowRed}}>Çıkış</button>
           </div>
         </div>
       </div>

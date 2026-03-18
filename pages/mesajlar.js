@@ -25,6 +25,7 @@ var G = {
 function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
   var p={width:size,height:size,fill:"none",stroke:color,strokeWidth,viewBox:"0 0 24 24"};
   if(id==="home")return<svg {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>;
+  if(id==="film")return<svg {...p}><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/></svg>;
   if(id==="compass")return<svg {...p}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>;
   if(id==="users")return<svg {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>;
   if(id==="chat")return<svg {...p}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>;
@@ -37,6 +38,7 @@ function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
   if(id==="send")return<svg {...p}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
   if(id==="x")return<svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
   if(id==="search")return<svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+  if(id==="logout")return<svg {...p}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
   return null;
 }
 
@@ -71,7 +73,7 @@ var DRAWER_ITEMS=[
   {href:"/mesajlar",label:"Mesajlar",id:"chat"},
 ];
 
-function Drawer({user,username,avatarUrl,onClose}){
+function Drawer({user,username,avatarUrl,onClose,onLogout}){
   var [exitModal,setExitModal]=useState(false);
   return(<>
     <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(8px)"}}/>
@@ -110,7 +112,7 @@ function Drawer({user,username,avatarUrl,onClose}){
           <p style={{fontSize:13,color:G.textMuted,marginBottom:22}}>Emin misin?</p>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setExitModal(false)} style={{flex:1,padding:"12px",borderRadius:12,background:"rgba(241,245,249,0.05)",border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600,cursor:"pointer"}}>İptal</button>
-            <button onClick={()=>{supabase.auth.signOut();onClose();window.location.href="/";}} style={{flex:1,padding:"12px",borderRadius:12,background:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Çıkış</button>
+            <button onClick={async()=>{await onLogout();}} style={{flex:1,padding:"12px",borderRadius:12,background:`linear-gradient(135deg,${G.red},${G.redL})`,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Çıkış</button>
           </div>
         </div>
       </div>
@@ -167,6 +169,40 @@ export default function Mesajlar(){
   var mesajSonuRef=useRef(null);
   var dosyaRef=useRef(null);
 
+  async function cikisYap() {
+    try {
+      localStorage.removeItem("scriptify_last_chat");
+    } catch (_) {}
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("[mesajlar] çıkış hatası:", err?.message || err);
+    } finally {
+      window.location.replace("/");
+    }
+  }
+
+  function sohbetKaydet(k) {
+    if (!k?.id) return;
+    try {
+      localStorage.setItem(
+        "scriptify_last_chat",
+        JSON.stringify({ id: k.id, username: k.diger?.username || "" })
+      );
+    } catch (_) {}
+  }
+
+  function sohbetTemizle() {
+    setAktif(null);
+    setMesajlar([]);
+    try {
+      localStorage.removeItem("scriptify_last_chat");
+    } catch (_) {}
+    if (router.isReady) {
+      router.replace("/mesajlar", undefined, { shallow: true });
+    }
+  }
+
   var avatarUrl=profil?.avatar_url||null;
   var username=profil?.username||user?.email?.split("@")[0]||"";
 
@@ -175,19 +211,82 @@ export default function Mesajlar(){
     yukle(user);
   },[authHazir, user]);
 
-  // ?dm=username ile gelinince o kullanıcıyla sohbet aç
-  useEffect(()=>{
-    if(!authHazir || !user || !router.isReady) return;
-    var dm = router.query.dm;
-    if(!dm) return;
-    // yukle tamamlanmasını bekle
-    setTimeout(()=>{
-      supabase.from("profiles").select("id,username,avatar_url").eq("username",dm).single()
-        .then(({data})=>{
-          if(data) sohbetAc({id:data.id, diger:data});
-        });
-    }, 500);
-  },[authHazir, user, router.isReady, router.query.dm]);
+
+  // Query veya localStorage üzerinden son aktif sohbeti geri yükle
+  useEffect(() => {
+    if (!authHazir || !user || !router.isReady) return;
+    if (aktif) return;
+
+    let cancelled = false;
+
+    async function restoreChat() {
+      try {
+        const chatId = router.query.chat;
+        const dm = router.query.dm;
+
+        if (chatId) {
+          const existing = konusmalar.find((k) => String(k.id) === String(chatId));
+          if (existing) {
+            if (!cancelled) await sohbetAc(existing, { persist: false });
+            return;
+          }
+
+          const { data } = await supabase
+            .from("profiles")
+            .select("id,username,avatar_url")
+            .eq("id", chatId)
+            .maybeSingle();
+
+          if (!cancelled && data) {
+            await sohbetAc({ id: data.id, diger: data }, { persist: false });
+            return;
+          }
+        }
+
+        if (dm) {
+          const { data } = await supabase
+            .from("profiles")
+            .select("id,username,avatar_url")
+            .eq("username", dm)
+            .maybeSingle();
+
+          if (!cancelled && data) {
+            await sohbetAc({ id: data.id, diger: data }, { persist: true });
+            return;
+          }
+        }
+
+        if (konusmalar.length > 0) {
+          let raw = null;
+          try {
+            raw = localStorage.getItem("scriptify_last_chat");
+          } catch (_) {}
+
+          if (!raw) return;
+
+          let parsed = null;
+          try {
+            parsed = JSON.parse(raw);
+          } catch (_) {}
+
+          if (!parsed?.id) return;
+
+          const existing = konusmalar.find((k) => String(k.id) === String(parsed.id));
+          if (existing && !cancelled) {
+            await sohbetAc(existing, { persist: false });
+          }
+        }
+      } catch (err) {
+        console.error("[mesajlar] sohbet geri yükleme hatası:", err?.message || err);
+      }
+    }
+
+    restoreChat();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authHazir, user, router.isReady, router.query.chat, router.query.dm, konusmalar, aktif]);
 
   useEffect(()=>{
     if(mesajSonuRef.current)mesajSonuRef.current.scrollIntoView({behavior:"smooth"});
@@ -254,18 +353,29 @@ export default function Mesajlar(){
     }
   }
 
-  async function sohbetAc(k){
+  async function sohbetAc(k, options = {}){
+    var persist = options.persist !== false;
     setAktif(k);setYeniSohbet(false);
+    if(persist){
+      sohbetKaydet(k);
+      if (router.isReady) {
+        router.replace({ pathname: "/mesajlar", query: { chat: k.id } }, undefined, { shallow: true });
+      }
+    }
     try{var kayitliNot=localStorage.getItem("sf_not_"+k.id);setNotMetin(kayitliNot||"");}catch(e){setNotMetin("");}
     setNotAcik(false);
-    // İki kullanıcı arasındaki mesajları çek
-    var{data,error}=await supabase.from("mesajlar").select("*")
-      .or("and(gonderen.eq."+user.id+",alan.eq."+k.id+"),and(gonderen.eq."+k.id+",alan.eq."+user.id+")")
-      .order("created_at",{ascending:true});
-    if(error) console.error("[sohbetAc]", error.message);
-    if(data) setMesajlar(data);
-    await supabase.from("mesajlar").update({okundu:true}).eq("alan",user.id).eq("gonderen",k.id);
-    setKonusmalar(p=>p.map(kn=>kn.id===k.id?{...kn,okunmayan:0}:kn));
+    try{
+      // İki kullanıcı arasındaki mesajları çek
+      var{data,error}=await supabase.from("mesajlar").select("*")
+        .or("and(gonderen.eq."+user.id+",alan.eq."+k.id+"),and(gonderen.eq."+k.id+",alan.eq."+user.id+")")
+        .order("created_at",{ascending:true});
+      if(error) console.error("[sohbetAc]", error.message);
+      if(data) setMesajlar(data);
+      await supabase.from("mesajlar").update({okundu:true}).eq("alan",user.id).eq("gonderen",k.id);
+      setKonusmalar(p=>p.map(kn=>kn.id===k.id?{...kn,okunmayan:0}:kn));
+    }catch(err){
+      console.error("[sohbetAc] beklenmeyen hata:", err);
+    }
   }
 
   async function mesajGonder(medyaUrl,medyaTip,sesUrl){
@@ -362,7 +472,7 @@ export default function Mesajlar(){
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
         {aktif?(
           <>
-            <button onClick={()=>{setAktif(null);setMesajlar([]);}} style={{background:"none",border:"none",padding:4,cursor:"pointer",display:"flex"}}>
+            <button onClick={sohbetTemizle} style={{background:"none",border:"none",padding:4,cursor:"pointer",display:"flex"}}>
               <Icon id="arrow-left" size={20} color={G.blue}/>
             </button>
             <Av url={aktif.diger?.avatar_url} size={36} online={true}/>
@@ -452,7 +562,7 @@ export default function Mesajlar(){
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <p style={{fontSize:12,color:k.okunmayan>0?G.textMuted:G.textDim,fontWeight:k.okunmayan>0?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"80%"}}>
-                      {sonMesaj?.ses_url?"🎤 Sesli mesaj":sonMesaj?.medya_url?"🖼️ Görsel":sonMesaj?.metin||""}
+                      {sonMesaj?.ses_url?"🎤 Sesli mesaj":sonMesaj?.medya_url?"🖼️ Görsel":sonMesaj?.icerik||""}
                     </p>
                     {k.okunmayan>0&&<span style={{minWidth:20,height:20,borderRadius:10,background:G.red,color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 5px",flexShrink:0,boxShadow:`0 0 8px ${G.red}60`}}>{k.okunmayan}</span>}
                   </div>
@@ -496,7 +606,7 @@ export default function Mesajlar(){
             {mesajlar.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:G.textMuted,fontSize:13}}>Konuşmayı sen başlat 👋</div>}
             {mesajlar.map((m,i)=>{
               var benim=m.gonderen===user.id;
-              var oncekiBenim=i>0&&mesajlar[i-1].gonderen===m.gonderen_profil;
+              var oncekiBenim=i>0&&mesajlar[i-1].gonderen===m.gonderen;
               return(
                 <div key={m.id||i} style={{display:"flex",flexDirection:benim?"row-reverse":"row",gap:8,marginBottom:oncekiBenim?4:12,animation:"fadeUp 0.2s ease"}}>
                   {!benim&&!oncekiBenim&&<Av url={aktif.diger?.avatar_url} size={28}/>}
@@ -552,7 +662,7 @@ export default function Mesajlar(){
       )}
 
       {!aktif&&<AltNav/>}
-      {drawer&&<Drawer user={user} username={username} avatarUrl={avatarUrl} onClose={()=>setDrawer(false)}/>}
+      {drawer&&<Drawer user={user} username={username} avatarUrl={avatarUrl} onClose={()=>setDrawer(false)} onLogout={cikisYap}/>}
     </div>
   );
 }
