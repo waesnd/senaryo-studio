@@ -54,6 +54,7 @@ function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
   if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
   if(id==="send")return<svg {...p}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
   if(id==="flag")return<svg {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>;
+  if(id==="trash")return<svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>;
   if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
   if(id==="save")return<svg {...p}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
   if(id==="layers")return<svg {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>;
@@ -212,22 +213,19 @@ export default function SenaryoDetay(){
         return;
       }
 
-      if(s?.user_id){
-        try{
-          var { data: ownerProfile } = await supabase
-            .from("profiles")
-            .select("id,username,avatar_url,bio,dogrulandi")
-            .eq("id", s.user_id)
-            .maybeSingle();
-          if(ownerProfile){
-            s = { ...s, profiles: ownerProfile };
-          }
-        }catch(profileErr){
-          console.error("[senaryo] owner profil yüklenemedi:", profileErr?.message || profileErr);
-        }
+      var owner = null;
+      try{
+        var { data: ownerData } = await supabase
+          .from("profiles")
+          .select("id,username,avatar_url,bio,dogrulandi")
+          .eq("id", s.user_id)
+          .maybeSingle();
+        owner = ownerData || null;
+      }catch(ownerErr){
+        console.error("[senaryo] owner profil yüklenemedi:", ownerErr?.message || ownerErr);
       }
 
-      setSenaryo(s);
+      setSenaryo({ ...s, profiles: owner });
 
       try{
         var viewKey="sf_view_"+id;
@@ -235,7 +233,7 @@ export default function SenaryoDetay(){
         var now=Date.now();
         if(!lastView || now-parseInt(lastView, 10) > 3600000){
           if(!user || user.id!==s.user_id){
-            await supabase.from("senaryolar").update({goruntuleme_sayisi:(s.goruntuleme_sayisi||0)+1}).eq("id",id);
+            await supabase.from("senaryolar").update({goruntuleme_sayisi:(s.goruntuleme_sayisi||0)+1}).eq("id", Number(id));
             localStorage.setItem(viewKey,String(now));
             setSenaryo(prev=>prev?({...prev,goruntuleme_sayisi:(prev.goruntuleme_sayisi||0)+1}):prev);
           }
@@ -245,13 +243,13 @@ export default function SenaryoDetay(){
       }
 
       var sonuclar = await Promise.allSettled([
-        supabase.from("yorumlar").select("*, profiles(username,avatar_url)").eq("senaryo_id",id).order("created_at",{ascending:true}),
-        supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id",id).order("versiyon",{ascending:false}),
+        supabase.from("yorumlar").select("*, profiles(username,avatar_url)").eq("senaryo_id", Number(id)).order("created_at",{ascending:true}),
+        supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id", Number(id)).order("versiyon",{ascending:false}),
         user
-          ? supabase.from("begeniler").select("*").eq("user_id",user.id).eq("senaryo_id",id).single()
+          ? supabase.from("begeniler").select("*").eq("user_id",user.id).eq("senaryo_id", Number(id)).single()
           : Promise.resolve({ data:null }),
         user
-          ? supabase.from("kaydedilenler").select("*").eq("user_id",user.id).eq("senaryo_id",id).single()
+          ? supabase.from("kaydedilenler").select("*").eq("user_id",user.id).eq("senaryo_id", Number(id)).single()
           : Promise.resolve({ data:null }),
       ]);
 
@@ -280,17 +278,17 @@ export default function SenaryoDetay(){
     if(!user || !senaryo) return;
     try{
       if(begendi){
-        await supabase.from("begeniler").delete().eq("user_id",user.id).eq("senaryo_id",id);
-        await supabase.from("senaryolar").update({begeni_sayisi:Math.max(0,(senaryo.begeni_sayisi||0)-1)}).eq("id",id);
+        await supabase.from("begeniler").delete().eq("user_id",user.id).eq("senaryo_id", Number(id));
+        await supabase.from("senaryolar").update({begeni_sayisi:Math.max(0,(senaryo.begeni_sayisi||0)-1)}).eq("id", Number(id));
         setSenaryo(p=>p?({...p,begeni_sayisi:Math.max(0,(p.begeni_sayisi||0)-1)}):p);
         setBegendi(false);
       }else{
-        await supabase.from("begeniler").insert([{user_id:user.id,senaryo_id:id}]);
-        await supabase.from("senaryolar").update({begeni_sayisi:(senaryo.begeni_sayisi||0)+1}).eq("id",id);
+        await supabase.from("begeniler").insert([{user_id:user.id,senaryo_id:Number(id)}]);
+        await supabase.from("senaryolar").update({begeni_sayisi:(senaryo.begeni_sayisi||0)+1}).eq("id", Number(id));
         setSenaryo(p=>p?({...p,begeni_sayisi:(p.begeni_sayisi||0)+1}):p);
         setBegendi(true);
         if(senaryo.profiles?.id && senaryo.profiles.id!==user.id){
-          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"begeni",senaryo_id:parseInt(id)}]);
+          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"begeni",senaryo_id:Number(id)}]);
         }
       }
     }catch(e){
@@ -302,14 +300,47 @@ export default function SenaryoDetay(){
     if(!user)return;
     try{
       if(kaydetti){
-        await supabase.from("kaydedilenler").delete().eq("user_id",user.id).eq("senaryo_id",id);
+        await supabase.from("kaydedilenler").delete().eq("user_id",user.id).eq("senaryo_id", Number(id));
         setKaydetti(false);
       }else{
-        await supabase.from("kaydedilenler").insert([{user_id:user.id,senaryo_id:id}]);
+        await supabase.from("kaydedilenler").insert([{user_id:user.id,senaryo_id:Number(id)}]);
         setKaydetti(true);
       }
     }catch(e){
       console.error("[senaryo] kaydetToggle hatası:", e?.message || e);
+    }
+  }
+
+
+  async function senaryoSil(){
+    if(!user || !senaryo) return;
+    var onay = true;
+    try{
+      if(typeof window !== "undefined") onay = window.confirm("Bu senaryoyu silmek istediğine emin misin?");
+    }catch(_){}
+    if(!onay) return;
+
+    try{
+      await Promise.allSettled([
+        supabase.from("gonderiler").delete().eq("senaryo_id", Number(id)).eq("user_id", user.id),
+        supabase.from("kaydedilenler").delete().eq("senaryo_id", Number(id)),
+        supabase.from("begeniler").delete().eq("senaryo_id", Number(id)),
+        supabase.from("yorumlar").delete().eq("senaryo_id", Number(id)),
+        supabase.from("senaryo_versiyonlar").delete().eq("senaryo_id", Number(id)),
+      ]);
+
+      var { error } = await supabase
+        .from("senaryolar")
+        .delete()
+        .eq("id", Number(id))
+        .eq("user_id", user.id);
+
+      if(error) throw error;
+
+      window.location.replace("/profil");
+    }catch(err){
+      console.error("[senaryo] silme hatası:", err?.message || err);
+      alert("Senaryo silinemedi.");
     }
   }
 
@@ -320,7 +351,7 @@ export default function SenaryoDetay(){
       var yorumMetni = yeniYorum.trim();
       var { data, error } = await supabase
         .from("yorumlar")
-        .insert([{user_id:user.id,senaryo_id:parseInt(id),metin:yorumMetni}])
+        .insert([{user_id:user.id,senaryo_id:Number(id),metin:yorumMetni}])
         .select("*, profiles(username,avatar_url)")
         .single();
 
@@ -330,7 +361,7 @@ export default function SenaryoDetay(){
         setYorumlar(p=>[...p,data]);
         setYeniYorum("");
         if(senaryo.profiles?.id&&senaryo.profiles.id!==user.id){
-          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"yorum",senaryo_id:parseInt(id),icerik:yorumMetni.slice(0,80)}]);
+          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"yorum",senaryo_id:Number(id),icerik:yorumMetni.slice(0,80)}]);
         }
       }
     }catch(e){
@@ -353,46 +384,18 @@ export default function SenaryoDetay(){
     if(!user||!senaryo)return;
     try{
       var sonVersiyon=versiyonlar.length>0?versiyonlar[0].versiyon:0;
-      await supabase.from("senaryo_versiyonlar").insert([{senaryo_id:parseInt(id),user_id:user.id,versiyon:sonVersiyon+1,baslik:senaryo.baslik,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.sahne}]);
-      var{data:v}=await supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id",id).order("versiyon",{ascending:false});
+      await supabase.from("senaryo_versiyonlar").insert([{senaryo_id:Number(id),user_id:user.id,versiyon:sonVersiyon+1,baslik:senaryo.baslik,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.sahne}]);
+      var{data:v}=await supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id", Number(id)).order("versiyon",{ascending:false});
       if(v)setVersiyonlar(v);
     }catch(e){
       console.error("[senaryo] versiyonKaydet hatası:", e?.message || e);
     }
   }
 
-  async function senaryoSil(){
-    if(!user || !senaryo || user.id !== senaryo.user_id) return;
-    if(!confirm("Bu senaryoyu silmek istediğine emin misin?")) return;
-
-    try{
-      await Promise.allSettled([
-        supabase.from("gonderiler").delete().eq("senaryo_id", parseInt(id)).eq("user_id", user.id),
-        supabase.from("kaydedilenler").delete().eq("senaryo_id", parseInt(id)),
-        supabase.from("begeniler").delete().eq("senaryo_id", parseInt(id)),
-        supabase.from("yorumlar").delete().eq("senaryo_id", parseInt(id)),
-        supabase.from("senaryo_versiyonlar").delete().eq("senaryo_id", parseInt(id)),
-      ]);
-
-      var { error } = await supabase
-        .from("senaryolar")
-        .delete()
-        .eq("id", parseInt(id))
-        .eq("user_id", user.id);
-
-      if(error) throw error;
-
-      window.location.replace("/profil");
-    }catch(e){
-      console.error("[senaryo] senaryoSil hatası:", e?.message || e);
-      alert("Senaryo silinemedi: " + (e?.message || "Bilinmeyen hata"));
-    }
-  }
-
   async function raporGonder(sebep){
     if(!user)return;
     try{
-      await supabase.from("raporlar").insert([{rapor_eden:user.id,senaryo_id:parseInt(id),sebep}]);
+      await supabase.from("raporlar").insert([{rapor_eden:user.id,senaryo_id:Number(id),sebep}]);
       setRaporModal(false);
     }catch(e){
       console.error("[senaryo] raporGonder hatası:", e?.message || e);
@@ -466,6 +469,9 @@ export default function SenaryoDetay(){
               <div style={{position:"absolute",right:0,top:42,background:G.surface,border:`1px solid ${G.borderHov}`,borderRadius:14,padding:"6px",minWidth:200,boxShadow:`${G.shadow},${G.glowBlue}`,zIndex:10,animation:"fadeUp 0.15s ease"}}>
                 {versiyonlar.length>0&&<button onClick={()=>{setVersiyonModal(true);setMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"none",border:"none",color:G.text,fontSize:13,textAlign:"left",borderRadius:10}}>
                   <Icon id="clock" size={13} color={G.purple}/>Versiyon Geçmişi ({versiyonlar.length})
+                </button>}
+                {benim&&<button onClick={()=>{setMenu(false);senaryoSil();}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"none",border:"none",color:G.red,fontSize:13,textAlign:"left",borderRadius:10}}>
+                  <Icon id="trash" size={13} color={G.red}/>Senaryoyu Sil
                 </button>}
                 <button onClick={()=>{setPaylasModal(true);setMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"none",border:"none",color:G.text,fontSize:13,textAlign:"left",borderRadius:10}}>
                   <Icon id="share" size={13} color={G.blue}/>Paylaş
@@ -580,12 +586,6 @@ export default function SenaryoDetay(){
             <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.06em",fontWeight:700}}>CHALLENGE</p>
           </a>
         </div>
-
-        {benim&&(
-          <button onClick={senaryoSil} style={{width:"100%",marginBottom:20,padding:"12px 14px",borderRadius:14,background:`${G.red}10`,border:`1px solid ${G.red}25`,color:G.red,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer"}}>
-            <Icon id="trash" size={14} color={G.red}/> Senaryoyu Sil
-          </button>
-        )}
 
         {/* ── YORUMLAR ── */}
         <div style={{marginBottom:20}}>
