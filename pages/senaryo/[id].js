@@ -199,7 +199,7 @@ export default function SenaryoDetay(){
 
       var { data:s, error:senaryoError } = await supabase
         .from("senaryolar")
-        .select("*, profiles(id,username,avatar_url,bio,dogrulandi)")
+        .select("*")
         .eq("id",id)
         .single();
 
@@ -210,6 +210,21 @@ export default function SenaryoDetay(){
       if(!s){
         setHata("Senaryo bulunamadı.");
         return;
+      }
+
+      if(s?.user_id){
+        try{
+          var { data: ownerProfile } = await supabase
+            .from("profiles")
+            .select("id,username,avatar_url,bio,dogrulandi")
+            .eq("id", s.user_id)
+            .maybeSingle();
+          if(ownerProfile){
+            s = { ...s, profiles: ownerProfile };
+          }
+        }catch(profileErr){
+          console.error("[senaryo] owner profil yüklenemedi:", profileErr?.message || profileErr);
+        }
       }
 
       setSenaryo(s);
@@ -343,6 +358,34 @@ export default function SenaryoDetay(){
       if(v)setVersiyonlar(v);
     }catch(e){
       console.error("[senaryo] versiyonKaydet hatası:", e?.message || e);
+    }
+  }
+
+  async function senaryoSil(){
+    if(!user || !senaryo || user.id !== senaryo.user_id) return;
+    if(!confirm("Bu senaryoyu silmek istediğine emin misin?")) return;
+
+    try{
+      await Promise.allSettled([
+        supabase.from("gonderiler").delete().eq("senaryo_id", parseInt(id)).eq("user_id", user.id),
+        supabase.from("kaydedilenler").delete().eq("senaryo_id", parseInt(id)),
+        supabase.from("begeniler").delete().eq("senaryo_id", parseInt(id)),
+        supabase.from("yorumlar").delete().eq("senaryo_id", parseInt(id)),
+        supabase.from("senaryo_versiyonlar").delete().eq("senaryo_id", parseInt(id)),
+      ]);
+
+      var { error } = await supabase
+        .from("senaryolar")
+        .delete()
+        .eq("id", parseInt(id))
+        .eq("user_id", user.id);
+
+      if(error) throw error;
+
+      window.location.replace("/profil");
+    }catch(e){
+      console.error("[senaryo] senaryoSil hatası:", e?.message || e);
+      alert("Senaryo silinemedi: " + (e?.message || "Bilinmeyen hata"));
     }
   }
 
@@ -537,6 +580,12 @@ export default function SenaryoDetay(){
             <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.06em",fontWeight:700}}>CHALLENGE</p>
           </a>
         </div>
+
+        {benim&&(
+          <button onClick={senaryoSil} style={{width:"100%",marginBottom:20,padding:"12px 14px",borderRadius:14,background:`${G.red}10`,border:`1px solid ${G.red}25`,color:G.red,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer"}}>
+            <Icon id="trash" size={14} color={G.red}/> Senaryoyu Sil
+          </button>
+        )}
 
         {/* ── YORUMLAR ── */}
         <div style={{marginBottom:20}}>
