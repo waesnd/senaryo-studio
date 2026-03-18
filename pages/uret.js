@@ -187,16 +187,13 @@ function AIBtn({onClick,loading,loadLabel,label,color=G.blueGrad,glow=G.glowBlue
 var KART={background:`linear-gradient(145deg,#1E293B,#162032)`,border:`1px solid rgba(56,189,248,0.12)`,borderRadius:20,padding:"22px",marginBottom:16,position:"relative"};
 
 export default function Uret(){
-  var {user, profil, authHazir, setProfil, okunmayanBildirim} = useAuth();
+  var {user, profil, authHazir, okunmayanBildirim} = useAuth();
   var [tip,setTip]=useState("Dizi");
   var [tur,setTur]=useState("Gerilim");
   var [ozelIstek,setOzelIstek]=useState("");
   var [yukleniyor,setYukleniyor]=useState(false);
   var [senaryo,setSenaryo]=useState(null);
   var [kaydedildi,setKaydedildi]=useState(false);
-  var [kaydetYukleniyor,setKaydetYukleniyor]=useState(false);
-  var [kayitliSenaryoId,setKayitliSenaryoId]=useState(null);
-  var [paylasimYukleniyor,setPaylasimYukleniyor]=useState(false);
   var [arsivAcik,setArsivAcik]=useState(false);
   var [arsiv,setArsiv]=useState([]);
   var [arsivYukleniyor,setArsivYukleniyor]=useState(false);
@@ -232,7 +229,7 @@ export default function Uret(){
   var [sahneSekme,setSahneSekme]=useState("stc");
 
   var avatarUrl=profil?.avatar_url||null;
-  var username=profil?.username||(user?user.email?.split("@")[0]:"");
+  var username=profil?.username||(user?user.email.split("@")[0]:"");
 
   useEffect(()=>{
     try{
@@ -260,204 +257,34 @@ export default function Uret(){
     return fetch(url, {method:"POST", headers, body:JSON.stringify(body)});
   }
 
-  function senaryoPayloadOlustur() {
-    if (!user || !senaryo) return null;
-    return {
-      user_id: user.id,
-      tip,
-      tur,
-      baslik: senaryo.baslik,
-      tagline: senaryo.tagline,
-      ana_fikir: senaryo.ana_fikir,
-      karakter: senaryo.karakter,
-      sahne: senaryo.acilis_sahnesi,
-      soru: senaryo.buyuk_soru,
-      paylasim_acik: !!paylasimAcik,
-      begeni_sayisi: 0,
-      goruntuleme_sayisi: 0,
-      yorum_sayisi: 0
-    };
-  }
-
-  async function profilSayisiniGuncelle() {
-    if (!user) return;
-    try {
-      var { count } = await supabase
-        .from("senaryolar")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      if (typeof count === "number") {
-        var { data: updatedProfile } = await supabase
-          .from("profiles")
-          .update({ senaryo_sayisi: count })
-          .eq("id", user.id)
-          .select()
-          .maybeSingle();
-
-        if (updatedProfile && setProfil) {
-          setProfil(updatedProfile);
-        } else if (setProfil && profil) {
-          setProfil({ ...profil, senaryo_sayisi: count });
-        }
-      }
-    } catch (profileErr) {
-      console.error("[uret] senaryo_sayisi güncellenemedi:", profileErr?.message || profileErr);
-    }
-  }
-
-  async function gonderiPaylas(senaryoId) {
-    if (!user || !senaryoId || !senaryo) return { ok: false, error: "Eksik veri" };
-
-    var gonderiPayload = {
-      senaryo_id: senaryoId,
-      user_id: user.id,
-      tip,
-      tur,
-      baslik: senaryo.baslik,
-      tagline: senaryo.tagline,
-      ana_fikir: senaryo.ana_fikir,
-      karakter: senaryo.karakter,
-      sahne: senaryo.acilis_sahnesi,
-      soru: senaryo.buyuk_soru,
-      paylasim_acik: true,
-      begeni_sayisi: senaryo.begeni_sayisi || 0,
-      goruntuleme_sayisi: senaryo.goruntuleme_sayisi || 0,
-      yorum_sayisi: senaryo.yorum_sayisi || 0,
-      kaydetme_sayisi: 0
-    };
-
-    try{
-      var { data: mevcut, error: selectError } = await supabase
-        .from("gonderiler")
-        .select("id")
-        .eq("senaryo_id", senaryoId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if(selectError){
-        console.error("[uret] mevcut paylaşım sorgu hatası:", selectError.message);
-      }
-
-      if(mevcut?.id){
-        var { error: updateError } = await supabase
-          .from("gonderiler")
-          .update(gonderiPayload)
-          .eq("id", mevcut.id)
-          .eq("user_id", user.id);
-
-        if(updateError){
-          console.error("[uret] paylaşım update hatası:", updateError.message);
-          return { ok: false, error: updateError.message };
-        }
-
-        return { ok: true, mode: "update" };
-      }
-
-      var { error: insertError } = await supabase
-        .from("gonderiler")
-        .insert([gonderiPayload]);
-
-      if(insertError){
-        console.error("[uret] paylaşım insert hatası:", insertError.message);
-        return { ok: false, error: insertError.message };
-      }
-
-      return { ok: true, mode: "insert" };
-    }catch(err){
-      console.error("[uret] gonderiPaylas beklenmeyen hata:", err);
-      return { ok: false, error: err?.message || "Beklenmeyen hata" };
-    }
-  }
-
-  async function gonderiPaylasiminiKaldir(senaryoId) {
-    if (!senaryoId) return { ok: true };
-    var { error } = await supabase
-      .from("gonderiler")
-      .delete()
-      .eq("senaryo_id", senaryoId)
-      .eq("user_id", user.id);
-
-    if (error) {
-      console.error("[uret] paylaşım kaldırma hatası:", error.message);
-      return { ok: false, error: error.message };
-    }
-
-    return { ok: true };
-  }
-
-  async function paylasimDurumunuDegistir(yeniDeger) {
-    setPaylasimAcik(yeniDeger);
-
-    if (!kayitliSenaryoId || paylasimYukleniyor) return;
-
-    setPaylasimYukleniyor(true);
-    try {
-      var { error: senaryoUpdateError } = await supabase
-        .from("senaryolar")
-        .update({ paylasim_acik: yeniDeger })
-        .eq("id", kayitliSenaryoId)
-        .eq("user_id", user.id);
-
-      if (senaryoUpdateError) {
-        alert("Paylaşım durumu güncellenemedi: " + senaryoUpdateError.message);
-        setPaylasimAcik(!yeniDeger);
-        return;
-      }
-
-      if (yeniDeger) {
-        var paylas = await gonderiPaylas(kayitliSenaryoId);
-        if (!paylas.ok) {
-          alert("Topluluğa paylaşma başarısız oldu: " + paylas.error);
-          setPaylasimAcik(false);
-        }
-      } else {
-        var sil = await gonderiPaylasiminiKaldir(kayitliSenaryoId);
-        if (!sil.ok) {
-          alert("Paylaşım geri alınamadı: " + sil.error);
-          setPaylasimAcik(true);
-        }
-      }
-    } catch (err) {
-      console.error("[uret] paylasimDurumunuDegistir:", err);
-      setPaylasimAcik(!yeniDeger);
-    } finally {
-      setPaylasimYukleniyor(false);
-    }
-  }
-
-
   async function senaryoUret(){
     if(limitDoldu) return;
-    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");setKaydedildi(false);setKayitliSenaryoId(null);
+    setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");
     try{
       var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi});
+      // Kalan üretim hakkını header'dan oku
       var kalan=res.headers.get("X-Kalan-Uretim");
       if(kalan!==null) setKalanUretim(parseInt(kalan));
       var data=await res.json();
       if(res.status===429){
         setLimitDoldu(true);
         setKalanUretim(0);
-      }else if(data?.ok && data?.data?.senaryo){
-        setSenaryo(data.data.senaryo);
-      }else if(data?.senaryo){
+      }else if(data.senaryo){
         setSenaryo(data.senaryo);
       }else{
-        alert(data?.error || "Senaryo oluşturulamadı.");
+        alert("Senaryo oluşturulamadı.");
       }
-    }catch(e){
-      alert("Hata: "+e.message);
-    }finally{
-      setYukleniyor(false);
-    }
+    }catch(e){alert("Hata: "+e.message);}
+    setYukleniyor(false);
   }
-  async function beatUret(){if(!senaryo)return;setBeatYukleniyor(true);try{var res=await authFetch("/api/beatsheet", {senaryo,tip,tur});setBeatler(await res.json());}catch(e){console.error("[uret] beatUret", e);}finally{setBeatYukleniyor(false);}}
-  async function karakterBibleUret(){if(!senaryo)return;setBibleYukleniyor(true);try{var res=await authFetch("/api/karakterbible", {senaryo,tur});setKarakterBible(await res.json());}catch(e){console.error("[uret] karakterBibleUret", e);}finally{setBibleYukleniyor(false);}}
-  async function dramaturgCalistir(){if(!senaryo)return;setDraturagYukleniyor(true);try{var res=await authFetch("/api/dramaturg", {senaryo,tip,tur});setDraturagAnaliz(await res.json());}catch(e){console.error("[uret] dramaturgCalistir", e);}finally{setDraturagYukleniyor(false);}}
-  async function puanHesapla(){if(!senaryo)return;setPuanYukleniyor(true);try{var res=await authFetch("/api/puan", {senaryo,tip,tur});setPuan(await res.json());}catch(e){console.error("[uret] puanHesapla", e);}finally{setPuanYukleniyor(false);}}
+  async function beatUret(){if(!senaryo)return;setBeatYukleniyor(true);try{var res=await authFetch("/api/beatsheet", {senaryo,tip,tur});setBeatler(await res.json());}catch(e){}setBeatYukleniyor(false);}
+  async function karakterBibleUret(){if(!senaryo)return;setBibleYukleniyor(true);try{var res=await authFetch("/api/karakterbible", {senaryo,tur});setKarakterBible(await res.json());}catch(e){}setBibleYukleniyor(false);}
+  async function dramaturgCalistir(){if(!senaryo)return;setDraturagYukleniyor(true);try{var res=await authFetch("/api/dramaturg", {senaryo,tip,tur});setDraturagAnaliz(await res.json());}catch(e){}setDraturagYukleniyor(false);}
+  async function puanHesapla(){if(!senaryo)return;setPuanYukleniyor(true);try{var res=await authFetch("/api/puan", {senaryo,tip,tur});setPuan(await res.json());}catch(e){}setPuanYukleniyor(false);}
   async function sequelUret(){
     if(!senaryo)return;setSequelYukleniyor(true);setSequel(null);
-    try{var res=await authFetch("/api/generate", {tip,tur,ozelIstek:"Bu senaryonun devamını yaz: "+senaryo.baslik+". Ana fikir: "+(senaryo.ana_fikir?.slice(0,200)||"")});var data=await res.json();if(data?.ok&&data?.data?.senaryo)setSequel(data.data.senaryo);else if(data?.senaryo)setSequel(data.senaryo);}catch(e){console.error("[uret] sequelUret", e);}finally{setSequelYukleniyor(false);}
+    try{var res=await authFetch("/api/generate", {tip,tur,ozelIstek:"Bu senaryonun devamını yaz: "+senaryo.baslik+". Ana fikir: "+(senaryo.ana_fikir?.slice(0,200)||"")});var data=await res.json();if(data.senaryo)setSequel(data.senaryo);}catch(e){}
+    setSequelYukleniyor(false);
   }
   // Revize — senaryoyu yeniden yaz
   async function revizeEt(){
@@ -466,9 +293,9 @@ export default function Uret(){
     try{
       var res=await authFetch("/api/generate", {tip,tur,ozelIstek:"Şu senaryoyu tamamen revize et, daha güçlü yap. Aynı tema: "+senaryo.baslik+" — "+(senaryo.ana_fikir?.slice(0,200)||"")});
       var data=await res.json();
-      if(data?.ok&&data?.data?.senaryo){setSenaryo(data.data.senaryo);setKaydedildi(false);setKayitliSenaryoId(null);}
-      else if(data?.senaryo){setSenaryo(data.senaryo);setKaydedildi(false);setKayitliSenaryoId(null);}
-    }catch(e){console.error("[uret] revizeEt", e);}finally{setRevizeYukleniyor(false);}
+      if(data.senaryo)setSenaryo(data.senaryo);
+    }catch(e){}
+    setRevizeYukleniyor(false);
   }
 
   // Diyalog güçlendirici
@@ -479,7 +306,8 @@ export default function Uret(){
       var res=await authFetch("/api/diyalog", {metin:diyalogMetin,tur});
       var data=await res.json();
       setDiyalogSonuc(data.sonuc||"");
-    }catch(e){alert("Hata: "+e.message);}finally{setDiyalogYukleniyor(false);}
+    }catch(e){alert("Hata: "+e.message);}
+    setDiyalogYukleniyor(false);
   }
 
   // Logline üretici
@@ -490,7 +318,8 @@ export default function Uret(){
       var res=await authFetch("/api/logline", {senaryo,tur,tip});
       var data=await res.json();
       if(data.logline1)setLogline(data);
-    }catch(e){console.error("[uret] loglineUret", e);}finally{setLoglineYukleniyor(false);}
+    }catch(e){}
+    setLoglineYukleniyor(false);
   }
 
   // Pitch deck üretici
@@ -501,7 +330,8 @@ export default function Uret(){
       var res=await authFetch("/api/pitch", {senaryo,tur,tip});
       var data=await res.json();
       if(data.one_liner)setPitchDeck(data);
-    }catch(e){console.error("[uret] pitchDeckUret", e);}finally{setPitchYukleniyor(false);}
+    }catch(e){}
+    setPitchYukleniyor(false);
   }
 
   async function heroJourneyUret(){
@@ -511,7 +341,8 @@ export default function Uret(){
       var res=await authFetch("/api/herosjourney", {senaryo,tur,tip});
       var data=await res.json();
       if(data.olagan_dunya)setHeroJourney(data);
-    }catch(e){console.error("[uret] heroJourneyUret", e);}finally{setHeroYukleniyor(false);}
+    }catch(e){}
+    setHeroYukleniyor(false);
   }
 
 
@@ -519,46 +350,39 @@ export default function Uret(){
   async function arsivYukle(){
     if(!user) return;
     setArsivYukleniyor(true);
-    try{
-      var {data, error} = await supabase.from("senaryo_versiyonlar")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", {ascending:false})
-        .limit(50);
-      if(error){ console.error("[uret] arsivYukle", error.message); return; }
-      if(data) setArsiv(data);
-    }finally{
-      setArsivYukleniyor(false);
-    }
+    var {data} = await supabase.from("senaryo_versiyonlar")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", {ascending:false})
+      .limit(50);
+    if(data) setArsiv(data);
+    setArsivYukleniyor(false);
   }
 
   // Versiyonu arşive kaydet
   async function versiyonKaydet(){
     if(!user||!senaryo||arsivKaydediliyor) return;
     setArsivKaydediliyor(true);
-    try{
-      var { error } = await supabase.from("senaryo_versiyonlar").insert({
-        user_id:    user.id,
-        tip,
-        tur,
-        baslik:     senaryo.baslik,
-        tagline:    senaryo.tagline,
-        veri:       JSON.stringify({
-          senaryo,
-          beatler:        Object.keys(beatler).length>0 ? beatler : null,
-          karakterBible:  karakterBible || null,
-          heroJourney:    heroJourney || null,
-          logline:        logline || null,
-          pitchDeck:      pitchDeck || null,
-          dramaturgAnaliz:dramaturgAnaliz || null,
-          puan:           puan || null,
-        }),
-      });
-      if(error){ alert("Versiyon kaydedilemedi: "+error.message); return; }
-      await arsivYukle();
-    }finally{
-      setArsivKaydediliyor(false);
-    }
+    await supabase.from("senaryo_versiyonlar").insert({
+      user_id:    user.id,
+      tip,
+      tur,
+      baslik:     senaryo.baslik,
+      tagline:    senaryo.tagline,
+      veri:       JSON.stringify({
+        senaryo,
+        beatler:        Object.keys(beatler).length>0 ? beatler : null,
+        karakterBible:  karakterBible || null,
+        heroJourney:    heroJourney || null,
+        logline:        logline || null,
+        pitchDeck:      pitchDeck || null,
+        dramaturgAnaliz:dramaturgAnaliz || null,
+        puan:           puan || null,
+      }),
+    });
+    // Arşivi güncelle
+    await arsivYukle();
+    setArsivKaydediliyor(false);
   }
 
   // Versiyonu geri yükle
@@ -583,59 +407,14 @@ export default function Uret(){
   // Versiyonu sil
   async function versiyonSil(id){
     if(!confirm("Bu versiyonu silmek istediğine emin misin?")) return;
-    var { error } = await supabase.from("senaryo_versiyonlar").delete().eq("id", id).eq("user_id", user.id);
-    if(error){ alert("Versiyon silinemedi: "+error.message); return; }
+    await supabase.from("senaryo_versiyonlar").delete().eq("id", id).eq("user_id", user.id);
     setArsiv(prev => prev.filter(v => v.id !== id));
   }
 
   async function profilKaydet(){
-    if(!user){
-      alert("Kaydetmek için giriş yapman gerekiyor.");
-      return;
-    }
-    if(!senaryo || kaydetYukleniyor) return;
-
-    setKaydetYukleniyor(true);
-
-    try{
-      var senaryoPayload = senaryoPayloadOlustur();
-
-      var { data: savedSenaryo, error: senaryoError } = await supabase
-        .from("senaryolar")
-        .insert([senaryoPayload])
-        .select()
-        .single();
-
-      if(senaryoError){
-        alert("Kaydetme hatası: " + senaryoError.message);
-        return;
-      }
-
-      setKayitliSenaryoId(savedSenaryo?.id || null);
-
-      var paylasimHatasi = null;
-      if(paylasimAcik && savedSenaryo?.id){
-        var paylas = await gonderiPaylas(savedSenaryo.id);
-        if(!paylas.ok){
-          paylasimHatasi = paylas.error || "Bilinmeyen hata";
-        }
-      }
-
-      await profilSayisiniGuncelle();
-
-      setKaydedildi(true);
-
-      if (paylasimHatasi) {
-        alert("Senaryo kaydedildi ama topluluğa paylaşma başarısız oldu: " + paylasimHatasi);
-      } else {
-        alert(paylasimAcik ? "Senaryo kaydedildi ve topluluğa paylaşıldı." : "Senaryo kaydedildi.");
-      }
-    }catch(err){
-      console.error("[uret] profilKaydet beklenmeyen hata:", err);
-      alert("Kaydetme sırasında beklenmeyen bir hata oluştu.");
-    }finally{
-      setKaydetYukleniyor(false);
-    }
+    if(!user||!senaryo)return;
+    await supabase.from("senaryolar").insert([{user_id:user.id,tip,tur,baslik:senaryo.baslik,tagline:senaryo.tagline,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.acilis_sahnesi,soru:senaryo.buyuk_soru,paylasim_acik:paylasimAcik,begeni_sayisi:0}]);
+    setKaydedildi(true);
   }
 
   function fdxIndir(){
@@ -1000,8 +779,8 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   <button onClick={()=>setKartModal(true)} style={{flex:1,padding:"11px 8px",borderRadius:12,background:G.surface,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon id="share" size={13} color={G.textMuted}/>Paylaş</button>
                   {!kaydedildi
                     ?<div style={{flex:2,display:"flex",gap:4}}>
-                      <button onClick={profilKaydet} disabled={kaydetYukleniyor} style={{flex:1,padding:"11px 8px",borderRadius:"12px 0 0 12px",background:G.blueGrad,border:"none",color:G.black,fontSize:12,fontWeight:800,cursor:kaydetYukleniyor?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,boxShadow:G.glowBlue,opacity:kaydetYukleniyor?0.7:1}}>
-                        {kaydetYukleniyor?<div style={{width:12,height:12,border:"1.5px solid rgba(0,0,0,0.25)",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>:<Icon id="save" size={12} color={G.black}/>} {user?(kaydetYukleniyor?"Kaydediliyor":"Kaydet"):"Giriş Yap"}
+                      <button onClick={profilKaydet} style={{flex:1,padding:"11px 8px",borderRadius:"12px 0 0 12px",background:G.blueGrad,border:"none",color:G.black,fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,boxShadow:G.glowBlue}}>
+                        <Icon id="save" size={12} color={G.black}/>{user?"Kaydet":"Giriş Yap"}
                       </button>
                       <button onClick={versiyonKaydet} disabled={arsivKaydediliyor}
                         title="Arşive ekle — tüm analiz verileriyle"
@@ -1016,8 +795,8 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
                   }
                 </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:G.surface,borderRadius:12,border:`1px solid ${G.border}`}}>
-                  <div><p style={{fontSize:13,fontWeight:600,color:G.text}}>Topluluğa Paylaş</p><p style={{fontSize:11,color:G.textMuted,marginTop:1}}>{paylasimYukleniyor?"Güncelleniyor...":"Herkes görebilsin"}</p></div>
-                  <div onClick={()=>{if(!paylasimYukleniyor) paylasimDurumunuDegistir(!paylasimAcik);}} style={{width:44,height:24,borderRadius:12,background:paylasimAcik?G.blue:G.border,position:"relative",transition:"background 0.2s",cursor:paylasimYukleniyor?"default":"pointer",flexShrink:0,boxShadow:paylasimAcik?G.glowBlue:"none",opacity:paylasimYukleniyor?0.7:1}}>
+                  <div><p style={{fontSize:13,fontWeight:600,color:G.text}}>Topluluğa Paylaş</p><p style={{fontSize:11,color:G.textMuted,marginTop:1}}>Herkes görebilsin</p></div>
+                  <div onClick={()=>setPaylasimAcik(!paylasimAcik)} style={{width:44,height:24,borderRadius:12,background:paylasimAcik?G.blue:G.border,position:"relative",transition:"background 0.2s",cursor:"pointer",flexShrink:0,boxShadow:paylasimAcik?G.glowBlue:"none"}}>
                     <div style={{position:"absolute",top:3,left:paylasimAcik?23:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                   </div>
                 </div>

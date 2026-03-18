@@ -201,12 +201,12 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
     "Aksiyon":G.red,"Fantastik":G.purpleL,"Suç":"#94A3B8","Tarihi":"#D97706"
   };
   var accent=turAccent[gonderi.tur]||G.blue;
-  var hedefId=gonderi.senaryo_id||gonderi.id;
 
   function handleBegen(e){
     e.stopPropagation();
     if(!user)return;
     var n=!liked;setLiked(n);setLikeCount(c=>n?c+1:c-1);
+    var hedefId = gonderi.senaryo_id || gonderi.id;
     onBegen&&onBegen(hedefId,n);
   }
   async function handleRapor(sebep){
@@ -232,6 +232,7 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
   async function handleYorumGonder(e){
     e.stopPropagation();
     if(!yorumText.trim()||!user)return;
+    var hedefId = gonderi.senaryo_id || gonderi.id;
     onYorum&&await onYorum(hedefId,yorumText);
     setYorumText("");setShowYorum(false);
   }
@@ -240,7 +241,7 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
     <div
       onMouseEnter={()=>setHovered(true)}
       onMouseLeave={()=>setHovered(false)}
-      onClick={()=>window.location.href=`/senaryo/${hedefId}`}
+      onClick={()=>window.location.href=`/senaryo/${gonderi.senaryo_id || gonderi.id}`}
       style={{position:"relative",marginBottom:16,animation:"fadeUp 0.4s ease both",cursor:"pointer"}}
     >
       <div style={{
@@ -317,7 +318,7 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
               <Icon id="bookmark" size={14} color={saved?G.blue:G.textMuted}/>
             </button>
             <div style={{flex:1}}/>
-            <button onClick={e=>{e.stopPropagation();if(navigator.share)navigator.share({title:gonderi.baslik,url:`${window.location.origin}/senaryo/${gonderi.id}`});}} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:10,background:"transparent",border:"1px solid transparent",color:G.textMuted,fontSize:12}}>
+            <button onClick={e=>{e.stopPropagation();if(navigator.share)navigator.share({title:gonderi.baslik,url:`${window.location.origin}/senaryo/${gonderi.senaryo_id || gonderi.id}`});}} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:10,background:"transparent",border:"1px solid transparent",color:G.textMuted,fontSize:12}}>
               <Icon id="share" size={14} color={G.textMuted}/>
             </button>
             {user&&gonderi.profiles?.username!==user.email?.split("@")[0]&&!raporGonderildi&&(
@@ -631,14 +632,29 @@ export default function Index(){
 
   async function handleBegen(id,liked){
     if(!user)return;
-    if(liked)await supabase.from("begeniler").insert([{senaryo_id:id,user_id:user.id}]);
-    else await supabase.from("begeniler").delete().eq("senaryo_id",id).eq("user_id",user.id);
+    try{
+      if(liked) await supabase.from("begeniler").insert([{senaryo_id:id,user_id:user.id}]);
+      else await supabase.from("begeniler").delete().eq("senaryo_id",id).eq("user_id",user.id);
+    }catch(e){
+      console.error("[index] beğeni hatası:", e?.message || e);
+    }
   }
-  async function handleYorum(id,text){if(!user)return;await supabase.from("yorumlar").insert([{senaryo_id:id,user_id:user.id,metin:text}]);}
+  async function handleYorum(id,text){
+    if(!user)return;
+    try{
+      await supabase.from("yorumlar").insert([{senaryo_id:id,user_id:user.id,metin:text}]);
+    }catch(e){
+      console.error("[index] yorum hatası:", e?.message || e);
+    }
+  }
   async function handleKaydet(id,saved){
     if(!user)return;
-    if(saved)await supabase.from("kaydedilenler").insert([{senaryo_id:id,user_id:user.id}]);
-    else await supabase.from("kaydedilenler").delete().eq("senaryo_id",id).eq("user_id",user.id);
+    try{
+      if(saved) await supabase.from("kaydedilenler").insert([{senaryo_id:id,user_id:user.id}]);
+      else await supabase.from("kaydedilenler").delete().eq("senaryo_id",id).eq("user_id",user.id);
+    }catch(e){
+      console.error("[index] kaydetme hatası:", e?.message || e);
+    }
   }
 
   var gonderiler=sekme==="takip"?takipGonderiler:kesfetGonderiler;

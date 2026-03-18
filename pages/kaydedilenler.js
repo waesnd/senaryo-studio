@@ -85,82 +85,56 @@ export default function Kaydedilenler(){
     try{
       if(aktif) setYukleniyor(true);
 
-      var { data: kayitlar, error: kayitError } = await supabase
-        .from("kaydedilenler")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at",{ascending:false})
-        .limit(50);
+      var [savedRes, ownRes] = await Promise.all([
+        supabase.from("kaydedilenler")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at",{ascending:false})
+          .limit(50),
+        supabase.from("senaryolar")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at",{ascending:false})
+          .limit(50),
+      ]);
 
-      if(kayitError){
-        console.error("[kaydedilenler] kayıtlar yüklenemedi:", kayitError.message);
-        if(aktif){
-          setGonderi([]);
-          setSenaryolar([]);
-        }
-        return;
+      if(savedRes.error){
+        console.error("[kaydedilenler] saved list yuklenemedi:", savedRes.error.message);
+      }
+      if(ownRes.error){
+        console.error("[kaydedilenler] senaryolar yuklenemedi:", ownRes.error.message);
       }
 
-      var savedRows = kayitlar || [];
-      var senaryoIds = Array.from(new Set(savedRows.map(k => k.senaryo_id).filter(Boolean)));
+      var savedRows = savedRes.data || [];
+      var senaryoIds = Array.from(new Set(savedRows.map(function(row){ return row.senaryo_id || row.gonderi_id; }).filter(Boolean)));
 
-      var senaryoMap = {};
+      var savedMap = {};
       if(senaryoIds.length > 0){
-        var { data: senaryoRows, error: senaryoError } = await supabase
+        var { data: savedSenaryolar, error: savedErr } = await supabase
           .from("senaryolar")
           .select("*")
           .in("id", senaryoIds);
 
-        if(senaryoError){
-          console.error("[kaydedilenler] kaydedilen senaryolar yüklenemedi:", senaryoError.message);
-        }else{
-          (senaryoRows || []).forEach(function(s){ senaryoMap[s.id] = s; });
+        if(savedErr){
+          console.error("[kaydedilenler] saved senaryolar yuklenemedi:", savedErr.message);
+        } else {
+          (savedSenaryolar || []).forEach(function(s){
+            savedMap[s.id] = s;
+          });
         }
       }
 
-      var userIds = Array.from(new Set(Object.values(senaryoMap).map(s => s.user_id).filter(Boolean)));
-      var profileMap = {};
-      if(userIds.length > 0){
-        var { data: profileRows, error: profileError } = await supabase
-          .from("profiles")
-          .select("id,username,avatar_url,dogrulandi")
-          .in("id", userIds);
-
-        if(profileError){
-          console.error("[kaydedilenler] profil bilgileri yüklenemedi:", profileError.message);
-        }else{
-          (profileRows || []).forEach(function(p){ profileMap[p.id] = p; });
-        }
-      }
-
-      var savedSenaryolar = savedRows
-        .map(function(k){
-          var s = senaryoMap[k.senaryo_id];
-          if(!s) return null;
-          return {
-            ...k,
-            senaryo: {
-              ...s,
-              profiles: profileMap[s.user_id] || null
-            }
-          };
+      var birlesik = savedRows
+        .map(function(row){
+          var sid = row.senaryo_id || row.gonderi_id;
+          return { ...row, senaryolar: savedMap[sid] || null };
         })
-        .filter(Boolean);
+        .filter(function(row){ return !!row.senaryolar; });
 
-      var benimPaylasilanlar = Object.values(senaryoMap)
-        .filter(function(s){ return s.user_id === user.id && s.paylasim_acik; })
-        .sort(function(a,b){ return String(b.created_at||"").localeCompare(String(a.created_at||"")); });
-
-      if(aktif){
-        setGonderi(savedSenaryolar);
-        setSenaryolar(benimPaylasilanlar);
-      }
+      if(aktif) setGonderi(birlesik);
+      if(aktif) setSenaryolar(ownRes.data || []);
     }catch(err){
       console.error("[kaydedilenler] yukle beklenmeyen hata:", err);
-      if(aktif){
-        setGonderi([]);
-        setSenaryolar([]);
-      }
     }finally{
       if(aktif) setYukleniyor(false);
     }
@@ -177,11 +151,11 @@ export default function Kaydedilenler(){
         .eq("user_id",user.id);
 
       if(error){
-        console.error("[kaydedilenler] kayıt silinemedi:", error.message);
+        console.error("[kaydedilenler] kayit silinemedi:", error.message);
         return;
       }
 
-      setGonderi(prev=>prev.filter(k=>k.senaryo_id!==senaryoId));
+      setGonderi(prev=>prev.filter(k=>(k.senaryo_id||k.gonderi_id)!==senaryoId));
     }catch(err){
       console.error("[kaydedilenler] kaydettenCikar beklenmeyen hata:", err);
     }
@@ -240,7 +214,7 @@ export default function Kaydedilenler(){
 
       {/* SEKMELER */}
       <div style={{display:"flex",borderBottom:`1px solid ${G.border}`,background:"rgba(10,15,30,0.5)"}}>
-        {[{id:"gonderiler",label:"GÖNDERİLER",count:gonderi.length},{id:"senaryolar",label:"SENARYOLARIM",count:senaryolar.length}].map(t=>(
+        {[{id:"gonderiler",label:"KAYDETTİKLERİM",count:gonderi.length},{id:"senaryolar",label:"SENARYOLARIM",count:senaryolar.length}].map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
             style={{flex:1,padding:"13px 8px",background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?G.blue:"transparent"}`,color:tab===t.id?G.blue:G.textDim,fontSize:11,fontWeight:800,cursor:"pointer",marginBottom:-1,letterSpacing:"0.1em",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
             {t.label}
@@ -268,15 +242,15 @@ export default function Kaydedilenler(){
               <p style={{fontSize:13,color:G.textMuted}}>Henüz kaydedilen gönderi yok.</p>
             </div>
           ):gonderi.map((k,i)=>{
-            var g = k.senaryo || k.gonderiler;
+            var g = k.senaryolar || k.gonderiler;
             var turRenk = TURLER_RENK[g.tur] || G.blue;
             return(
-              <a key={k.id} href={`/senaryo/${g.id || k.senaryo_id}`} style={{display:"block",borderBottom:`1px solid ${G.border}`,padding:"16px 20px",animation:`fadeUp 0.2s ${i*0.04}s both ease`,position:"relative"}}
+              <div key={k.id} style={{borderBottom:`1px solid ${G.border}`,padding:"16px 20px",animation:`fadeUp 0.2s ${i*0.04}s both ease`,position:"relative"}}
                 onMouseEnter={e=>e.currentTarget.style.background=`${G.blue}03`}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <div style={{position:"absolute",left:0,top:"10%",bottom:"10%",width:2,background:turRenk,opacity:0.4,borderRadius:1}}/>
                 <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10}}>
-                  <a href={g.profiles?.username?`/@${g.profiles.username}`:"#"} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+                  <a href={`/@${g.profiles?.username}`} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
                     <div style={{width:34,height:34,borderRadius:"50%",background:G.surface,border:`1px solid ${G.border}`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       {g.profiles?.avatar_url?<img src={g.profiles.avatar_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={14} color={G.textDim}/>}
                     </div>
@@ -285,20 +259,20 @@ export default function Kaydedilenler(){
                       <p style={{fontSize:10,color:G.textDim}}>{zaman(k.created_at)}</p>
                     </div>
                   </a>
-                  <button onClick={()=>kaydettenCikar(k.senaryo_id || g.id)}
+                  <button onClick={()=>kaydettenCikar(k.senaryo_id || k.gonderi_id)}
                     style={{padding:"5px 10px",borderRadius:8,background:`${G.red}08`,border:`1px solid ${G.red}20`,color:G.red,fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                     <Icon id="trash" size={10} color={G.red}/>Kaldır
                   </button>
                 </div>
                 {g.baslik&&<p style={{fontSize:14,fontWeight:700,color:G.text,marginBottom:4}}>{g.baslik}</p>}
-                {(g.metin || g.ana_fikir)&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.65}}>{g.metin || g.ana_fikir}</p>}
-                {(g.fotograf_url || g.kapak_url || g.medya_url)&&<img src={g.fotograf_url || g.kapak_url || g.medya_url} style={{width:"100%",borderRadius:12,marginTop:8,maxHeight:280,objectFit:"cover",border:`1px solid ${G.border}`}} alt=""/>}
+                {g.metin&&<p style={{fontSize:13,color:G.textMuted,lineHeight:1.65}}>{g.metin}</p>}
+                {g.fotograf_url&&<img src={g.fotograf_url} style={{width:"100%",borderRadius:12,marginTop:8,maxHeight:280,objectFit:"cover",border:`1px solid ${G.border}`}} alt=""/>}
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10}}>
                   <Icon id="heart" size={11} color={G.red}/>
                   <span style={{fontSize:11,color:G.textDim}}>{g.begeni_sayisi||0}</span>
                   <a href={`/senaryo/${g.id}`} style={{marginLeft:"auto",fontSize:11,color:G.blue,fontWeight:600}}>Görüntüle →</a>
                 </div>
-              </a>
+              </div>
             );
           })
         )}
