@@ -97,7 +97,7 @@ function SimpleDrawer({user,username,avatarUrl,onClose}){
           );
         })}
         <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${G.border}`}}>
-          {user&&<button onClick={async()=>{try{await supabase.auth.signOut();}finally{onClose();window.location.href="/";}}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",borderRadius:10,color:G.red,background:`${G.red}08`,border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:700,cursor:"pointer"}}><Icon id="logout" size={16} color={G.red}/><span>Çıkış Yap</span></button>}
+          {user&&<button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("[bildirimler] çıkış hatası:", e?.message||e);}finally{onClose();window.location.replace("/");}}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",borderRadius:10,color:G.red,background:`${G.red}08`,border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:700,cursor:"pointer"}}><Icon id="logout" size={16} color={G.red}/><span>Çıkış Yap</span></button>}
         </div>
       </nav>
     </div>
