@@ -168,6 +168,7 @@ export default function Mesajlar(){
   var [drawer,setDrawer]=useState(false);
   var mesajSonuRef=useRef(null);
   var dosyaRef=useRef(null);
+  var restoreSkipRef=useRef(false);
 
   async function cikisYap() {
     try {
@@ -192,14 +193,25 @@ export default function Mesajlar(){
     } catch (_) {}
   }
 
-  function sohbetTemizle() {
-    setAktif(null);
-    setMesajlar([]);
+  async function sohbetTemizle() {
+    restoreSkipRef.current = true;
     try {
       localStorage.removeItem("scriptify_last_chat");
     } catch (_) {}
-    if (router.isReady) {
-      router.replace("/mesajlar", undefined, { shallow: true });
+
+    try {
+      if (router.isReady) {
+        await router.replace("/mesajlar", undefined, { shallow: true, scroll: false });
+      }
+    } catch (err) {
+      console.error("[mesajlar] sohbet temizleme route hatası:", err?.message || err);
+    } finally {
+      setAktif(null);
+      setMesajlar([]);
+      setYeniSohbet(false);
+      setTimeout(() => {
+        restoreSkipRef.current = false;
+      }, 250);
     }
   }
 
@@ -212,10 +224,18 @@ export default function Mesajlar(){
   },[authHazir, user]);
 
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (!router.query.chat && !router.query.dm) {
+      restoreSkipRef.current = false;
+    }
+  }, [router.isReady, router.query.chat, router.query.dm]);
+
   // Query veya localStorage üzerinden son aktif sohbeti geri yükle
   useEffect(() => {
     if (!authHazir || !user || !router.isReady) return;
     if (aktif) return;
+    if (restoreSkipRef.current) return;
 
     let cancelled = false;
 
@@ -273,7 +293,7 @@ export default function Mesajlar(){
 
           const existing = konusmalar.find((k) => String(k.id) === String(parsed.id));
           if (existing && !cancelled) {
-            await sohbetAc(existing, { persist: false });
+            await sohbetAc(existing, { persist: true });
           }
         }
       } catch (err) {
@@ -359,7 +379,15 @@ export default function Mesajlar(){
     if(persist){
       sohbetKaydet(k);
       if (router.isReady) {
-        router.replace({ pathname: "/mesajlar", query: { chat: k.id } }, undefined, { shallow: true });
+        try {
+          await router.replace(
+            { pathname: "/mesajlar", query: { chat: k.id } },
+            undefined,
+            { shallow: true, scroll: false }
+          );
+        } catch (err) {
+          console.error("[mesajlar] chat query yazılamadı:", err?.message || err);
+        }
       }
     }
     try{var kayitliNot=localStorage.getItem("sf_not_"+k.id);setNotMetin(kayitliNot||"");}catch(e){setNotMetin("");}
