@@ -148,7 +148,7 @@ function FilmCard({g,onBegen,onKaydet,user}){
   var accent=TURLER_RENK[g.tur]||G.blue;
   return(
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      onClick={()=>window.location.href=`/senaryo/${g.id}`}
+      onClick={()=>window.location.href=`/senaryo/${g.senaryo_id || g.id}`}
       style={{position:"relative",marginBottom:10,cursor:"pointer",animation:"fadeUp 0.3s ease both"}}>
       <div style={{
         background:`linear-gradient(160deg,${G.deep},${G.card})`,
@@ -180,11 +180,11 @@ function FilmCard({g,onBegen,onKaydet,user}){
           {g.ana_fikir&&<p style={{fontSize:12,color:G.textMuted,lineHeight:1.6,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{g.ana_fikir}</p>}
           {/* Aksiyonlar */}
           <div style={{display:"flex",alignItems:"center",gap:4,borderTop:`1px solid ${G.border}`,paddingTop:8}} onClick={e=>e.stopPropagation()}>
-            <button onClick={()=>{if(!user)return;var n=!liked;setLiked(n);setLc(c=>n?c+1:c-1);onBegen&&onBegen(g.id,n);}}
+            <button onClick={()=>{if(!user)return;var n=!liked;setLiked(n);setLc(c=>n?c+1:c-1);onBegen&&onBegen(g.senaryo_id || g.id,n);}}
               style={{display:"flex",alignItems:"center",gap:4,padding:"5px 10px",borderRadius:8,background:liked?`${G.red}15`:"transparent",border:`1px solid ${liked?G.red+"30":"transparent"}`,color:liked?G.red:G.textMuted,fontSize:11,transition:"all 0.2s",cursor:"pointer"}}>
               <Icon id="heart" size={12} color={liked?G.red:G.textMuted}/>{lc>0&&lc}
             </button>
-            <button onClick={()=>{if(!user)return;var n=!saved;setSaved(n);onKaydet&&onKaydet(g.id,n);}}
+            <button onClick={()=>{if(!user)return;var n=!saved;setSaved(n);onKaydet&&onKaydet(g.senaryo_id || g.id,n);}}
               style={{display:"flex",alignItems:"center",gap:4,padding:"5px 10px",borderRadius:8,background:saved?`${G.blue}12`:"transparent",border:`1px solid ${saved?G.blue+"25":"transparent"}`,color:saved?G.blue:G.textMuted,fontSize:11,transition:"all 0.2s",cursor:"pointer"}}>
               <Icon id="bookmark" size={12} color={saved?G.blue:G.textMuted}/>
             </button>
@@ -263,6 +263,26 @@ export default function Kesfet(){
       if (pErr) console.error("[kesfet] kisiler yüklenemedi:", pErr.message);
       if (hErr) console.error("[kesfet] hashtagler yüklenemedi:", hErr.message);
 
+      if (g && user) {
+        try {
+          var hedefIds = Array.from(new Set(g.map(function(item){ return item.senaryo_id || item.id; }).filter(Boolean)));
+          var [{ data: likedRows }, { data: savedRows }] = await Promise.all([
+            supabase.from("begeniler").select("senaryo_id,gonderi_id").eq("user_id", user.id).in("senaryo_id", hedefIds),
+            supabase.from("kaydedilenler").select("senaryo_id,gonderi_id").eq("user_id", user.id).in("senaryo_id", hedefIds),
+          ]);
+
+          var likedSet = new Set((likedRows || []).map(function(r){ return r.senaryo_id || r.gonderi_id; }).filter(Boolean));
+          var savedSet = new Set((savedRows || []).map(function(r){ return r.senaryo_id || r.gonderi_id; }).filter(Boolean));
+
+          g = g.map(function(item){
+            var hedefId = item.senaryo_id || item.id;
+            return { ...item, _liked: likedSet.has(hedefId), _saved: savedSet.has(hedefId) };
+          });
+        } catch (flagErr) {
+          console.error("[kesfet] liked/saved işaretleme hatası:", flagErr?.message || flagErr);
+        }
+      }
+
       if (aktif && g) setGonderiler(g);
       if (aktif && p) setKisiler(p);
       if (aktif && h) setHashtagler(h);
@@ -275,13 +295,13 @@ export default function Kesfet(){
 
   async function handleBegen(id,liked){
     if(!user)return;
-    if(liked)await supabase.from("begeniler").insert([{gonderi_id:id,user_id:user.id}]);
-    else await supabase.from("begeniler").delete().eq("gonderi_id",id).eq("user_id",user.id);
+    if(liked)await supabase.from("begeniler").insert([{senaryo_id:id,user_id:user.id}]);
+    else await supabase.from("begeniler").delete().eq("senaryo_id",id).eq("user_id",user.id);
   }
   async function handleKaydet(id,saved){
     if(!user)return;
-    if(saved)await supabase.from("kaydedilenler").insert([{gonderi_id:id,user_id:user.id}]);
-    else await supabase.from("kaydedilenler").delete().eq("gonderi_id",id).eq("user_id",user.id);
+    if(saved)await supabase.from("kaydedilenler").insert([{senaryo_id:id,user_id:user.id}]);
+    else await supabase.from("kaydedilenler").delete().eq("senaryo_id",id).eq("user_id",user.id);
   }
 
   var filtreliGonderiler=gonderiler.filter(g=>{

@@ -314,7 +314,7 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
             <button onClick={e=>{e.stopPropagation();setShowYorum(!showYorum);}} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:10,background:"transparent",border:"1px solid transparent",color:G.textMuted,fontSize:12}}>
               <Icon id="comment" size={14} color={G.textMuted}/>{gonderi.yorum_sayisi>0&&gonderi.yorum_sayisi}
             </button>
-            <button onClick={e=>{e.stopPropagation();setSaved(!saved);onKaydet&&onKaydet(gonderi.id,!saved);}} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:10,background:saved?`${G.blue}12`:"transparent",border:`1px solid ${saved?G.blue+"30":"transparent"}`,color:saved?G.blue:G.textMuted,fontSize:12,transition:"all 0.2s",boxShadow:saved?G.glowBlue:"none"}}>
+            <button onClick={e=>{e.stopPropagation();var hedefId=gonderi.senaryo_id || gonderi.id;setSaved(!saved);onKaydet&&onKaydet(hedefId,!saved);}} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:10,background:saved?`${G.blue}12`:"transparent",border:`1px solid ${saved?G.blue+"30":"transparent"}`,color:saved?G.blue:G.textMuted,fontSize:12,transition:"all 0.2s",boxShadow:saved?G.glowBlue:"none"}}>
               <Icon id="bookmark" size={14} color={saved?G.blue:G.textMuted}/>
             </button>
             <div style={{flex:1}}/>
@@ -592,6 +592,28 @@ export default function Index(){
         }
 
         data = res.data || [];
+      }
+
+
+      if (user && data.length > 0) {
+        try {
+          var hedefIds = Array.from(new Set(data.map(function(item){ return item.senaryo_id || item.id; }).filter(Boolean)));
+
+          var [{ data: likedRows }, { data: savedRows }] = await Promise.all([
+            supabase.from("begeniler").select("senaryo_id,gonderi_id").eq("user_id", user.id).in("senaryo_id", hedefIds),
+            supabase.from("kaydedilenler").select("senaryo_id,gonderi_id").eq("user_id", user.id).in("senaryo_id", hedefIds)
+          ]);
+
+          var likedSet = new Set((likedRows || []).map(function(r){ return r.senaryo_id || r.gonderi_id; }).filter(Boolean));
+          var savedSet = new Set((savedRows || []).map(function(r){ return r.senaryo_id || r.gonderi_id; }).filter(Boolean));
+
+          data = data.map(function(item){
+            var hedefId = item.senaryo_id || item.id;
+            return { ...item, _liked: likedSet.has(hedefId), _saved: savedSet.has(hedefId) };
+          });
+        } catch (flagErr) {
+          console.error("[index] liked/saved işaretleme hatası:", flagErr?.message || flagErr);
+        }
       }
 
       if (hedefSekme === "takip") {

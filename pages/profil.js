@@ -413,7 +413,7 @@ export default function Profil(){
         return;
       }
 
-      var ids = Array.from(new Set((kayitlar || []).map(function(k){ return k.senaryo_id || k.gonderi_id; }).filter(Boolean)));
+      var ids = Array.from(new Set((kayitlar || []).map(function(k){ return k.senaryo_id; }).filter(Boolean)));
       if(ids.length === 0){
         setKaydedilenler([]);
         return;
@@ -430,7 +430,13 @@ export default function Profil(){
         return;
       }
 
-      setKaydedilenler(savedSenaryolar || []);
+      var mapById = (savedSenaryolar || []).reduce(function(acc, item){
+        acc[item.id] = item;
+        return acc;
+      }, {});
+      var sirali = ids.map(function(id){ return mapById[id]; }).filter(Boolean);
+
+      setKaydedilenler(sirali);
     }catch(err){
       console.error("[profil] loadKaydedilenler beklenmeyen hata:", err);
       setKaydedilenler([]);
