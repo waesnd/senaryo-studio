@@ -131,9 +131,16 @@ function normalizeGroqResponse(parsed) {
 }
 
 function createSupabaseServerClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Supabase server env değişkenleri eksik.");
+  }
+
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    supabaseUrl,
+    serviceRoleKey
   );
 }
 
@@ -222,6 +229,12 @@ async function handler(req, res) {
     res.setHeader("X-Uretim-Limit", String(usageInfo.limit));
   } catch (usageError) {
     console.error("[generate] kullanim_log hatası:", usageError);
+    return sendError(
+      res,
+      500,
+      "Kullanım limiti doğrulanamadı. Lütfen daha sonra tekrar deneyin.",
+      "USAGE_CHECK_FAILED"
+    );
   }
 
   const prompt = buildPrompt({
