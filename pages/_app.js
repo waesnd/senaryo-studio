@@ -23,11 +23,21 @@ export const MIDNIGHT = {
 
 export default function App({ Component, pageProps }){
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        regs.forEach((reg) => reg.unregister());
-      }).catch(() => {});
+    if (!("serviceWorker" in navigator)) return;
+
+    const isDev = process.env.NODE_ENV !== "production";
+
+    if (isDev) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) => {
+          regs.forEach((reg) => reg.unregister());
+        })
+        .catch(() => {});
+      return;
     }
+
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
 
   return(

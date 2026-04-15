@@ -85,6 +85,7 @@ npm run dev
 # Supabase — Settings > API
 NEXT_PUBLIC_SUPABASE_URL=https://PROJE_ID.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Groq — console.groq.com > API Keys
 GROQ_API_KEY=gsk_...
@@ -96,6 +97,8 @@ CLOUDINARY_API_SECRET=your_api_secret
 ```
 
 > ⚠️ `GROQ_API_KEY`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` değerleri sunucu tarafında kalır, **asla `NEXT_PUBLIC_` prefixi ekleme.**
+>
+> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` sadece server-side API route'larında kullanılmalıdır, client bundle'a asla eklenmemelidir.
 
 ## Proje Yapısı
 
