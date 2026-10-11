@@ -1,7 +1,6 @@
 # Environment variables
-.env.local
-.env
-.env*.local
+.env*
+!.env.example
 
 # Dependencies
 node_modules/
@@ -26,3 +25,10 @@ yarn-error.log*
 
 # Vercel
 .vercel
+
+# Local verification and evaluation outputs
+playwright-report/
+test-results/
+.artifacts/
+backups/
+*.dump

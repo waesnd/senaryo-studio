@@ -1,185 +1,54 @@
-# Scriptify — AI Senaryo Platformu
+# Senaryo Studio
 
-AI destekli senaryo üretici ve sosyal platform. Türk yazarlar için geliştirilmiş, Groq LLM altyapısıyla çalışan bir "Wattpad + Final Draft + AI" deneyimi.
+Türkçe senaryo yazma, düzenleme ve paylaşma platformu. Yapay zekâ bir öneri üretir; yazar öneriyi inceleyip kabul eder. Sahne, aksiyon ve diyaloglar düzenlenebilir bir belge olarak saklanır.
 
-## Özellikler
+- Hesaba bağlı yerel taslak, kurtarma geçmişi ve revizyon kontrollü bulut kaydı
+- Sürüm oluşturma/geri yükleme, kalıcı yayınlama ve sahneye bağlı geri bildirim
+- Senaryo, sahne, karakter, diyalog, dramaturji, beat sheet, logline, pitch ve yapı araçları
+- TXT, Fountain, FDX ve Türkçe fontları gömülü PDF dışa aktarımı
+- Keşfet, arama, takip, beğeni, koleksiyon, bildirim ve özel mesajlar
+- Atomik yapay zekâ kotası, PostgreSQL RLS ve imzalı özel medya
+- Responsive açık/koyu tema, klavye erişimi ve bağlantı kesildiğinde yerel çalışma
 
-- **AI Senaryo Üretimi** — Tür ve format seçerek saniyeler içinde profesyonel senaryo
-- **Beat Sheet** — Save the Cat yöntemiyle 15 adımlı sahne planı
-- **Karakter Dosyası** — Psikolojik derinlikte karakter profilleri
-- **Dramaturg Analizi** — Farklı perspektiflerden dramatik analiz
-- **Yapımcı Puanı** — Ticari potansiyel ve kalite değerlendirmesi
-- **Logline Üreticisi** — 3 farklı güçlü logline seçeneği
-- **Pitch Deck** — Yapımcı sunumuna hazır 8 bölümlü pitch
-- **Hero's Journey** — Joseph Campbell'ın 12 aşamalı analizi
-- **Diyalog Güçlendirici** — Zayıf diyaloğu sinematik seviyeye taşı
-- **Export** — TXT, FDX (Final Draft) ve PDF formatında indirme
-- **Sosyal Platform** — Paylaş, takip et, beğen, yorum yap
-- **Topluluk & Challenge** — Senaryo challengeları ve liderboard
-- **PWA** — Mobil uyumlu, offline destekli
+## Yerel geliştirme
 
-## Teknoloji
-
-| Katman | Teknoloji |
-|--------|-----------|
-| Frontend | Next.js 14 (Pages Router), React 18 |
-| Auth + DB | Supabase (PostgreSQL + Row Level Security) |
-| AI | Groq API — `llama-3.3-70b-versatile` |
-| Medya | Cloudinary (avatar, banner, gönderi görselleri) |
-| Deploy | Vercel |
-| PWA | Custom Service Worker |
-
-## Kurulum
-
-### Gereksinimler
-
-- Node.js 18+
-- npm 9+
-- Supabase hesabı
-- Groq API hesabı (ücretsiz)
-- Cloudinary hesabı (ücretsiz tier yeterli)
-
-### 1. Repoyu klonla
+Node.js 22 veya 24 ve npm kullanın.
 
 ```bash
-git clone https://github.com/waesnd/senaryo-studio.git
-cd senaryo-studio
-npm install
-```
-
-### 2. Environment değişkenlerini ayarla
-
-```bash
+npm ci
 cp .env.example .env.local
-```
-
-`.env.local` dosyasını aşağıdaki bilgilerle doldur (bkz. [Environment Değişkenleri](#environment-değişkenleri)).
-
-### 3. Supabase'i hazırla
-
-Supabase SQL Editor'ında sırayla çalıştır:
-
-```sql
--- Gerekli kolonlar
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname text;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS takip_sayisi integer DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS banner_url text;
-```
-
-Supabase'de Google OAuth'u etkinleştir:
-- Authentication → Providers → Google → Enable
-
-### 4. Geliştirme sunucusunu başlat
-
-```bash
 npm run dev
 ```
 
-[http://localhost:3000](http://localhost:3000) adresini aç.
+`http://localhost:3000/uret` üzerinden yazmaya başlayabilirsiniz. Supabase değişkenleri boşsa hesap, bulut ve sosyal özellikler açıklayıcı bir durum gösterir; yerel editör çalışır. Yapay zekâ ve medya gerçek servis yapılandırması gerektirir.
 
-## Environment Değişkenleri
+## Altyapı
 
-`.env.local` dosyasında aşağıdaki değişkenler gereklidir:
+Next.js 16 Pages Router, React 19, Supabase/PostgreSQL, Groq, Cloudinary, Zod, jsPDF. Bağımlılıklar ve kilit dosyası sürümlenmiştir. İstemciye yalnızca `NEXT_PUBLIC_` değişkenleri gönderilir; servis anahtarları sunucuda kalır.
 
-```env
-# Supabase — Settings > API
-NEXT_PUBLIC_SUPABASE_URL=https://PROJE_ID.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+Yeni Supabase projesi veya mevcut veritabanı yükseltmesi için [veritabanı rehberini](docs/database-upgrade.md), Vercel ve servis ayarları için [kurulum rehberini](docs/deployment.md) izleyin. Migration, yeni kurulum ile eski belge alanlarının geçişini aynı kaynakta tutar.
 
-# Groq — console.groq.com > API Keys
-GROQ_API_KEY=gsk_...
-
-# Cloudinary — cloudinary.com > Dashboard
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
-
-> ⚠️ `GROQ_API_KEY`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` değerleri sunucu tarafında kalır, **asla `NEXT_PUBLIC_` prefixi ekleme.**
-
-## Proje Yapısı
-
-```
-senaryo-studio/
-├── lib/
-│   ├── supabase.js        # Supabase client
-│   ├── useAuth.js         # Auth context + AuthProvider
-│   └── withAuth.js        # API route auth middleware
-├── pages/
-│   ├── api/               # Backend endpoint'leri
-│   │   ├── generate.js    # Senaryo üretimi
-│   │   ├── beatsheet.js   # Beat sheet
-│   │   ├── karakter.js    # Karakter analizi
-│   │   ├── karakterbible.js
-│   │   ├── dramaturg.js
-│   │   ├── puan.js
-│   │   ├── logline.js
-│   │   ├── pitch.js
-│   │   ├── herosjourney.js
-│   │   ├── diyalog.js
-│   │   └── medya-sil.js   # Cloudinary silme
-│   ├── _app.js            # Global CSS + AuthProvider
-│   ├── _document.js       # HTML head, meta
-│   ├── index.js           # Ana sayfa / Feed
-│   ├── uret.js            # AI üretim stüdyosu
-│   ├── kesfet.js          # Keşfet
-│   ├── profil.js          # Kullanıcı profili
-│   ├── mesajlar.js        # Mesajlaşma
-│   ├── bildirimler.js     # Bildirimler
-│   ├── topluluk.js        # Topluluk & Challenge
-│   ├── arama.js           # Arama
-│   ├── senaryo/[id].js    # Senaryo detay
-│   ├── @username/index.js # Kullanıcı profil sayfası
-│   └── hashtag/[tag].js   # Hashtag sayfası
-└── public/
-    ├── sw.js              # Service Worker
-    ├── manifest.json      # PWA manifest
-    ├── logo.png
-    ├── icon-192.png
-    └── icon-512.png
-```
-
-## Supabase Tabloları
-
-| Tablo | Açıklama |
-|-------|----------|
-| `profiles` | Kullanıcı profilleri (auth.users ile bağlantılı) |
-| `senaryolar` | Üretilen ve kaydedilen senaryolar |
-| `gonderiler` | Sosyal platform paylaşımları |
-| `storyler` | Story (24 saat görünür) |
-| `takipler` | Takip ilişkileri |
-| `begeniler` | Beğeniler |
-| `yorumlar` | Yorumlar |
-| `kaydedilenler` | Kaydedilen gönderiler |
-| `mesajlar` | DM mesajlar |
-| `bildirimler` | Bildirim sistemi |
-| `challengelar` | Topluluk challengeları |
-| `hashtagler` | Hashtag sayaçları |
-| `gonderi_hashtagler` | Gonderi-hashtag ilişkisi |
-| `engellemeler` | Engelleme listesi |
-| `raporlar` | İçerik raporlama |
-| `senaryo_versiyonlar` | Senaryo versiyon geçmişi |
-
-> RLS policy'leri Supabase dashboard'ından ayarlanmalıdır. Her tablo için minimum: authenticated kullanıcılar kendi verilerini okuyup yazabilir.
-
-## Deploy (Vercel)
+## Kontroller
 
 ```bash
-# Vercel CLI ile
-npm i -g vercel
-vercel --prod
+npm run lint
+npm test
+npm run build
+npm run test:e2e
+npm audit --omit=dev --audit-level=high
 ```
 
-Vercel dashboard'ında Environment Variables bölümüne `.env.local` içindeki tüm değişkenleri ekle.
+Tarayıcı testleri servisleri taklit eder ve dış bağlantıları engeller. Gerçek Supabase, Cloudinary veya ücretli AI çağrısı yapmaz. AI'nın yaratıcı niteliği ayrıca insan değerlendirmesi gerektirir; [değerlendirme rehberi](docs/ai-quality.md) ve sentetik örnekler bu amaçla bulunur.
 
-## Güvenlik
+## Kod haritası
 
-- Tüm `/api/*` endpoint'leri `withAuth` middleware ile korunmaktadır
-- API çağrıları rate limiting ile sınırlandırılmıştır (IP başına dakikada 20 istek)
-- Medya silme işlemi owner kontrolü yapılmaktadır
-- Kullanıcı website alanları `http/https` dışındaki şemalar için sanitize edilmektedir
-- Sunucu secret'ları (`GROQ_API_KEY`, `CLOUDINARY_API_SECRET`) asla client'a sızdırılmamaktadır
+| Konum | Sorumluluk |
+| --- | --- |
+| `components/studio`, `pages/uret.js` | Yazarlık alanı ve kayıt durumu |
+| `lib/scenario.js`, `lib/drafts.js` | Belge uyumluluğu ve taslak kurtarma |
+| `lib/server`, `pages/api` | Auth, doğrulama, kota, AI ve medya |
+| `lib/social-client.js`, `pages` | Sosyal akışlar ve özel mesajlar |
+| `supabase/migrations` | Şema, RLS, trigger ve atomik RPC'ler |
+| `tests`, `.github/workflows` | Birim, veritabanı, tarayıcı ve CI kontrolleri |
 
-## Lisans
-
-Bu proje özel bir projedir. Tüm hakları saklıdır.
+Üretime çıkmadan önce staging veritabanında migration ve gerçek OAuth akışı doğrulanmalıdır. Kod değişikliği canlı veritabanını kendiliğinden değiştirmez.

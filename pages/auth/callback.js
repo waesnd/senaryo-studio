@@ -1,40 +1,31 @@
-// pages/auth/callback.js
-import { useEffect } from "react";
-import { useRouter } from "next/router";
-import { supabase } from "../../lib/supabase";
-
-export default function AuthCallback(){
-  var router = useRouter();
-
-  useEffect(()=>{
-    if(!router.isReady) return;
-
-    async function run(){
-      var code = router.query.code;
-
-      if(code){
-        // PKCE flow — code'u session'a çevir
-        var { error } = await supabase.auth.exchangeCodeForSession(String(code));
-        if(!error){
-          router.replace("/");
-        }else{
-          console.error("[callback] hatası:", error.message);
-          router.replace("/");
-        }
-      }else{
-        // Implicit flow — direkt ana sayfaya
-        router.replace("/");
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { getSupabaseClient } from '../../lib/supabase';
+import { Spinner, Alert } from '../../components/ui';
+export default function AuthCallback() {
+  const router = useRouter();
+  const started = useRef(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    if (!router.isReady || started.current) return;
+    started.current = true;
+    const run = async () => {
+      const sb = getSupabaseClient();
+      if (!sb) throw new Error('Hesap bağlantısı yapılandırılmadı.');
+      if (router.query.error) throw new Error('Giriş tamamlanmadı. Yeniden deneyebilirsin.');
+      if (router.query.code) {
+        const { error: exchangeError } = await sb.auth.exchangeCodeForSession(String(router.query.code));
+        if (exchangeError) throw new Error('Giriş bağlantısı geçersiz veya süresi dolmuş. Yeniden giriş yap.');
       }
-    }
-
-    run();
-  },[router.isReady, router.query.code]);
-
-  return(
-    <div style={{minHeight:"100vh",background:"#0A0F1E",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14}}>
-      <div style={{width:36,height:36,border:"2px solid rgba(56,189,248,0.15)",borderTopColor:"#38BDF8",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-      <p style={{color:"rgba(241,245,249,0.4)",fontSize:13,fontFamily:"DM Sans,sans-serif",letterSpacing:"0.1em"}}>Giriş yapılıyor...</p>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
+      const { data, error: sessionError } = await sb.auth.getSession();
+      if (sessionError || !data.session) throw new Error('Oturum oluşturulamadı. Yeniden giriş yap.');
+      await router.replace('/profil');
+    };
+    void run().catch(err => setError(err.message));
+  }, [router]);
+  return <main className="auth-screen"><div className="auth-card">
+    {error ? <><Alert tone="danger">{error}</Alert><Link className="btn btn-primary" href="/giris">Giriş sayfasına dön</Link></>
+      : <><Spinner /><h1>Çalışma alanın hazırlanıyor</h1><p className="muted">Girişin tamamlanıyor…</p></>}
+  </div></main>;
 }

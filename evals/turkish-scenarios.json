@@ -1,0 +1,322 @@
+[
+  {
+    "id": "quiet-conflict",
+    "input": {
+      "tip": "Film",
+      "tur": "Drama",
+      "ozelIstek": "Tek mekânda, bir anne ile yetişkin kızı arasında söylenemeyen bir özür. Çatışma nesneler ve davranışlarla görünür olsun.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "istanbul-thriller",
+    "input": {
+      "tip": "Film",
+      "tur": "Gerilim",
+      "ozelIstek": "İstanbul'da gece vardiyasında çalışan bir tramvay sürücüsü aynı yolcuyu üç durakta görür. Doğaüstü açıklama kullanmadan gerilim kur.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "comedy-voice",
+    "input": {
+      "tip": "Film",
+      "tur": "Komedi",
+      "ozelIstek": "Bir apartman toplantısında asansör sorununu çözmeye çalışan üç komşu. Her karakterin konuşma tarzı ayrı, mizah durumdan doğsun.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "scifi-budget",
+    "input": {
+      "tip": "Film",
+      "tur": "Bilim Kurgu",
+      "ozelIstek": "Türkiye'de bir araştırma istasyonunda zamanı ölçen cihaz her gün on saniye kaybediyor. İki karakter, iki mekân, çekilebilir bilimkurgu.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "romance-agency",
+    "input": {
+      "tip": "Film",
+      "tur": "Romantik",
+      "ozelIstek": "Birbirini yıllar sonra bulan iki insan farklı hayatlar kurmuş. Karakterlerin seçimlerini saygıyla ele al; tesadüfi mutlu sona yaslanma.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "horror-subtext",
+    "input": {
+      "tip": "Film",
+      "tur": "Korku",
+      "ozelIstek": "Eski bir otelde aynı oda numarası iki farklı kapıda var. Şiddeti betimlemeden mekân ve sesle korku yarat.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "mystery-fair",
+    "input": {
+      "tip": "Film",
+      "tur": "Suç",
+      "ozelIstek": "Küçük kasabanın kayıp anahtar vakası. Çözümün ipuçlarını önceden yerleştir; son anda yeni bilgiyle çözme.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "character-consistency",
+    "input": {
+      "tip": "Film",
+      "tur": "Drama",
+      "ozelIstek": "Prensiplerinden ödün vermeyen bir belediye çalışanı arkadaşının hatasını keşfeder. Motivasyon değişimi nedenli olsun.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "minimal-dialogue",
+    "input": {
+      "tip": "Film",
+      "tur": "Drama",
+      "ozelIstek": "Bir balıkçı teknesinde iki kardeşin hesaplaşması. Diyalog kısa, alt metin güçlü; görsel aksiyonu diyalogdan ayır.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "time-continuity",
+    "input": {
+      "tip": "Film",
+      "tur": "Gerilim",
+      "ozelIstek": "Sabah başlayan bir hikâyede kahraman akşam gelmeden bir mektubu teslim etmeli. Saatler ve yolculuk süreleri tutarlı olsun.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "regional-language",
+    "input": {
+      "tip": "Film",
+      "tur": "Drama",
+      "ozelIstek": "Karadeniz'de bir aile atölyesi kapanmak üzere. Bölgesel yaşam doğal olsun; karikatür şive ve klişe kullanma.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "documentary-ethics",
+    "input": {
+      "tip": "Film",
+      "tur": "Belgesel",
+      "ozelIstek": "Kurgusal bir belgesel ekibi kapatılan bir sinemayı kayda alıyor. Görüşülen kişinin iradesi ve rızası sahnede görünür olsun.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "historical-bounds",
+    "input": {
+      "tip": "Film",
+      "tur": "Tarihi",
+      "ozelIstek": "1920'lerde Anadolu'da kurgusal bir köy öğretmeni. Döneme aykırı teknoloji veya modern kurum dili kullanma.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "action-readable",
+    "input": {
+      "tip": "Film",
+      "tur": "Aksiyon",
+      "ozelIstek": "Bir kurye kalabalık pazarda paketini korumaya çalışıyor. Mekânsal yönler net, aksiyon çekilebilir olsun.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "fantasy-rules",
+    "input": {
+      "tip": "Film",
+      "tur": "Fantastik",
+      "ozelIstek": "Bir köyde yalnız hatırlanan nesneler görünür oluyor. Kural tutarlı; çözüm sonradan icat edilen büyüye dayanmasın.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "animation-age",
+    "input": {
+      "tip": "Film",
+      "tur": "Animasyon",
+      "ozelIstek": "İki kurgusal hayvan karakterin kaybolan gölgeyi araması. Çocuklara uygun, öğüt yerine eylemle tema.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "open-ending",
+    "input": {
+      "tip": "Film",
+      "tur": "Drama",
+      "ozelIstek": "Bir radyo sunucusu kendisine yazılmış eski bir mesaj bulur. Açık final kullan; temel çatışma yine de gelişsin.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "multi-perspective",
+    "input": {
+      "tip": "Film",
+      "tur": "Drama",
+      "ozelIstek": "Aynı olayı farklı hatırlayan iki arkadaş. Bakış açısını diyalog ve davranışla ayır; sebepsiz çelişki üretme.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "dialogue-restraint",
+    "input": {
+      "tip": "Film",
+      "tur": "Drama",
+      "ozelIstek": "Hastane bekleme odasında tanışan iki yabancı. Açıklayıcı uzun monologlar yerine kısa, doğal diyalog.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  },
+  {
+    "id": "specific-brief",
+    "input": {
+      "tip": "Film",
+      "tur": "Gerilim",
+      "ozelIstek": "Bursa'da bir tamir atölyesi. Ece ve Murat kurgusal kardeşler; yağmur, bozuk saat ve geri verilmeyen bir anahtar olayda işlev görsün.",
+      "sahneSayisi": 2,
+      "karakterSayisi": 2
+    },
+    "review": [
+      "Türkçe doğallık",
+      "Motivasyon ve çatışma",
+      "Sahne/diyalog yapısı",
+      "Brief'e uyum"
+    ]
+  }
+]
