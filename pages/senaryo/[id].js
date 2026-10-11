@@ -1,728 +1,173 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "../../lib/supabase";
+import AppShell from "../../components/AppShell";
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Field, Input, Select, Spinner, Textarea } from "../../components/ui";
+import styles from "../../components/studio/Studio.module.css";
 import { useAuth } from "../../lib/useAuth";
+import { getSupabaseClient } from "../../lib/supabase";
+import { compareScenarioDocuments, normalizeScenario, normalizeVersion, scenarioText, scenarioWordCount } from "../../lib/scenario";
+import { studioRpc } from "../../lib/scenario-client";
+import { downloadScenario } from "../../lib/exports";
+import { getDraftStorage, readDraft, removeDraft } from "../../lib/drafts";
 
-var G = {
-  black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
-  border:"rgba(56,189,248,0.12)", borderHov:"rgba(56,189,248,0.4)",
-  blue:"#38BDF8", blueL:"#7DD3FC", blueD:"#0EA5E9",
-  blueGrad:"linear-gradient(135deg,#0EA5E9 0%,#38BDF8 40%,#7DD3FC 70%,#0EA5E9 100%)",
-  purple:"#8B5CF6", purpleL:"#A78BFA",
-  purpleGrad:"linear-gradient(135deg,#7C3AED 0%,#8B5CF6 50%,#A78BFA 100%)",
-  red:"#EF4444", redL:"#F87171",
-  green:"#22C55E",
-  amber:"#F59E0B",
-  text:"#F1F5F9", textMuted:"rgba(241,245,249,0.5)", textDim:"rgba(241,245,249,0.25)",
-  shadow:"0 8px 40px rgba(0,0,0,0.7)",
-  glowBlue:"0 0 24px rgba(56,189,248,0.25)",
-  glowPurple:"0 0 24px rgba(139,92,246,0.25)",
-  glowRed:"0 0 16px rgba(239,68,68,0.3)",
-  glowGreen:"0 0 12px rgba(34,197,94,0.3)",
-  fontDisp:"'Bebas Neue','Arial Narrow',sans-serif",
-  fontBody:"'DM Sans',system-ui,sans-serif",
-};
+const FEEDBACK = { general: "Genel", pace: "Tempo", dialogue: "Diyalog", character: "Karakter", structure: "Yapı", continuity: "Tutarlılık" };
+const PROFILE_COLUMNS = "id,username,nickname,avatar_url";
+function date(value) { return value ? new Date(value).toLocaleString("tr-TR", { day: "numeric", month: "short", year: "numeric" }) : ""; }
 
-var TURLER_RENK={
-  "Gerilim":G.red,"Drama":G.blue,"Komedi":"#FBBF24","Aksiyon":G.red,
-  "Korku":G.purple,"Romantik":"#F472B6","Bilim Kurgu":G.blueL,
-  "Fantastik":G.purpleL,"Suç":"#94A3B8","Tarihi":"#D97706",
-};
+export default function ScenarioDetail() {
+  const router = useRouter();
+  const { user, authHazir, configured } = useAuth();
+  const userId = user?.id;
+  const id = /^\d+$/.test(String(router.query.id || "")) ? String(router.query.id) : null;
+  const contextKey = `${id}:${user?.id || "guest"}`;
+  const identity = useRef(contextKey); identity.current = contextKey;
+  const [loadedKey, setLoadedKey] = useState(null);
+  const [row, setRow] = useState(null);
+  const [author, setAuthor] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [notice, setNotice] = useState(null);
+  const [operation, setOperation] = useState(null);
+  const [liked, setLiked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentError, setCommentError] = useState("");
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [feedbackType, setFeedbackType] = useState("general");
+  const [sceneId, setSceneId] = useState("");
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versions, setVersions] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionLabel, setVersionLabel] = useState("");
+  const [selectedVersion, setSelectedVersion] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [sourceChallenge, setSourceChallenge] = useState(null);
+  const owner = Boolean(user && row?.user_id === user.id);
+  const document = normalizeScenario(row || {});
+  const available = Boolean(configured && id && authHazir);
 
-function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
-  var p={width:size,height:size,fill:"none",stroke:color,strokeWidth,viewBox:"0 0 24 24"};
-  if(id==="home")return<svg {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>;
-  if(id==="compass")return<svg {...p}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>;
-  if(id==="users")return<svg {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>;
-  if(id==="chat")return<svg {...p}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>;
-  if(id==="user")return<svg {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-  if(id==="arrow-left")return<svg {...p}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;
-  if(id==="more")return<svg {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>;
-  if(id==="heart-fill")return<svg {...p} fill={color} stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>;
-  if(id==="heart")return<svg {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>;
-  if(id==="bookmark")return<svg {...p}><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>;
-  if(id==="bookmark-fill")return<svg {...p} fill={color} stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>;
-  if(id==="target")return<svg {...p}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
-  if(id==="share")return<svg {...p}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>;
-  if(id==="clock")return<svg {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-  if(id==="eye")return<svg {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-  if(id==="film")return<svg {...p}><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/></svg>;
-  if(id==="layers")return<svg {...p}><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 12l10 5 10-5"/><path d="M2 17l10 5 10-5"/></svg>;
-  if(id==="copy")return<svg {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
-  if(id==="check")return<svg {...p}><polyline points="20 6 9 17 4 12"/></svg>;
-  if(id==="logout")return<svg {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
-  if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-  if(id==="send")return<svg {...p}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
-  if(id==="flag")return<svg {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>;
-  if(id==="trash")return<svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>;
-  if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-  if(id==="save")return<svg {...p}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
-  if(id==="layers")return<svg {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>;
-  if(id==="copy")return<svg {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>;
-  if(id==="check")return<svg {...p}><polyline points="20 6 9 17 4 12"/></svg>;
-  return null;
-}
+  const loadComments = useCallback(async (after = null) => {
+    const requestKey = contextKey;
+    setCommentsLoading(true); setCommentError("");
+    try {
+      const client = getSupabaseClient();
+      if (!client) throw new Error("Topluluk bağlantısı yapılandırılmadı.");
+      let query = client.from("yorumlar").select("id,user_id,senaryo_id,metin,scene_id,feedback_type,created_at").eq("senaryo_id", id).order("id", { ascending: true }).limit(30);
+      if (after) query = query.gt("id", after);
+      const { data, error } = await query;
+      if (error) throw new Error("Geri bildirimler yüklenemedi. Yeniden deneyin.");
+      const ids = [...new Set(data.map(comment => comment.user_id))];
+      const profiles = ids.length ? await client.from("profiles").select(PROFILE_COLUMNS).in("id", ids) : { data: [] };
+      if (identity.current !== requestKey) return;
+      const authors = new Map((profiles.data || []).map(profile => [profile.id, profile]));
+      const mapped = data.map(comment => ({ ...comment, author: authors.get(comment.user_id) }));
+      setComments(previous => after ? [...previous, ...mapped.filter(comment => !previous.some(item => item.id === comment.id))] : mapped);
+      setHasMore(data.length === 30);
+    } catch (error) { if (identity.current === requestKey) setCommentError(error.message); }
+    finally { if (identity.current === requestKey) setCommentsLoading(false); }
+  }, [contextKey, id]);
 
-function NeonCorners({color=G.blue,size=12,thickness=1.5}){
-  var s={position:"absolute",width:size,height:size};
-  var l={background:color,position:"absolute",boxShadow:`0 0 6px ${color}90`};
-  return(<>
-    <div style={{...s,top:0,left:0}}><div style={{...l,top:0,left:0,width:thickness,height:size}}/><div style={{...l,top:0,left:0,width:size,height:thickness}}/></div>
-    <div style={{...s,top:0,right:0}}><div style={{...l,top:0,right:0,width:thickness,height:size}}/><div style={{...l,top:0,right:0,width:size,height:thickness}}/></div>
-    <div style={{...s,bottom:0,left:0}}><div style={{...l,bottom:0,left:0,width:thickness,height:size}}/><div style={{...l,bottom:0,left:0,width:size,height:thickness}}/></div>
-    <div style={{...s,bottom:0,right:0}}><div style={{...l,bottom:0,right:0,width:thickness,height:size}}/><div style={{...l,bottom:0,right:0,width:size,height:thickness}}/></div>
-  </>);
-}
+  const load = useCallback(async () => {
+    if (!available) return;
+    const requestKey = contextKey;
+    setLoadedKey(null); setLoadError(""); setNotice(null); setRow(null); setAuthor(null); setComments([]); setLiked(false); setBookmarked(false); setCommentText(""); setVersionsOpen(false); setSelectedVersion(null); setReportOpen(false); setDeleteOpen(false); setOperation(null); setSourceChallenge(null);
+    try {
+      const client = getSupabaseClient();
+      const { data, error } = await client.from("senaryolar").select("*").eq("id", id).maybeSingle();
+      if (identity.current !== requestKey) return;
+      if (error) throw new Error("Eser yüklenemedi. Bağlantınızı kontrol edip yeniden deneyin.");
+      if (!data) throw new Error("Eser bulunamadı, yayından kaldırılmış veya erişiminiz yok.");
+      setRow(data);
+      const tasks = [client.from("profiles").select(PROFILE_COLUMNS).eq("id", data.user_id).maybeSingle(),
+        userId ? client.from("begeniler").select("id").eq("user_id", userId).eq("senaryo_id", id).maybeSingle() : Promise.resolve({ data: null }),
+        userId ? client.from("kaydedilenler").select("id").eq("user_id", userId).eq("senaryo_id", id).maybeSingle() : Promise.resolve({ data: null })];
+      const results = await Promise.all(tasks);
+      if (identity.current !== requestKey) return;
+      setAuthor(results[0].data || null); setLiked(Boolean(results[1].data)); setBookmarked(Boolean(results[2].data));
+      if (results[1].error || results[2].error) setNotice({ tone: "warning", text: "Beğeni veya kaydetme durumunuz doğrulanamadı. İşlem yapmadan önce sayfayı yenileyin." });
+      const participation = await client.from("challenge_katilimlar").select("challenge_id,status,score,feedback").eq("senaryo_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (identity.current !== requestKey) return;
+      const challengeId = participation.data?.challenge_id || data.document?.metadata?.challengeId;
+      if (challengeId && /^\d+$/.test(String(challengeId))) {
+        const challengeResult = await client.from("challengelar").select("id,konu,deadline").eq("id", challengeId).maybeSingle();
+        if (identity.current === requestKey) setSourceChallenge(challengeResult.data ? { ...challengeResult.data, entry: participation.data || null } : null);
+      }
+      if (identity.current !== requestKey) return;
+      setLoadedKey(requestKey); loadComments();
+    } catch (error) { if (identity.current === requestKey) { setLoadError(error.message); setLoadedKey(requestKey); } }
+  }, [available, contextKey, id, userId, loadComments]);
 
-function Av({url,size}){
-  return(
-    <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${G.deep},${G.surface})`,border:`1.5px solid rgba(56,189,248,0.25)`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-      {url?<img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={size*0.4} color="rgba(56,189,248,0.35)"/>}
-    </div>
-  );
-}
+  useEffect(() => { load(); }, [load]);
 
+  async function perform(name, action) {
+    if (operation) return;
+    const requestKey = contextKey;
+    setOperation(name); setNotice(null);
+    try { await action(requestKey); }
+    catch (error) { if (identity.current === requestKey) setNotice({ tone: "danger", text: error.message || "İşlem tamamlanamadı. Yeniden deneyin." }); }
+    finally { if (identity.current === requestKey) setOperation(null); }
+  }
+  function requireUser() { if (!user) throw new Error("Bu işlem için giriş yapın."); }
+  function toggleLike() { perform("like", async key => { requireUser(); const result = await studioRpc("toggle_scenario_like", { p_scenario_id: Number(id) }); if (identity.current === key) { setLiked(result.liked); setRow(previous => ({ ...previous, begeni_sayisi: result.count })); } }); }
+  function toggleBookmark() { perform("bookmark", async key => { requireUser(); const result = await studioRpc("toggle_scenario_bookmark", { p_scenario_id: Number(id) }); if (identity.current === key) setBookmarked(result.saved); }); }
+  function changeVisibility() { perform("visibility", async key => { const result = await studioRpc("set_scenario_visibility", { p_scenario_id: Number(id), p_public: !row.paylasim_acik }); if (identity.current === key) { setRow(result); setNotice({ tone: "success", text: result.paylasim_acik ? "Eser toplulukta yayımlandı." : "Eser yayından kaldırıldı." }); } }); }
+  function sendComment(event) {
+    event.preventDefault();
+    if (!commentText.trim()) return;
+    const text = commentText.trim();
+    perform("comment", async key => {
+      requireUser(); const client = getSupabaseClient();
+      const { error } = await client.from("yorumlar").insert({ user_id: user.id, senaryo_id: Number(id), metin: text, scene_id: sceneId || null, feedback_type: feedbackType });
+      if (error) throw new Error("Geri bildiriminiz kaydedilemedi. Yazdığınız metin korundu.");
+      if (identity.current !== key) return;
+      setCommentText(""); setNotice({ tone: "success", text: "Geri bildiriminiz eklendi." }); await loadComments();
+    });
+  }
+  function deleteComment(comment) { perform(`comment-${comment.id}`, async key => { const { error } = await getSupabaseClient().from("yorumlar").delete().eq("id", comment.id).eq("user_id", user.id); if (error) throw new Error("Geri bildirim silinemedi."); if (identity.current === key) setComments(previous => previous.filter(item => item.id !== comment.id)); }); }
+  async function loadVersions() {
+    const key = contextKey;
+    setVersionsOpen(true); setVersionsLoading(true);
+    try {
+      const { data, error } = await getSupabaseClient().from("senaryo_versiyonlar").select("*").eq("senaryo_id", id).order("versiyon", { ascending: false }).limit(50);
+      if (error) throw new Error("Sürüm geçmişi yüklenemedi.");
+      if (identity.current === key) setVersions(data.map(normalizeVersion));
+    } catch (error) { if (identity.current === key) setNotice({ tone: "danger", text: error.message }); }
+    finally { if (identity.current === key) setVersionsLoading(false); }
+  }
+  function snapshot() { perform("version", async key => { await studioRpc("create_scenario_version", { p_scenario_id: Number(id), p_label: versionLabel || "Yazar sürümü" }); if (identity.current === key) { setVersionLabel(""); await loadVersions(); } }); }
+  function restore() { perform("restore", async key => { const restored = await studioRpc("restore_scenario_version", { p_version_id: selectedVersion.id, p_expected_revision: row.revision }); if (identity.current === key) { setRow(restored); setSelectedVersion(null); setNotice({ tone: "success", text: "Sürüm geri yüklendi. Önceki metin otomatik yedek sürümünde korunur." }); await loadVersions(); } }); }
+  function report() { perform("report", async key => { requireUser(); const result = await studioRpc("submit_report", { p_scenario_id: Number(id), p_reason: reportReason }); if (identity.current === key) { setReportOpen(false); setReportReason(""); setNotice({ tone: "success", text: result.alreadyReported ? "Bu eser için raporunuz zaten alındı." : "Raporunuz değerlendirmeye alındı." }); } }); }
+  function remove() { perform("delete", async key => { await studioRpc("delete_scenario", { p_scenario_id: Number(id) }); if (identity.current === key) { const storage = getDraftStorage(); const draft = readDraft(storage, userId); if (String(draft?.row?.id) === id) removeDraft(storage, userId); router.push("/profil"); } }); }
+  const loading = available && loadedKey !== contextKey;
+  const feedbackPreferences = Array.isArray(document.metadata.feedbackPreferences) ? document.metadata.feedbackPreferences : [];
+  const versionComparison = selectedVersion ? compareScenarioDocuments(document, selectedVersion.document) : null;
+  const actions = owner && row && loadedKey === contextKey ? <><Button size="sm" variant="secondary" onClick={loadVersions}>Sürümler</Button><Button size="sm" href={`/uret?id=${row.id}`}>Editörde aç</Button></> : <Button size="sm" variant="secondary" href="/uret">Kendi hikâyeni yaz</Button>;
 
-function SimpleDrawer({user,username,avatarUrl,onClose}){
-  var LINKS=[
-    {href:"/",label:"Ana Sayfa",icon:"home"},
-    {href:"/uret",label:"Senaryo Üret",icon:"film",badge:"AI"},
-    {href:"/kesfet",label:"Keşfet",icon:"compass"},
-    {href:"/topluluk",label:"Topluluk",icon:"users"},
-    {href:"/mesajlar",label:"Mesajlar",icon:"chat"},
-    {href:"/profil",label:"Profil",icon:"user"},
-  ];
-  return(<>
-    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(8px)"}}/>
-    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:280,background:`linear-gradient(180deg,${G.black},${G.deep})`,borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column"}}>
-      <div style={{height:2,background:G.blueGrad,boxShadow:"0 0 20px rgba(56,189,248,0.5)"}}/>
-      <div style={{padding:"18px 18px 14px",borderBottom:`1px solid ${G.border}`}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-          <Av url={avatarUrl} size={44}/>
-          <button onClick={onClose} style={{background:`${G.blue}08`,border:`1px solid ${G.border}`,borderRadius:8,padding:"5px 10px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
-        </div>
-        {user?<p style={{fontSize:14,fontWeight:800,color:G.text}}>@{username}</p>
-          :<a href="/" style={{display:"block",padding:"9px",borderRadius:10,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,textTransform:"uppercase",textAlign:"center",textDecoration:"none"}}>Giriş Yap</a>}
+  return <AppShell title={row && loadedKey === contextKey ? document.title || "Başlıksız eser" : "Senaryo"} subtitle="Hikâyeyi okuyun, yazarın sonraki revizyonuna katkıda bulunun." actions={actions} wide>
+    {notice && <Alert tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Alert>}
+    {!configured ? <EmptyState title="Bulut bağlantısı yapılandırılmadı" description="Yerel stüdyoda yazmaya başlayabilirsiniz." action={<Button href="/uret">Stüdyoyu aç</Button>} /> : !authHazir || loading ? <Card><div className="cluster"><Spinner /><span>Eser yükleniyor…</span></div></Card> : !id || loadError ? <EmptyState title="Eser açılamadı" description={loadError || "Geçerli bir senaryo bağlantısı kullanın."} action={<div className="cluster"><Button variant="secondary" onClick={load}>Yeniden dene</Button><Button href="/kesfet">Keşfet</Button></div>} /> : row && loadedKey === contextKey && <div className={styles.workspace}>
+      <div className={`${styles.main} stack`}>
+        <article className={styles.paper}>
+          <header className={styles.cover}><div className="cluster" style={{ marginBottom: 18 }}><Badge>{document.metadata.tip}</Badge><Badge>{document.metadata.tur}</Badge>{owner && <Badge tone={row.paylasim_acik ? "success" : "neutral"}>{row.paylasim_acik ? "Yayında" : "Özel eser"}</Badge>}</div><h2 style={{ font: "36px/1.2 Georgia,serif", color: "#233a2e", margin: "0 0 18px" }}>{document.title || "Başlıksız eser"}</h2>{document.tagline && <p style={{ font: "italic 16px/1.7 Georgia,serif", color: "#637266" }}>{document.tagline}</p>}<p className={styles.paperLabel}>{author?.username ? <a href={`/@${author.username}`}>@{author.username}</a> : "Yazar"} · {date(row.created_at)} · {scenarioWordCount(document)} kelime</p></header>
+          {document.synopsis && <section className={styles.scene}><h3 className={styles.eyebrow}>HİKÂYE</h3><p className={styles.readScene}>{document.synopsis}</p></section>}
+          {document.characters.length > 0 && <section className={styles.scene}><h3 className={styles.eyebrow}>KARAKTERLER</h3>{document.characters.map(character => <div key={character.id} style={{ marginBottom: 20 }}><h4 className={styles.readHeading}>{character.name}</h4><p className={styles.readScene}>{character.description}</p></div>)}</section>}
+          {document.scenes.map((scene, index) => <section key={scene.id} id={`scene-${scene.id}`} className={styles.scene}><p className={styles.sceneNumber}>SAHNE {String(index + 1).padStart(2, "0")}</p><h3 className={styles.readHeading}>{scene.heading}</h3><p className={styles.readScene}>{scene.action}</p>{scene.dialogue.map(line => <div className={`${styles.readScene} ${styles.readDialogue}`} key={line.id}><p className={styles.readCharacter}>{line.character}</p><p>{line.text}</p></div>)}</section>)}
+          {document.dramaticQuestion && <section className={styles.scene}><h3 className={styles.eyebrow}>DRAMATİK SORU</h3><p className={styles.readScene}>{document.dramaticQuestion}</p></section>}
+        </article>
+        <Card className="stack"><h2 style={{ font: "25px Georgia,serif", margin: 0 }}>Geri bildirim</h2>{feedbackPreferences.length > 0 && <p className="muted small">Yazar özellikle şu alanlarda görüş istiyor: {feedbackPreferences.map(value => FEEDBACK[value] || value).join(", ")}</p>}{user ? <form onSubmit={sendComment} className="stack"><div className="grid grid-2"><Field label="Geri bildirim alanı"><Select value={feedbackType} onChange={event => setFeedbackType(event.target.value)}>{Object.entries(FEEDBACK).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field><Field label="İlgili sahne"><Select value={sceneId} onChange={event => setSceneId(event.target.value)}><option value="">Eserin bütünü</option>{document.scenes.map((scene, index) => <option key={scene.id} value={scene.id}>{index + 1}. {scene.heading}</option>)}</Select></Field></div><Field label="Görüşünüz" hint="Somut örneklerle, saygılı ve uygulanabilir öneriler yazın."><Textarea value={commentText} onChange={event => setCommentText(event.target.value)} rows={4} maxLength={10000} placeholder="Hangi sahne güçlüydü? Nerede tempo veya motivasyon geliştirilebilir?" /></Field><div className="cluster"><Button type="submit" size="sm" loading={operation === "comment"} disabled={!commentText.trim() || !!operation}>Geri bildirim gönder</Button><span className="small muted">{commentText.length}/10000</span></div></form> : <p className="muted">Geri bildirim paylaşmak için <a href="/giris">giriş yapın</a>.</p>}{commentError && <Alert tone="danger">{commentError}<Button size="sm" variant="ghost" onClick={() => loadComments()}>Yeniden dene</Button></Alert>}{commentsLoading && comments.length === 0 ? <Spinner /> : comments.length === 0 && !commentError ? <p className="small muted">İlk yapıcı geri bildirimi siz paylaşın.</p> : comments.map(comment => <article className={styles.comment} key={comment.id}><div className={styles.commentHead}><div className="cluster">{comment.author?.username ? <a href={`/@${comment.author.username}`} className="small">@{comment.author.username}</a> : <span className="small">Yazar</span>}<Badge>{FEEDBACK[comment.feedback_type] || "Genel"}</Badge><span className="small muted">{date(comment.created_at)}</span></div>{comment.user_id === user?.id && <Button size="sm" variant="ghost" disabled={!!operation} onClick={() => deleteComment(comment)}>Sil</Button>}</div>{comment.scene_id && <a className="small muted" href={`#scene-${comment.scene_id}`}>İlgili sahneye git →</a>}<p className={styles.commentBody}>{comment.metin}</p></article>)}{hasMore && <Button variant="secondary" size="sm" loading={commentsLoading} onClick={() => loadComments(comments.at(-1)?.id)}>Daha fazla geri bildirim</Button>}</Card>
       </div>
-      <nav style={{flex:1,overflowY:"auto",padding:"10px"}}>
-        {LINKS.map(item=>{
-          var active=typeof window!=="undefined"&&window.location.pathname===item.href;
-          return(
-            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",borderRadius:10,marginBottom:2,color:active?G.blue:G.textMuted,background:active?`${G.blue}08`:"transparent",fontWeight:active?700:500,fontSize:13,textDecoration:"none"}}>
-              <Icon id={item.icon} size={16} color={active?G.blue:G.textMuted}/>
-              <span style={{flex:1}}>{item.label}</span>
-              {item.badge&&<span style={{fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:20,background:G.purple,color:"#fff"}}>{item.badge}</span>}
-            </a>
-          );
-        })}
-      </nav>
-    </div>
-  </>);
-}
-
-function AltNav(){
-  var items=[{href:"/",id:"home"},{href:"/kesfet",id:"compass"},{href:"/topluluk",id:"users"},{href:"/mesajlar",id:"chat"},{href:"/profil",id:"user"}];
-  return(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderTop:`1px solid ${G.border}`,padding:"8px 0 env(safe-area-inset-bottom,10px)",display:"flex",justifyContent:"space-around",alignItems:"center"}}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}30,transparent)`,pointerEvents:"none"}}/>
-      {items.map(item=>(
-        <a key={item.href} href={item.href} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 16px",borderRadius:12,opacity:0.35}}>
-          <Icon id={item.id} size={22} color="#94A3B8"/>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-function zaman(ts){
-  var d=Math.floor((Date.now()-new Date(ts))/1000);
-  if(d<60)return"az önce";
-  if(d<3600)return Math.floor(d/60)+"dk";
-  if(d<86400)return Math.floor(d/3600)+"sa";
-  return Math.floor(d/86400)+"g";
-}
-
-// İçerik bölüm kartı
-function IcerikKart({label,val,icon,accent}){
-  if(!val)return null;
-  return(
-    <div style={{marginBottom:12,background:`linear-gradient(135deg,${G.surface},${G.card})`,border:`1px solid ${G.border}`,borderRadius:16,overflow:"hidden",position:"relative",transition:"border-color 0.2s"}}
-      onMouseEnter={e=>e.currentTarget.style.borderColor=accent+"40"}
-      onMouseLeave={e=>e.currentTarget.style.borderColor=G.border}>
-      <NeonCorners color={accent} size={8}/>
-      {/* Üst şerit */}
-      <div style={{height:2,background:`linear-gradient(90deg,${accent},transparent)`,opacity:0.6}}/>
-      <div style={{padding:"14px 16px"}}>
-        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
-          <div style={{width:28,height:28,borderRadius:8,background:`${accent}15`,border:`1px solid ${accent}25`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <Icon id={icon} size={13} color={accent}/>
-          </div>
-          <p style={{fontFamily:G.fontDisp,fontSize:12,letterSpacing:"0.12em",color:accent}}>{label.toUpperCase()}</p>
-        </div>
-        <p style={{fontSize:13,color:G.textMuted,lineHeight:1.85,whiteSpace:"pre-wrap"}}>{val}</p>
-      </div>
-    </div>
-  );
-}
-
-export default function SenaryoDetay(){
-  var [drawer,setDrawer]=useState(false);
-  var router=useRouter();
-  var {id}=router.query;
-  var {user, profil, authHazir} = useAuth();
-  var [senaryo,setSenaryo]=useState(null);
-  var [versiyonlar,setVersiyonlar]=useState([]);
-  var [yorumlar,setYorumlar]=useState([]);
-  var [yeniYorum,setYeniYorum]=useState("");
-  var [begendi,setBegendi]=useState(false);
-  var [kaydetti,setKaydetti]=useState(false);
-  var [paylasModal,setPaylasModal]=useState(false);
-  var [versiyonModal,setVersiyonModal]=useState(false);
-  var [raporModal,setRaporModal]=useState(false);
-  var [menu,setMenu]=useState(false);
-  var [yorumGonderiyor,setYorumGonderiyor]=useState(false);
-  var [kopyalandi,setKopyalandi]=useState(false);
-  var [yukleniyor,setYukleniyor]=useState(true);
-  var [hata,setHata]=useState("");
-
-  var benim=user&&senaryo&&user.id===senaryo.user_id;
-  var turRenk=TURLER_RENK[senaryo?.tur]||G.blue;
-
-  useEffect(()=>{
-    if(!authHazir || !id) return;
-    yukle();
-  },[id,user,authHazir]);
-
-  async function yukle(){
-    try{
-      setYukleniyor(true);
-      setHata("");
-
-      var { data:s, error:senaryoError } = await supabase
-        .from("senaryolar")
-        .select("*")
-        .eq("id",id)
-        .single();
-
-      if(senaryoError){
-        throw senaryoError;
-      }
-
-      if(!s){
-        setHata("Senaryo bulunamadı.");
-        return;
-      }
-
-      var owner = null;
-      try{
-        var { data: ownerData } = await supabase
-          .from("profiles")
-          .select("id,username,avatar_url,bio,dogrulandi")
-          .eq("id", s.user_id)
-          .maybeSingle();
-        owner = ownerData || null;
-      }catch(ownerErr){
-        console.error("[senaryo] owner profil yüklenemedi:", ownerErr?.message || ownerErr);
-      }
-
-      setSenaryo({ ...s, profiles: owner });
-
-      try{
-        var viewKey="sf_view_"+id;
-        var lastView=localStorage.getItem(viewKey);
-        var now=Date.now();
-        if(!lastView || now-parseInt(lastView, 10) > 3600000){
-          if(!user || user.id!==s.user_id){
-            await supabase.from("senaryolar").update({goruntuleme_sayisi:(s.goruntuleme_sayisi||0)+1}).eq("id", Number(id));
-            localStorage.setItem(viewKey,String(now));
-            setSenaryo(prev=>prev?({...prev,goruntuleme_sayisi:(prev.goruntuleme_sayisi||0)+1}):prev);
-          }
-        }
-      }catch(e){
-        console.error("[senaryo] görüntüleme sayısı güncellenemedi:", e?.message || e);
-      }
-
-      var sonuclar = await Promise.allSettled([
-        supabase.from("yorumlar").select("*, profiles(username,avatar_url)").eq("senaryo_id", Number(id)).order("created_at",{ascending:true}),
-        supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id", Number(id)).order("versiyon",{ascending:false}),
-        user
-          ? supabase.from("begeniler").select("*").eq("user_id",user.id).eq("senaryo_id", Number(id)).single()
-          : Promise.resolve({ data:null }),
-        user
-          ? supabase.from("kaydedilenler").select("*").eq("user_id",user.id).eq("senaryo_id", Number(id)).single()
-          : Promise.resolve({ data:null }),
-      ]);
-
-      var yorumRes = sonuclar[0].status === "fulfilled" ? sonuclar[0].value : null;
-      var versiyonRes = sonuclar[1].status === "fulfilled" ? sonuclar[1].value : null;
-      var begeniRes = sonuclar[2].status === "fulfilled" ? sonuclar[2].value : null;
-      var kaydetRes = sonuclar[3].status === "fulfilled" ? sonuclar[3].value : null;
-
-      if(yorumRes?.data) setYorumlar(yorumRes.data);
-      else setYorumlar([]);
-
-      if(versiyonRes?.data) setVersiyonlar(versiyonRes.data);
-      else setVersiyonlar([]);
-
-      setBegendi(!!begeniRes?.data);
-      setKaydetti(!!kaydetRes?.data);
-    }catch(e){
-      console.error("[senaryo] yukle hatası:", e?.message || e);
-      setHata("Senaryo yüklenemedi.");
-    }finally{
-      setYukleniyor(false);
-    }
-  }
-
-  async function begeniToggle(){
-    if(!user || !senaryo) return;
-    try{
-      if(begendi){
-        await supabase.from("begeniler").delete().eq("user_id",user.id).eq("senaryo_id", Number(id));
-        await supabase.from("senaryolar").update({begeni_sayisi:Math.max(0,(senaryo.begeni_sayisi||0)-1)}).eq("id", Number(id));
-        setSenaryo(p=>p?({...p,begeni_sayisi:Math.max(0,(p.begeni_sayisi||0)-1)}):p);
-        setBegendi(false);
-      }else{
-        await supabase.from("begeniler").insert([{user_id:user.id,senaryo_id:Number(id)}]);
-        await supabase.from("senaryolar").update({begeni_sayisi:(senaryo.begeni_sayisi||0)+1}).eq("id", Number(id));
-        setSenaryo(p=>p?({...p,begeni_sayisi:(p.begeni_sayisi||0)+1}):p);
-        setBegendi(true);
-        if(senaryo.profiles?.id && senaryo.profiles.id!==user.id){
-          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"begeni",senaryo_id:Number(id)}]);
-        }
-      }
-    }catch(e){
-      console.error("[senaryo] begeniToggle hatası:", e?.message || e);
-    }
-  }
-
-  async function kaydetToggle(){
-    if(!user)return;
-    try{
-      if(kaydetti){
-        await supabase.from("kaydedilenler").delete().eq("user_id",user.id).eq("senaryo_id", Number(id));
-        setKaydetti(false);
-      }else{
-        await supabase.from("kaydedilenler").insert([{user_id:user.id,senaryo_id:Number(id)}]);
-        setKaydetti(true);
-      }
-    }catch(e){
-      console.error("[senaryo] kaydetToggle hatası:", e?.message || e);
-    }
-  }
-
-
-  async function senaryoSil(){
-    if(!user || !senaryo) return;
-    var onay = true;
-    try{
-      if(typeof window !== "undefined") onay = window.confirm("Bu senaryoyu silmek istediğine emin misin?");
-    }catch(_){}
-    if(!onay) return;
-
-    try{
-      await Promise.allSettled([
-        supabase.from("gonderiler").delete().eq("senaryo_id", Number(id)).eq("user_id", user.id),
-        supabase.from("kaydedilenler").delete().eq("senaryo_id", Number(id)),
-        supabase.from("begeniler").delete().eq("senaryo_id", Number(id)),
-        supabase.from("yorumlar").delete().eq("senaryo_id", Number(id)),
-        supabase.from("senaryo_versiyonlar").delete().eq("senaryo_id", Number(id)),
-      ]);
-
-      var { error } = await supabase
-        .from("senaryolar")
-        .delete()
-        .eq("id", Number(id))
-        .eq("user_id", user.id);
-
-      if(error) throw error;
-
-      window.location.replace("/profil");
-    }catch(err){
-      console.error("[senaryo] silme hatası:", err?.message || err);
-      alert("Senaryo silinemedi.");
-    }
-  }
-
-  async function yorumGonderFn(){
-    if(!user||!yeniYorum.trim()||yorumGonderiyor)return;
-    try{
-      setYorumGonderiyor(true);
-      var yorumMetni = yeniYorum.trim();
-      var { data, error } = await supabase
-        .from("yorumlar")
-        .insert([{user_id:user.id,senaryo_id:Number(id),metin:yorumMetni}])
-        .select("*, profiles(username,avatar_url)")
-        .single();
-
-      if(error) throw error;
-
-      if(data){
-        setYorumlar(p=>[...p,data]);
-        setYeniYorum("");
-        if(senaryo.profiles?.id&&senaryo.profiles.id!==user.id){
-          await supabase.from("bildirimler").insert([{alici_id:senaryo.profiles.id,gonderen_id:user.id,tip:"yorum",senaryo_id:Number(id),icerik:yorumMetni.slice(0,80)}]);
-        }
-      }
-    }catch(e){
-      console.error("[senaryo] yorumGonderFn hatası:", e?.message || e);
-    }finally{
-      setYorumGonderiyor(false);
-    }
-  }
-
-  async function yorumSil(yorumId){
-    try{
-      await supabase.from("yorumlar").delete().eq("id",yorumId);
-      setYorumlar(p=>p.filter(y=>y.id!==yorumId));
-    }catch(e){
-      console.error("[senaryo] yorumSil hatası:", e?.message || e);
-    }
-  }
-
-  async function versiyonKaydet(){
-    if(!user||!senaryo)return;
-    try{
-      var sonVersiyon=versiyonlar.length>0?versiyonlar[0].versiyon:0;
-      await supabase.from("senaryo_versiyonlar").insert([{senaryo_id:Number(id),user_id:user.id,versiyon:sonVersiyon+1,baslik:senaryo.baslik,ana_fikir:senaryo.ana_fikir,karakter:senaryo.karakter,sahne:senaryo.sahne}]);
-      var{data:v}=await supabase.from("senaryo_versiyonlar").select("*").eq("senaryo_id", Number(id)).order("versiyon",{ascending:false});
-      if(v)setVersiyonlar(v);
-    }catch(e){
-      console.error("[senaryo] versiyonKaydet hatası:", e?.message || e);
-    }
-  }
-
-  async function raporGonder(sebep){
-    if(!user)return;
-    try{
-      await supabase.from("raporlar").insert([{rapor_eden:user.id,senaryo_id:Number(id),sebep}]);
-      setRaporModal(false);
-    }catch(e){
-      console.error("[senaryo] raporGonder hatası:", e?.message || e);
-    }
-  }
-
-  function paylas(platform){
-    var url=typeof window!=="undefined"?window.location.href:"";
-    var metin="🎬 "+senaryo?.baslik+" — Scriptify'da oku!";
-    if(platform==="whatsapp")window.open("https://wa.me/?text="+encodeURIComponent(metin+" "+url));
-    if(platform==="twitter")window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(metin)+"&url="+encodeURIComponent(url));
-    if(platform==="kopyala"){
-      navigator.clipboard?.writeText(url);
-      setKopyalandi(true);
-      setTimeout(()=>setKopyalandi(false),2000);
-    }
-    if(platform!=="kopyala")setPaylasModal(false);
-  }
-
-  if(!authHazir || yukleniyor)return(
-    <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
-      <div style={{width:32,height:32,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
-      <p style={{fontFamily:G.fontDisp,fontSize:14,color:G.textDim,letterSpacing:"0.1em"}}>YÜKLENİYOR</p>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-
-  if(hata || !senaryo)return(
-    <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{maxWidth:360,width:"100%",background:`linear-gradient(145deg,${G.deep},${G.card})`,border:`1px solid ${G.border}`,borderRadius:20,padding:"24px",textAlign:"center",boxShadow:G.shadow}}>
-        <p style={{fontFamily:G.fontDisp,fontSize:24,letterSpacing:"0.08em",color:G.text,marginBottom:10}}>SENARYO BULUNAMADI</p>
-        <p style={{fontSize:13,color:G.textMuted,marginBottom:18}}>{hata || "İçerik şu anda görüntülenemiyor."}</p>
-        <button onClick={()=>router.push("/")} style={{padding:"12px 18px",borderRadius:12,background:G.blueGrad,border:"none",color:G.black,fontSize:13,fontWeight:800}}>Ana Sayfa</button>
-      </div>
-    </div>
-  );
-
-  return(
-    <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:100}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,800&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        a{text-decoration:none;color:inherit;} button{font-family:inherit;cursor:pointer;}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes glowPulse{0%,100%{opacity:0.6}50%{opacity:1}}
-        ::-webkit-scrollbar{width:2px;} ::-webkit-scrollbar-thumb{background:${G.blueD};border-radius:2px;}
-        ::selection{background:rgba(56,189,248,0.2);color:${G.blueL};}
-        textarea::placeholder,input::placeholder{color:${G.textDim};}
-      `}</style>
-
-      {/* TOPBAR */}
-      <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${turRenk}25,transparent)`,pointerEvents:"none"}}/>
-        <button onClick={()=>router.back()} style={{background:`${G.blue}08`,border:`1px solid ${G.border}`,borderRadius:10,padding:"7px",cursor:"pointer",display:"flex",flexShrink:0}}>
-          <Icon id="arrow-left" size={18} color={G.blue}/>
-        </button>
-        <img src="/logo.png" alt="Scriptify" style={{height:40,objectFit:"contain",maxWidth:130}}/>
-        <p style={{flex:1,fontFamily:G.fontDisp,fontSize:16,letterSpacing:"0.06em",color:G.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{senaryo.baslik}</p>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {benim&&(
-            <button onClick={versiyonKaydet} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:10,background:`${G.purple}10`,border:`1px solid ${G.purple}25`,color:G.purple,fontSize:11,fontWeight:700}}>
-              <Icon id="layers" size={11} color={G.purple}/>v{versiyonlar.length+1}
-            </button>
-          )}
-          <div style={{position:"relative"}}>
-            <button onClick={()=>setMenu(!menu)} style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <Icon id="more" size={16} color={G.textMuted}/>
-            </button>
-            {menu&&(
-              <div style={{position:"absolute",right:0,top:42,background:G.surface,border:`1px solid ${G.borderHov}`,borderRadius:14,padding:"6px",minWidth:200,boxShadow:`${G.shadow},${G.glowBlue}`,zIndex:10,animation:"fadeUp 0.15s ease"}}>
-                {versiyonlar.length>0&&<button onClick={()=>{setVersiyonModal(true);setMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"none",border:"none",color:G.text,fontSize:13,textAlign:"left",borderRadius:10}}>
-                  <Icon id="clock" size={13} color={G.purple}/>Versiyon Geçmişi ({versiyonlar.length})
-                </button>}
-                {benim&&<button onClick={()=>{setMenu(false);senaryoSil();}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"none",border:"none",color:G.red,fontSize:13,textAlign:"left",borderRadius:10}}>
-                  <Icon id="trash" size={13} color={G.red}/>Senaryoyu Sil
-                </button>}
-                <button onClick={()=>{setPaylasModal(true);setMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"none",border:"none",color:G.text,fontSize:13,textAlign:"left",borderRadius:10}}>
-                  <Icon id="share" size={13} color={G.blue}/>Paylaş
-                </button>
-                {!benim&&<button onClick={()=>{setRaporModal(true);setMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"none",border:"none",color:G.red,fontSize:13,textAlign:"left",borderRadius:10}}>
-                  <Icon id="flag" size={13} color={G.red}/>Raporla
-                </button>}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div style={{maxWidth:680,margin:"0 auto",padding:"16px 16px 0"}}>
-
-        {/* ── BAŞLIK KARTI ── */}
-        <div style={{marginBottom:16,background:`linear-gradient(145deg,${G.deep},${G.card})`,border:`1px solid ${turRenk}30`,borderRadius:20,overflow:"hidden",position:"relative",boxShadow:`0 0 40px ${turRenk}10`}}>
-          <NeonCorners color={turRenk} size={14}/>
-          {/* Tür gradient üst bant */}
-          <div style={{height:3,background:`linear-gradient(90deg,${turRenk},${turRenk}80,transparent)`,boxShadow:`0 0 20px ${turRenk}60`}}/>
-          {/* Arkaplan ışıma */}
-          <div style={{position:"absolute",top:0,right:0,width:200,height:200,background:`radial-gradient(circle,${turRenk}08,transparent 70%)`,pointerEvents:"none"}}/>
-
-          <div style={{padding:"20px"}}>
-            {/* Badge'ler */}
-            <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-              <span style={{fontSize:10,fontWeight:700,padding:"3px 12px",borderRadius:20,background:`${G.blue}15`,color:G.blue,border:`1px solid ${G.blue}25`,boxShadow:G.glowBlue}}>{senaryo.tip}</span>
-              <span style={{fontSize:10,fontWeight:700,padding:"3px 12px",borderRadius:20,background:`${turRenk}15`,color:turRenk,border:`1px solid ${turRenk}25`,boxShadow:`0 0 10px ${turRenk}20`}}>{senaryo.tur}</span>
-              {versiyonlar.length>0&&<span style={{fontSize:10,fontWeight:700,padding:"3px 12px",borderRadius:20,background:`${G.purple}10`,color:G.purple,border:`1px solid ${G.purple}20`}}>v{versiyonlar[0].versiyon}</span>}
-            </div>
-
-            <h1 style={{fontFamily:G.fontDisp,fontSize:30,letterSpacing:"0.05em",color:G.text,lineHeight:1.15,marginBottom:8}}>{senaryo.baslik}</h1>
-            {senaryo.tagline&&(
-              <p style={{fontSize:14,fontStyle:"italic",color:turRenk,marginBottom:16,borderLeft:`3px solid ${turRenk}`,paddingLeft:12,lineHeight:1.5,boxShadow:`-4px 0 16px ${turRenk}15`}}>
-                "{senaryo.tagline}"
-              </p>
-            )}
-
-            {/* Yazar satırı */}
-            <a href={"/@"+senaryo.profiles?.username} style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 12px",borderRadius:12,background:`${G.blue}06`,border:`1px solid ${G.border}`,transition:"all 0.2s"}}
-              onMouseEnter={e=>{e.currentTarget.style.background=`${G.blue}10`;e.currentTarget.style.borderColor=G.borderHov;}}
-              onMouseLeave={e=>{e.currentTarget.style.background=`${G.blue}06`;e.currentTarget.style.borderColor=G.border;}}>
-              <Av url={senaryo.profiles?.avatar_url} size={38}/>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",alignItems:"center",gap:5}}>
-                  <p style={{fontSize:13,fontWeight:700,color:G.text}}>@{senaryo.profiles?.username}</p>
-                  {senaryo.profiles?.dogrulandi&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:20,background:`${G.blue}15`,color:G.blue,fontWeight:800,boxShadow:`0 0 6px ${G.blue}25`}}>✓</span>}
-                </div>
-                <p style={{fontSize:10,color:G.textDim}}>{zaman(senaryo.created_at)} önce</p>
-              </div>
-              <Icon id="arrow-left" size={14} color={G.textDim} strokeWidth={1.5} style={{transform:"rotate(180deg)"}}/>
-            </a>
-
-            {/* İstatistik grid */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-              {[
-                {icon:"heart",val:senaryo.begeni_sayisi||0,label:"Beğeni",color:G.red},
-                {icon:"eye",val:senaryo.goruntuleme_sayisi||0,label:"Görünüm",color:G.blue},
-                {icon:"chat",val:yorumlar.length,label:"Yorum",color:G.purple},
-                {icon:"target",val:senaryo.challenge_sayisi||0,label:"Challenge",color:G.amber},
-              ].map(s=>(
-                <div key={s.label} style={{background:G.surface,borderRadius:12,padding:"10px 6px",textAlign:"center",border:`1px solid ${G.border}`,position:"relative",overflow:"hidden"}}>
-                  <div style={{position:"absolute",inset:0,background:`radial-gradient(circle at 50% 100%,${s.color}08,transparent 70%)`,pointerEvents:"none"}}/>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:4}}>
-                    <Icon id={s.icon} size={14} color={s.color}/>
-                  </div>
-                  <div style={{fontFamily:G.fontDisp,fontSize:16,color:s.color,textShadow:`0 0 10px ${s.color}40`}}>{s.val}</div>
-                  <p style={{fontSize:8,color:G.textDim,letterSpacing:"0.06em",marginTop:2}}>{s.label.toUpperCase()}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── İÇERİK BÖLÜMLERİ ── */}
-        <IcerikKart label="Ana Fikir" val={senaryo.ana_fikir} icon="zap" accent={G.blue}/>
-        <IcerikKart label="Karakterler" val={senaryo.karakter} icon="users" accent={G.purple}/>
-        <IcerikKart label="Açılış Sahnesi" val={senaryo.sahne} icon="film" accent={turRenk}/>
-        <IcerikKart label="Büyük Soru" val={senaryo.soru} icon="target" accent={G.amber}/>
-
-        {/* ── AKSİYON BUTONLARI ── */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,margin:"16px 0"}}>
-          {/* Beğen */}
-          <button onClick={begeniToggle}
-            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"16px 0",borderRadius:16,border:`1.5px solid ${begendi?G.red+"60":G.border}`,background:begendi?`${G.red}10`:G.surface,transition:"all 0.25s",boxShadow:begendi?G.glowRed:"none"}}>
-            <div style={{width:36,height:36,borderRadius:10,background:begendi?`${G.red}20`:G.surface,border:`1px solid ${begendi?G.red+"40":G.border}`,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.25s"}}>
-              <Icon id={begendi?"heart-fill":"heart"} size={18} color={begendi?G.red:G.textMuted}/>
-            </div>
-            <div>
-              <div style={{fontFamily:G.fontDisp,fontSize:16,color:begendi?G.red:G.textMuted,textAlign:"center"}}>{senaryo.begeni_sayisi||0}</div>
-              <p style={{fontSize:9,color:begendi?G.red:G.textDim,letterSpacing:"0.06em",textAlign:"center"}}>{begendi?"BEĞENİLDİ":"BEĞEN"}</p>
-            </div>
-          </button>
-
-          {/* Kaydet */}
-          <button onClick={kaydetToggle}
-            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"16px 0",borderRadius:16,border:`1.5px solid ${kaydetti?G.blue+"60":G.border}`,background:kaydetti?`${G.blue}10`:G.surface,transition:"all 0.25s",boxShadow:kaydetti?G.glowBlue:"none"}}>
-            <div style={{width:36,height:36,borderRadius:10,background:kaydetti?`${G.blue}20`:G.surface,border:`1px solid ${kaydetti?G.blue+"40":G.border}`,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.25s"}}>
-              <Icon id={kaydetti?"bookmark-fill":"bookmark"} size={18} color={kaydetti?G.blue:G.textMuted}/>
-            </div>
-            <p style={{fontSize:9,color:kaydetti?G.blue:G.textDim,letterSpacing:"0.06em",fontWeight:700}}>{kaydetti?"KAYDEDİLDİ":"KAYDET"}</p>
-          </button>
-
-          {/* Challenge */}
-          <a href={"/uret?challenge="+id}
-            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"16px 0",borderRadius:16,border:`1.5px solid ${G.border}`,background:G.surface,textDecoration:"none",transition:"all 0.25s"}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor=G.purple+"60";e.currentTarget.style.background=`${G.purple}10`;e.currentTarget.style.boxShadow=G.glowPurple;}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.background=G.surface;e.currentTarget.style.boxShadow="none";}}>
-            <div style={{width:36,height:36,borderRadius:10,background:G.surface,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <Icon id="target" size={18} color={G.textMuted}/>
-            </div>
-            <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.06em",fontWeight:700}}>CHALLENGE</p>
-          </a>
-        </div>
-
-        {/* ── YORUMLAR ── */}
-        <div style={{marginBottom:20}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,paddingBottom:12,borderBottom:`1px solid ${G.border}`}}>
-            <div style={{width:28,height:28,borderRadius:8,background:`${G.purple}15`,border:`1px solid ${G.purple}25`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <Icon id="chat" size={13} color={G.purple}/>
-            </div>
-            <p style={{fontFamily:G.fontDisp,fontSize:14,letterSpacing:"0.1em",color:G.purple}}>YORUMLAR</p>
-            <span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:`${G.purple}10`,color:G.purple,border:`1px solid ${G.purple}20`,fontWeight:700}}>{yorumlar.length}</span>
-          </div>
-
-          {yorumlar.length===0&&(
-            <div style={{textAlign:"center",padding:"32px 0",color:G.textDim}}>
-              <Icon id="chat" size={28} color={G.textDim}/>
-              <p style={{fontSize:13,marginTop:8}}>İlk yorumu sen yaz</p>
-            </div>
-          )}
-
-          {yorumlar.map((y,i)=>(
-            <div key={y.id||i} style={{display:"flex",gap:10,marginBottom:12,animation:`fadeUp 0.2s ${i*0.03}s both ease`}}>
-              <Av url={y.profiles?.avatar_url} size={34}/>
-              <div style={{flex:1}}>
-                <div style={{background:`linear-gradient(135deg,${G.surface},${G.card})`,border:`1px solid ${G.border}`,borderRadius:"4px 14px 14px 14px",padding:"10px 14px",position:"relative"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:12,fontWeight:700,color:G.blue}}>@{y.profiles?.username}</span>
-                    </div>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      <span style={{fontSize:10,color:G.textDim}}>{zaman(y.created_at)}</span>
-                      {user&&y.user_id===user.id&&(
-                        <button onClick={()=>yorumSil(y.id)} style={{background:"none",border:"none",color:G.red,fontSize:10,fontWeight:600,padding:"2px 6px",borderRadius:6,cursor:"pointer"}}>sil</button>
-                      )}
-                    </div>
-                  </div>
-                  <p style={{fontSize:13,color:G.textMuted,lineHeight:1.6}}>{y.metin}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Yorum yaz */}
-          {user?(
-            <div style={{display:"flex",gap:10,marginTop:16,padding:"12px",background:G.surface,borderRadius:16,border:`1px solid ${G.border}`}}>
-              <Av url={null} size={34}/>
-              <div style={{flex:1,display:"flex",gap:8,alignItems:"center"}}>
-                <input
-                  value={yeniYorum}
-                  onChange={e=>setYeniYorum(e.target.value)}
-                  onKeyDown={e=>e.key==="Enter"&&yorumGonderFn()}
-                  placeholder="Yorum yaz..."
-                  style={{flex:1,background:"transparent",border:"none",color:G.text,fontSize:13,outline:"none",fontFamily:G.fontBody}}
-                />
-                <button onClick={yorumGonderFn} disabled={!yeniYorum.trim()||yorumGonderiyor}
-                  style={{width:34,height:34,borderRadius:"50%",background:yeniYorum.trim()?G.blueGrad:`${G.blue}08`,border:`1px solid ${yeniYorum.trim()?G.blue:G.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",boxShadow:yeniYorum.trim()?G.glowBlue:"none"}}>
-                  {yorumGonderiyor
-                    ?<div style={{width:12,height:12,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>
-                    :<Icon id="send" size={13} color={yeniYorum.trim()?G.black:G.textDim} strokeWidth={2.5}/>
-                  }
-                </button>
-              </div>
-            </div>
-          ):(
-            <div style={{textAlign:"center",padding:"16px",background:G.surface,borderRadius:14,border:`1px solid ${G.border}`}}>
-              <p style={{fontSize:13,color:G.textMuted}}>Yorum yazmak için <a href="/" style={{color:G.blue,fontWeight:700}}>giriş yap</a></p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── PAYLAŞ MODAL ── */}
-      {paylasModal&&<>
-        <div onClick={()=>setPaylasModal(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,5,20,0.9)",backdropFilter:"blur(10px)"}}/>
-        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:401,background:`linear-gradient(180deg,${G.surface},${G.deep})`,border:`1px solid ${G.borderHov}`,borderRadius:"24px 24px 0 0",padding:"20px 20px env(safe-area-inset-bottom,24px)",boxShadow:`0 -20px 60px rgba(0,0,0,0.8),${G.glowBlue}`}}>
-          <div style={{width:36,height:3,borderRadius:2,background:G.border,margin:"0 auto 16px"}}/>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-            <Icon id="share" size={14} color={G.blue}/>
-            <p style={{fontFamily:G.fontDisp,fontSize:18,letterSpacing:"0.06em",color:G.text}}>PAYLAŞ</p>
-          </div>
-          {[
-            {id:"whatsapp",label:"WhatsApp",col:"#25D366",icon:"share"},
-            {id:"twitter",label:"Twitter / X",col:"#1DA1F2",icon:"share"},
-            {id:"kopyala",label:kopyalandi?"✓ Kopyalandı!":"Linki Kopyala",col:kopyalandi?G.green:G.blue,icon:kopyalandi?"check":"copy"},
-          ].map(pl=>(
-            <button key={pl.id} onClick={()=>paylas(pl.id)}
-              style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 16px",marginBottom:8,borderRadius:14,background:`${pl.col}08`,border:`1px solid ${pl.col}${kopyalandi&&pl.id==="kopyala"?"60":"20"}`,color:G.text,fontSize:13,textAlign:"left",boxShadow:kopyalandi&&pl.id==="kopyala"?G.glowGreen:"none",transition:"all 0.2s"}}>
-              <div style={{width:38,height:38,borderRadius:11,background:`${pl.col}15`,border:`1px solid ${pl.col}25`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <Icon id={pl.icon} size={16} color={pl.col}/>
-              </div>
-              <span style={{fontWeight:600,color:kopyalandi&&pl.id==="kopyala"?G.green:G.text}}>{pl.label}</span>
-            </button>
-          ))}
-        </div>
-      </>}
-
-      {/* ── VERSİYON GEÇMİŞİ ── */}
-      {versiyonModal&&<>
-        <div onClick={()=>setVersiyonModal(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,5,20,0.9)",backdropFilter:"blur(10px)"}}/>
-        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:401,background:`linear-gradient(180deg,${G.surface},${G.deep})`,border:`1px solid ${G.borderHov}`,borderRadius:"24px 24px 0 0",padding:"20px 20px env(safe-area-inset-bottom,24px)",maxHeight:"70vh",overflowY:"auto",boxShadow:`0 -20px 60px rgba(0,0,0,0.8),${G.glowPurple}`}}>
-          <div style={{width:36,height:3,borderRadius:2,background:G.border,margin:"0 auto 16px"}}/>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-            <Icon id="layers" size={14} color={G.purple}/>
-            <p style={{fontFamily:G.fontDisp,fontSize:18,letterSpacing:"0.06em",color:G.text}}>VERSİYON GEÇMİŞİ</p>
-          </div>
-          {versiyonlar.map((v,i)=>(
-            <div key={v.id} style={{background:`linear-gradient(135deg,${G.surface},${G.card})`,border:`1px solid ${G.border}`,borderRadius:14,padding:"14px 16px",marginBottom:10,position:"relative",animation:`fadeUp 0.2s ${i*0.05}s both ease`}}>
-              <NeonCorners color={G.purple} size={8}/>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                <span style={{fontFamily:G.fontDisp,fontSize:18,color:G.purple,letterSpacing:"0.05em",textShadow:G.glowPurple}}>v{v.versiyon}</span>
-                <span style={{fontSize:10,color:G.textDim}}>{zaman(v.created_at)}</span>
-              </div>
-              <p style={{fontSize:13,fontWeight:700,color:G.text,marginBottom:4}}>{v.baslik}</p>
-              {v.ana_fikir&&<p style={{fontSize:11,color:G.textMuted,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{v.ana_fikir}</p>}
-            </div>
-          ))}
-        </div>
-      </>}
-
-      {/* ── RAPOR MODAL ── */}
-      {raporModal&&<>
-        <div onClick={()=>setRaporModal(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,5,20,0.9)",backdropFilter:"blur(10px)"}}/>
-        <div style={{position:"fixed",inset:"auto 16px 20px",zIndex:401,background:G.surface,border:`1px solid ${G.red}30`,borderRadius:20,padding:"20px",boxShadow:`${G.shadow},${G.glowRed}`,animation:"fadeUp 0.2s ease"}}>
-          <NeonCorners color={G.red}/>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-            <Icon id="flag" size={14} color={G.red}/>
-            <p style={{fontFamily:G.fontDisp,fontSize:16,letterSpacing:"0.05em",color:G.text}}>RAPORLA</p>
-          </div>
-          {["Spam / Alakasız içerik","Küçültücü / Hakaret","Telif ihlali","Uygunsuz içerik"].map(s=>(
-            <button key={s} onClick={()=>raporGonder(s)}
-              style={{display:"block",width:"100%",padding:"12px 16px",marginBottom:8,borderRadius:12,border:`1px solid ${G.border}`,background:G.card,color:G.textMuted,fontSize:13,textAlign:"left",transition:"all 0.15s"}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=G.red+"40";e.currentTarget.style.color=G.red;e.currentTarget.style.background=`${G.red}08`;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.color=G.textMuted;e.currentTarget.style.background=G.card;}}>{s}</button>
-          ))}
-        </div>
-      </>}
-
-      <AltNav/>
-      {drawer&&<SimpleDrawer user={user} username={profil?.username||(user?.email?.split("@")[0]||"")} avatarUrl={profil?.avatar_url||null} onClose={()=>setDrawer(false)}/>}
-    </div>
-  );
+      <aside className={`${styles.inspector} stack`}>
+        <Card className="stack"><p className="section-label">OKUMA NOTLARI</p><div className="cluster"><Button size="sm" variant={liked ? "primary" : "secondary"} disabled={!!operation || !user} loading={operation === "like"} onClick={toggleLike}>{liked ? "Beğenildi" : "Beğen"} · {row.begeni_sayisi || 0}</Button><Button size="sm" variant={bookmarked ? "primary" : "secondary"} disabled={!!operation || !user} onClick={toggleBookmark}>{bookmarked ? "Okuma listesinde" : "Okuma listesine al"}</Button></div><ol className={styles.outline}>{document.scenes.map((scene, index) => <li key={scene.id}><a href={`#scene-${scene.id}`}><span>{String(index + 1).padStart(2, "0")}</span>{scene.heading}</a></li>)}</ol><Field label="Dışa aktar"><Select defaultValue="" onChange={event => { if (event.target.value) perform("export", () => downloadScenario(document, event.target.value)); event.target.value = ""; }}><option value="" disabled>Biçim seçin…</option><option value="pdf">PDF</option><option value="fdx">Final Draft</option><option value="fountain">Fountain</option><option value="txt">Düz metin</option></Select></Field></Card>
+        {sourceChallenge && <Card className="stack"><Badge tone="accent">{sourceChallenge.entry ? "Challenge başvurusu" : "Challenge brief"}</Badge><h3>{sourceChallenge.konu}</h3>{sourceChallenge.entry && <p className="small muted">{sourceChallenge.entry.status === "reviewed" ? "Değerlendirildi" : "Teslim edildi"}{sourceChallenge.entry.score != null ? ` · ${sourceChallenge.entry.score}/100` : ""}</p>}{sourceChallenge.entry?.feedback && <p className="small">{sourceChallenge.entry.feedback}</p>}<p className="small muted">Teslim tarihi: {date(sourceChallenge.deadline)}</p><Button size="sm" variant="ghost" href="/topluluk">Challenge’ları incele</Button></Card>}
+        {owner ? <Card className="stack"><h3 style={{ margin: 0 }}>Eser yönetimi</h3><p className="small muted">Revizyon {row.revision} · {date(row.updated_at)}</p><Button size="sm" variant="secondary" disabled={!!operation} onClick={changeVisibility}>{row.paylasim_acik ? "Yayından kaldır" : "Toplulukta yayınla"}</Button><Button size="sm" variant="secondary" onClick={loadVersions}>Sürüm geçmişi</Button><Button size="sm" variant="danger" disabled={!!operation} onClick={() => setDeleteOpen(true)}>Eseri sil</Button></Card> : user && row.paylasim_acik ? <Button size="sm" variant="ghost" onClick={() => setReportOpen(true)}>İçeriği raporla</Button> : null}
+      </aside>
+    </div>}
+    <Dialog open={versionsOpen} onClose={() => setVersionsOpen(false)} title="Sürüm geçmişi" description="Sürüm geri yüklerken mevcut metin otomatik olarak yedeklenir."><div className="cluster"><Input aria-label="Sürüm etiketi" value={versionLabel} maxLength={200} onChange={event => setVersionLabel(event.target.value)} placeholder="Örneğin: İlk okuma sonrası" /><Button size="sm" disabled={!!operation} onClick={snapshot}>Sürüm oluştur</Button></div>{versionsLoading ? <Spinner /> : versions.length === 0 ? <EmptyState title="Henüz sürüm yok" description="Önemli revizyonlardan önce bir sürüm oluşturun." /> : versions.map(version => <div className={styles.archiveRow} key={version.id}><div><p className={styles.archiveTitle}>{version.label}</p><p className="small muted">{date(version.created_at)} · {scenarioWordCount(version.document)} kelime</p></div><Button size="sm" variant="secondary" onClick={() => { setVersionsOpen(false); setSelectedVersion(version); }}>İncele</Button></div>)}</Dialog>
+    <Dialog open={Boolean(selectedVersion)} onClose={() => setSelectedVersion(null)} title={selectedVersion?.label || "Sürüm"} description="Geri yükleme mevcut metni yedekler; başka bir oturumda değişiklik varsa işlem durdurulur." actions={<><Button variant="secondary" onClick={() => { setSelectedVersion(null); setVersionsOpen(true); }}>Vazgeç</Button><Button loading={operation === "restore"} disabled={!!operation} onClick={restore}>Bu sürümü geri yükle</Button></>}><div className="grid grid-2"><div><p className="section-label">MEVCUT</p><p className="small">{document.title} · {scenarioWordCount(document)} kelime · {document.scenes.length} sahne</p></div><div><p className="section-label">SEÇİLİ SÜRÜM</p><p className="small">{selectedVersion?.document.title} · {selectedVersion ? scenarioWordCount(selectedVersion.document) : 0} kelime · {selectedVersion?.document.scenes.length} sahne</p></div></div>{versionComparison && <Card className="stack"><p className="section-label">GERİ YÜKLEMEYLE DEĞİŞECEKLER</p><p className="small">{versionComparison.changedFields.length ? versionComparison.changedFields.join(", ") : "Ana hikâye alanları aynı"}{versionComparison.metadataChanged ? " · Eser ayarları değişecek" : ""}</p><p className="small">Sahneler: {versionComparison.scenes.added.length} eklenecek, {versionComparison.scenes.removed.length} kaldırılacak, {versionComparison.scenes.changed.length} değişecek{versionComparison.scenes.orderChanged ? "; sahne sırası değişecek" : ""}.</p><p className="small">Karakterler: {versionComparison.characters.added.length} eklenecek, {versionComparison.characters.removed.length} kaldırılacak, {versionComparison.characters.changed.length} değişecek.</p></Card>}<div className={styles.preview}>{selectedVersion && scenarioText(selectedVersion.document)}</div></Dialog>
+    <Dialog open={reportOpen} onClose={() => !operation && setReportOpen(false)} title="İçeriği raporla" description="Rapor yalnız yetkili moderasyon akışında değerlendirilir." actions={<><Button variant="secondary" onClick={() => setReportOpen(false)}>Vazgeç</Button><Button disabled={reportReason.trim().length < 3 || !!operation} loading={operation === "report"} onClick={report}>Raporu gönder</Button></>}><Field label="Rapor nedeni"><Textarea value={reportReason} onChange={event => setReportReason(event.target.value)} rows={4} maxLength={2000} placeholder="İhlali somut olarak açıklayın." /></Field></Dialog>
+    <Dialog open={deleteOpen} onClose={() => !operation && setDeleteOpen(false)} title="Eseri kalıcı olarak sil" description="Senaryo, sürümleri, yorumları ve topluluk ilişkileri birlikte silinecek. Devam etmeden önce dışa aktarma yapabilirsiniz." actions={<><Button variant="secondary" onClick={() => setDeleteOpen(false)}>Vazgeç</Button><Button variant="danger" loading={operation === "delete"} disabled={!!operation} onClick={remove}>Eseri sil</Button></>} />
+  </AppShell>;
 }

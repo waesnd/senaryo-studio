@@ -1,435 +1,149 @@
-import { useState, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase";
-import { useAuth } from "../lib/useAuth";
-
-var G = {
-  black:"#0A0F1E", deep:"#0F172A", surface:"#1E293B", card:"#162032",
-  border:"rgba(56,189,248,0.12)", borderHov:"rgba(56,189,248,0.4)",
-  blue:"#38BDF8", blueL:"#7DD3FC", blueD:"#0EA5E9",
-  blueGrad:"linear-gradient(135deg,#0EA5E9 0%,#38BDF8 40%,#7DD3FC 70%,#0EA5E9 100%)",
-  purple:"#8B5CF6", purpleL:"#A78BFA",
-  red:"#EF4444", redL:"#F87171",
-  text:"#F1F5F9", textMuted:"rgba(241,245,249,0.5)", textDim:"rgba(241,245,249,0.25)",
-  shadow:"0 8px 40px rgba(0,0,0,0.7)",
-  glowBlue:"0 0 24px rgba(56,189,248,0.25)",
-  glowPurple:"0 0 24px rgba(139,92,246,0.25)",
-  fontDisp:"'Bebas Neue','Arial Narrow',sans-serif",
-  fontBody:"'DM Sans',system-ui,sans-serif",
-};
-
-var TABS=[{id:"hepsi",label:"Tümü"},{id:"kullanici",label:"Kullanıcı"},{id:"senaryo",label:"Senaryo"},{id:"gonderi",label:"Gönderi"}];
-
-var TURLER_RENK={
-  "Gerilim":G.red,"Drama":G.blue,"Komedi":"#FBBF24","Aksiyon":G.red,
-  "Korku":G.purple,"Romantik":"#F472B6","Bilim Kurgu":G.blueL,
-  "Fantastik":G.purpleL,"Suç":"#94A3B8","Tarihi":"#D97706",
-};
-
-function Icon({id,size=22,color="currentColor",strokeWidth=1.8}){
-  var p={width:size,height:size,fill:"none",stroke:color,strokeWidth,viewBox:"0 0 24 24"};
-  if(id==="home")return<svg {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>;
-  if(id==="compass")return<svg {...p}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>;
-  if(id==="users")return<svg {...p}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>;
-  if(id==="chat")return<svg {...p}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>;
-  if(id==="user")return<svg {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-  if(id==="search")return<svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
-  if(id==="x")return<svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-  if(id==="film")return<svg {...p}><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/></svg>;
-  if(id==="heart")return<svg {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>;
-  if(id==="trending")return<svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
-  if(id==="zap")return<svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-  return null;
-}
-
-function NeonCorners({color=G.blue,size=8,thickness=1.5}){
-  var s={position:"absolute",width:size,height:size};
-  var l={background:color,position:"absolute",boxShadow:`0 0 4px ${color}80`};
-  return(<>
-    <div style={{...s,top:0,left:0}}><div style={{...l,top:0,left:0,width:thickness,height:size}}/><div style={{...l,top:0,left:0,width:size,height:thickness}}/></div>
-    <div style={{...s,top:0,right:0}}><div style={{...l,top:0,right:0,width:thickness,height:size}}/><div style={{...l,top:0,right:0,width:size,height:thickness}}/></div>
-    <div style={{...s,bottom:0,left:0}}><div style={{...l,bottom:0,left:0,width:thickness,height:size}}/><div style={{...l,bottom:0,left:0,width:size,height:thickness}}/></div>
-    <div style={{...s,bottom:0,right:0}}><div style={{...l,bottom:0,right:0,width:thickness,height:size}}/><div style={{...l,bottom:0,right:0,width:size,height:thickness}}/></div>
-  </>);
-}
-
-function Av({url,size}){
-  return(
-    <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${G.deep},${G.surface})`,border:`1.5px solid rgba(56,189,248,0.2)`,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-      {url?<img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<Icon id="user" size={size*0.4} color="rgba(56,189,248,0.35)"/>}
-    </div>
-  );
-}
-
-
-function SimpleDrawer({user,username,avatarUrl,onClose}){
-  var LINKS=[
-    {href:"/",label:"Ana Sayfa",icon:"home"},
-    {href:"/uret",label:"Senaryo Üret",icon:"film",badge:"AI"},
-    {href:"/kesfet",label:"Keşfet",icon:"compass"},
-    {href:"/topluluk",label:"Topluluk",icon:"users"},
-    {href:"/mesajlar",label:"Mesajlar",icon:"chat"},
-    {href:"/profil",label:"Profil",icon:"user"},
-  ];
-  return(<>
-    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,5,20,0.85)",backdropFilter:"blur(8px)"}}/>
-    <div style={{position:"fixed",top:0,left:0,bottom:0,zIndex:201,width:280,background:`linear-gradient(180deg,${G.black},${G.deep})`,borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column"}}>
-      <div style={{height:2,background:G.blueGrad,boxShadow:"0 0 20px rgba(56,189,248,0.5)"}}/>
-      <div style={{padding:"18px 18px 14px",borderBottom:`1px solid ${G.border}`}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-          <Av url={avatarUrl} size={44}/>
-          <button onClick={onClose} style={{background:`${G.blue}08`,border:`1px solid ${G.border}`,borderRadius:8,padding:"5px 10px",color:G.textMuted,fontSize:12,cursor:"pointer"}}>ESC</button>
-        </div>
-        {user?<p style={{fontSize:14,fontWeight:800,color:G.text}}>@{username}</p>
-          :<a href="/" style={{display:"block",padding:"9px",borderRadius:10,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,textTransform:"uppercase",textAlign:"center",textDecoration:"none"}}>Giriş Yap</a>}
-      </div>
-      <nav style={{flex:1,overflowY:"auto",padding:"10px"}}>
-        {LINKS.map(item=>{
-          var active=typeof window!=="undefined"&&window.location.pathname===item.href;
-          return(
-            <a key={item.href} href={item.href} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",borderRadius:10,marginBottom:2,color:active?G.blue:G.textMuted,background:active?`${G.blue}08`:"transparent",fontWeight:active?700:500,fontSize:13,textDecoration:"none"}}>
-              <Icon id={item.icon} size={16} color={active?G.blue:G.textMuted}/>
-              <span style={{flex:1}}>{item.label}</span>
-              {item.badge&&<span style={{fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:20,background:G.purple,color:"#fff"}}>{item.badge}</span>}
-            </a>
-          );
-        })}
-      </nav>
-    </div>
-  </>);
-}
-
-function AltNav(){
-  var items=[{href:"/",id:"home"},{href:"/kesfet",id:"compass"},{href:"/topluluk",id:"users"},{href:"/mesajlar",id:"chat"},{href:"/profil",id:"user"}];
-  return(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderTop:`1px solid ${G.border}`,padding:"8px 0 env(safe-area-inset-bottom,10px)",display:"flex",justifyContent:"space-around",alignItems:"center"}}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}30,transparent)`,pointerEvents:"none"}}/>
-      {items.map(item=>(
-        <a key={item.href} href={item.href} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 16px",borderRadius:12,opacity:0.35}}>
-          <Icon id={item.id} size={22} color="#94A3B8"/>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-function zaman(ts){
-  var d=Math.floor((Date.now()-new Date(ts))/1000);
-  if(d<3600)return Math.floor(d/60)+"dk";
-  if(d<86400)return Math.floor(d/3600)+"sa";
-  return Math.floor(d/86400)+"g";
-}
-
-export default function Arama(){
-  var [drawer,setDrawer]=useState(false);
-  var {user, profil, authHazir} = useAuth();
-  var [ara,setAra]=useState("");
-  var [tab,setTab]=useState("hepsi");
-  var [sonuclar,setSonuclar]=useState({kullanici:[],senaryo:[],gonderi:[]});
-  var [yukleniyor,setYukleniyor]=useState(false);
-  var [aramaYapildi,setAramaYapildi]=useState(false);
-  var [populer,setPopuler]=useState([]);
-  var inputRef=useRef(null);
-  var timerRef=useRef(null);
-
-  var avatarUrl=profil?.avatar_url||null;
-
-  useEffect(()=>{
-    let aktif = true;
-    var focusTimer = setTimeout(()=>inputRef.current?.focus(),50);
-
-    async function populerleriYukle(){
-      try{
-        var { data, error } = await supabase
-          .from("senaryolar")
-          .select("baslik,tur,begeni_sayisi")
-          .eq("paylasim_acik",true)
-          .order("begeni_sayisi",{ascending:false})
-          .limit(6);
-
-        if(error){
-          console.error("[arama] populer senaryolar yuklenemedi:", error.message);
-          return;
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
+import { Button, Input } from "../components/ui";
+import SocialLayout, {
+  Notice,
+  ProfileCard,
+  LoadMore,
+  Empty,
+} from "../components/social/Layout";
+import Feed from "../components/social/Feed";
+import {
+  client,
+  errorMessage,
+  PAGE_SIZE,
+  PROFILE_FIELDS,
+  searchPattern,
+  unwrap,
+} from "../lib/social-client";
+export default function Search() {
+  const router = useRouter();
+  const [draft, setDraft] = useState(""),
+    [query, setQuery] = useState(""),
+    [tab, setTab] = useState("stories"),
+    [profiles, setProfiles] = useState([]),
+    [error, setError] = useState(""),
+    [loading, setLoading] = useState(false),
+    [page, setPage] = useState(0),
+    [more, setMore] = useState(false);
+  const epoch = useRef(0);
+  useEffect(() => {
+    if (router.isReady) {
+      const q =
+        typeof router.query.q === "string" ? router.query.q.slice(0, 120) : "";
+      setDraft(q);
+      setQuery(q);
+      setPage(0);
+    }
+  }, [router.isReady, router.query.q]);
+  useEffect(() => {
+    if (tab !== "writers") return;
+    const token = ++epoch.current,
+      controller = new AbortController();
+    setLoading(true);
+    setError("");
+    (async () => {
+      let request = client()
+        .from("profiles")
+        .select(PROFILE_FIELDS, { count: "exact" })
+        .order("username")
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        .abortSignal(controller.signal);
+      if (query.trim())
+        request = request.ilike("username", searchPattern(query));
+      return request;
+    })()
+      .then((result) => {
+        const rows = unwrap(result);
+        if (token === epoch.current) {
+          setProfiles((old) => (page ? [...old, ...rows] : rows));
+          setMore((page + 1) * PAGE_SIZE < (result.count || 0));
         }
-
-        if(aktif && data) setPopuler(data);
-      }catch(err){
-        console.error("[arama] populerleriYukle beklenmeyen hata:", err);
-      }
-    }
-
-    populerleriYukle();
-
-    return ()=>{
-      aktif = false;
-      clearTimeout(focusTimer);
-      clearTimeout(timerRef.current);
+      })
+      .catch((e) => {
+        if (token === epoch.current) setError(errorMessage(e));
+      })
+      .finally(() => {
+        if (token === epoch.current) setLoading(false);
+      });
+    return () => {
+      controller.abort();
+      epoch.current = token + 1;
     };
-  },[]);
-
-  function aramaYap(kelime){
-    var temizKelime = kelime.trim();
-
-    if(!temizKelime){
-      clearTimeout(timerRef.current);
-      setSonuclar({kullanici:[],senaryo:[],gonderi:[]});
-      setAramaYapildi(false);
-      setYukleniyor(false);
-      return;
-    }
-
-    clearTimeout(timerRef.current);
-    timerRef.current=setTimeout(async()=>{
-      try{
-        setYukleniyor(true);
-        var q="%"+temizKelime+"%";
-        var[k,s,g]=await Promise.all([
-          supabase.from("profiles").select("id,username,bio,avatar_url,dogrulandi").ilike("username",q).limit(8),
-          supabase.from("senaryolar").select("id,baslik,tagline,tur,tip,begeni_sayisi,profiles(username)").eq("paylasim_acik",true).or("baslik.ilike."+q+",tur.ilike."+q).limit(10),
-          supabase.from("gonderiler").select("id,metin,begeni_sayisi,created_at,profiles(username,avatar_url)").ilike("metin",q).limit(10),
-        ]);
-
-        if(k.error) console.error("[arama] kullanici arama hatasi:", k.error.message);
-        if(s.error) console.error("[arama] senaryo arama hatasi:", s.error.message);
-        if(g.error) console.error("[arama] gonderi arama hatasi:", g.error.message);
-
-        setSonuclar({
-          kullanici:k.data||[],
-          senaryo:s.data||[],
-          gonderi:g.data||[],
-        });
-        setAramaYapildi(true);
-      }catch(err){
-        console.error("[arama] aramaYap beklenmeyen hata:", err);
-        setSonuclar({kullanici:[],senaryo:[],gonderi:[]});
-        setAramaYapildi(true);
-      }finally{
-        setYukleniyor(false);
-      }
-    },350);
+  }, [query, tab, page]);
+  function submit(e) {
+    e.preventDefault();
+    setPage(0);
+    setProfiles([]);
+    setQuery(draft.trim());
+    router.replace(
+      { pathname: "/arama", query: draft.trim() ? { q: draft.trim() } : {} },
+      undefined,
+      { shallow: true },
+    );
   }
-
-  var toplamSonuc=sonuclar.kullanici.length+sonuclar.senaryo.length+sonuclar.gonderi.length;
-  var gosterKullanici=tab==="hepsi"||tab==="kullanici";
-  var gosterSenaryo=tab==="hepsi"||tab==="senaryo";
-  var gosterGonderi=tab==="hepsi"||tab==="gonderi";
-
-  if(!authHazir)return(
-    <div style={{minHeight:"100vh",background:G.black,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{width:28,height:28,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.8s linear infinite",boxShadow:G.glowBlue}}/>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-
-  return(
-    <div style={{minHeight:"100vh",background:G.black,color:G.text,fontFamily:G.fontBody,paddingBottom:90}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,800&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        a{text-decoration:none;color:inherit;} button{font-family:inherit;cursor:pointer;}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        ::-webkit-scrollbar{width:2px;} ::-webkit-scrollbar-thumb{background:${G.blueD};border-radius:2px;}
-        ::selection{background:rgba(56,189,248,0.2);color:${G.blueL};}
-        input::placeholder{color:${G.textDim};}
-        .ara-satir{transition:background 0.12s;} .ara-satir:hover{background:rgba(56,189,248,0.04)!important;}
-      `}</style>
-
-      {/* TOPBAR */}
-      <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.97)`,backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
-        <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer",flexShrink:0}}>
-          <Av url={avatarUrl} size={34}/>
-              <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:140}}/>
-        </button>
-        <div style={{flex:1,position:"relative"}}>
-          <div style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}>
-            {yukleniyor
-              ?<div style={{width:14,height:14,border:`2px solid ${G.border}`,borderTopColor:G.blue,borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>
-              :<Icon id="search" size={15} color={G.textDim}/>}
-          </div>
-          <input
-            ref={inputRef}
-            value={ara}
-            onChange={e=>{setAra(e.target.value);aramaYap(e.target.value);}}
-            placeholder="Kullanıcı, senaryo veya gönderi ara..."
-            style={{width:"100%",background:G.surface,border:`1px solid ${G.border}`,borderRadius:22,padding:"10px 38px 10px 38px",color:G.text,fontSize:13,outline:"none",fontFamily:G.fontBody,transition:"border-color 0.2s"}}
-            onFocus={e=>e.target.style.borderColor=G.blueD}
-            onBlur={e=>e.target.style.borderColor=G.border}
+  return (
+    <SocialLayout
+      title="Aradığın hikâye burada."
+      subtitle="Senaryo başlıklarında ve yazar kullanıcı adlarında ara."
+    >
+      <div className="social-filter">
+        <form onSubmit={submit}>
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Bir başlık veya kullanıcı adı…"
+            maxLength={120}
+            aria-label="Arama"
           />
-          {ara&&(
-            <button onClick={()=>{setAra("");setSonuclar({kullanici:[],senaryo:[],gonderi:[]});setAramaYapildi(false);inputRef.current?.focus();}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",padding:4,cursor:"pointer",display:"flex"}}>
-              <Icon id="x" size={14} color={G.textDim}/>
-            </button>
-          )}
-        </div>
+          <Button type="submit">Ara</Button>
+        </form>
+        <Button
+          variant={tab === "stories" ? "primary" : "ghost"}
+          onClick={() => {
+            setTab("stories");
+            setPage(0);
+          }}
+        >
+          Senaryolar
+        </Button>
+        <Button
+          variant={tab === "writers" ? "primary" : "ghost"}
+          onClick={() => {
+            setTab("writers");
+            setPage(0);
+          }}
+        >
+          Yazarlar
+        </Button>
       </div>
-
-      <div style={{maxWidth:680,margin:"0 auto"}}>
-        {!aramaYapildi?(
-          /* ── KEŞFET MODU ── */
-          <div style={{padding:"20px 16px"}}>
-
-            {/* Popüler senaryolar */}
-            <div style={{marginBottom:28}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-                <Icon id="trending" size={14} color={G.blue}/>
-                <p style={{fontFamily:G.fontDisp,fontSize:14,letterSpacing:"0.12em",color:G.blue}}>POPÜLER SENARYOLAR</p>
-              </div>
-              {populer.length===0?(
-                <p style={{fontSize:13,color:G.textMuted,textAlign:"center",padding:"30px 0"}}>Henüz senaryo yok.</p>
-              ):(
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {populer.map((s,i)=>{
-                    var turRenk=TURLER_RENK[s.tur]||G.blue;
-                    return(
-                      <a key={i} href="/kesfet" className="ara-satir"
-                        style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:14,background:G.card,border:`1px solid ${G.border}`,position:"relative",transition:"all 0.2s"}}
-                        onMouseEnter={e=>{e.currentTarget.style.borderColor=turRenk+"40";}}
-                        onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;}}>
-                        <NeonCorners color={turRenk} size={7}/>
-                        <div style={{width:36,height:36,borderRadius:10,background:`${turRenk}15`,border:`1px solid ${turRenk}25`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          <Icon id="film" size={16} color={turRenk}/>
-                        </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <p style={{fontSize:13,fontWeight:700,color:G.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.baslik}</p>
-                          <p style={{fontSize:11,color:G.textMuted,marginTop:2}}>{s.tur} · ❤️ {s.begeni_sayisi||0}</p>
-                        </div>
-                        <span style={{fontFamily:G.fontDisp,fontSize:18,color:`${G.blue}25`}}>#{i+1}</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Hızlı Git */}
-            <div>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-                <Icon id="zap" size={14} color={G.blue}/>
-                <p style={{fontFamily:G.fontDisp,fontSize:14,letterSpacing:"0.12em",color:G.blue}}>HIZLI GİT</p>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                {[{href:"/kesfet",icon:"compass",label:"Keşfet",col:G.blue},{href:"/topluluk",icon:"users",label:"Topluluk",col:G.purple},{href:"/uret",icon:"film",label:"Senaryo Üret",col:G.blue},{href:"/mesajlar",icon:"chat",label:"Mesajlar",col:G.purple}].map(item=>(
-                  <a key={item.href} href={item.href}
-                    style={{display:"flex",alignItems:"center",gap:10,padding:"13px 14px",borderRadius:14,background:G.card,border:`1px solid ${G.border}`,transition:"all 0.2s",position:"relative"}}
-                    onMouseEnter={e=>{e.currentTarget.style.borderColor=item.col+"40";e.currentTarget.style.boxShadow=`0 0 16px ${item.col}12`;}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.boxShadow="none";}}>
-                    <NeonCorners color={item.col} size={7}/>
-                    <Icon id={item.icon} size={16} color={item.col}/>
-                    <span style={{fontSize:12,fontWeight:600,color:G.text}}>{item.label}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
+      {tab === "stories" ? (
+        <Feed initialQuery={query} />
+      ) : (
+        <>
+          <Notice error={error} />
+          {loading && !profiles.length ? (
+            <p role="status" className="muted">
+              Yazarlar aranıyor…
+            </p>
+          ) : !profiles.length && !error ? (
+            <Empty
+              title="Yazar bulunamadı."
+              description="Farklı bir kullanıcı adı deneyebilirsin."
+            />
+          ) : null}
+          <div className="social-grid">
+            {profiles.map((profile) => (
+              <ProfileCard key={profile.id} profile={profile} />
+            ))}
           </div>
-        ):(
-          /* ── SONUÇLAR ── */
-          <div>
-            {/* Tab bar */}
-            <div style={{display:"flex",borderBottom:`1px solid ${G.border}`,background:`rgba(10,15,30,0.5)`,overflowX:"auto",scrollbarWidth:"none"}}>
-              {TABS.map(t=>{
-                var sayi=t.id==="hepsi"?toplamSonuc:sonuclar[t.id]?.length||0;
-                var isActive=tab===t.id;
-                return(
-                  <button key={t.id} onClick={()=>setTab(t.id)}
-                    style={{flexShrink:0,padding:"12px 16px",background:"none",border:"none",borderBottom:`2px solid ${isActive?G.blue:"transparent"}`,color:isActive?G.blue:G.textMuted,fontSize:12,fontWeight:isActive?700:500,cursor:"pointer",marginBottom:-1,display:"flex",alignItems:"center",gap:5,letterSpacing:"0.02em",transition:"all 0.2s",boxShadow:isActive?`0 2px 8px ${G.blue}20`:"none"}}>
-                    {t.label}
-                    {sayi>0&&<span style={{fontSize:10,fontWeight:800,padding:"1px 6px",borderRadius:10,background:isActive?`${G.blue}15`:"rgba(241,245,249,0.05)",color:isActive?G.blue:G.textDim}}>{sayi}</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {toplamSonuc===0?(
-              <div style={{textAlign:"center",padding:"70px 20px",animation:"fadeUp 0.4s ease"}}>
-                <div style={{fontFamily:G.fontDisp,fontSize:52,color:G.textDim,letterSpacing:"0.1em",marginBottom:12}}>SONUÇ YOK</div>
-                <p style={{fontSize:13,color:G.textMuted}}>"{ara}" için eşleşme bulunamadı</p>
-              </div>
-            ):(
-              <div style={{padding:"4px 0"}}>
-
-                {/* KULLANICILAR */}
-                {gosterKullanici&&sonuclar.kullanici.length>0&&(
-                  <div>
-                    {tab==="hepsi"&&<p style={{fontFamily:G.fontDisp,fontSize:12,letterSpacing:"0.12em",color:G.blue,padding:"14px 20px 8px"}}>KULLANICILAR</p>}
-                    {sonuclar.kullanici.map((u,i)=>(
-                      <a key={u.id} href={`/@${u.username}`} className="ara-satir"
-                        style={{display:"flex",alignItems:"center",gap:13,padding:"12px 20px",borderBottom:`1px solid ${G.border}`,background:"transparent",animation:`fadeUp 0.25s ${i*0.04}s both ease`,textDecoration:"none"}}>
-                        <Av url={u.avatar_url} size={46}/>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6}}>
-                            <p style={{fontSize:14,fontWeight:700,color:G.text}}>@{u.username}</p>
-                            {u.dogrulandi&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:20,background:`${G.blue}15`,color:G.blue,fontWeight:800,boxShadow:`0 0 6px ${G.blue}20`}}>✓</span>}
-                          </div>
-                          {u.bio&&<p style={{fontSize:12,color:G.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:2}}>{u.bio}</p>}
-                        </div>
-                        <button style={{flexShrink:0,padding:"6px 14px",borderRadius:20,background:`${G.blue}10`,border:`1px solid ${G.blue}25`,color:G.blue,fontSize:11,fontWeight:700,cursor:"pointer"}}>Takip</button>
-                      </a>
-                    ))}
-                  </div>
-                )}
-
-                {/* SENARYOLAR */}
-                {gosterSenaryo&&sonuclar.senaryo.length>0&&(
-                  <div>
-                    {tab==="hepsi"&&<p style={{fontFamily:G.fontDisp,fontSize:12,letterSpacing:"0.12em",color:G.blue,padding:"14px 20px 8px"}}>SENARYOLAR</p>}
-                    {sonuclar.senaryo.map((s,i)=>{
-                      var turRenk=TURLER_RENK[s.tur]||G.blue;
-                      return(
-                        <a key={s.id} href={`/senaryo/${s.id}`} className="ara-satir"
-                          style={{display:"flex",alignItems:"center",gap:13,padding:"12px 20px",borderBottom:`1px solid ${G.border}`,background:"transparent",animation:`fadeUp 0.25s ${i*0.04}s both ease`,textDecoration:"none"}}>
-                          <div style={{width:46,height:46,borderRadius:12,background:`${turRenk}12`,border:`1px solid ${turRenk}25`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            <Icon id="film" size={20} color={turRenk}/>
-                          </div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <p style={{fontSize:13,fontWeight:700,color:G.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.baslik}</p>
-                            <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
-                              <span style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:10,background:`${G.blue}10`,color:G.blue,border:`1px solid ${G.blue}20`}}>{s.tip}</span>
-                              <span style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:10,background:`${turRenk}10`,color:turRenk,border:`1px solid ${turRenk}20`}}>{s.tur}</span>
-                              <span style={{fontSize:11,color:G.textDim}}>@{s.profiles?.username}</span>
-                            </div>
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-                            <Icon id="heart" size={11} color={G.red}/>
-                            <span style={{fontSize:11,color:G.textMuted}}>{s.begeni_sayisi||0}</span>
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* GÖNDERİLER */}
-                {gosterGonderi&&sonuclar.gonderi.length>0&&(
-                  <div>
-                    {tab==="hepsi"&&<p style={{fontFamily:G.fontDisp,fontSize:12,letterSpacing:"0.12em",color:G.blue,padding:"14px 20px 8px"}}>GÖNDERİLER</p>}
-                    {sonuclar.gonderi.map((g,i)=>(
-                      <div key={g.id} className="ara-satir"
-                        style={{display:"flex",gap:12,padding:"12px 20px",borderBottom:`1px solid ${G.border}`,animation:`fadeUp 0.25s ${i*0.04}s both ease`}}>
-                        <Av url={g.profiles?.avatar_url} size={38}/>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:"flex",gap:6,marginBottom:5,alignItems:"center"}}>
-                            <span style={{fontSize:13,fontWeight:700,color:G.text}}>@{g.profiles?.username||"anonim"}</span>
-                            <span style={{fontSize:10,color:G.textDim}}>· {zaman(g.created_at)}</span>
-                          </div>
-                          <p style={{fontSize:13,color:G.textMuted,lineHeight:1.55,wordBreak:"break-word"}}>{g.metin?.slice(0,140)}{g.metin?.length>140?"...":""}</p>
-                          <div style={{display:"flex",alignItems:"center",gap:4,marginTop:6}}>
-                            <Icon id="heart" size={11} color={G.red}/>
-                            <span style={{fontSize:11,color:G.textDim}}>{g.begeni_sayisi||0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <AltNav/>
-      {drawer&&<SimpleDrawer user={user} username={profil?.username||(user?.email?.split("@")[0]||"")} avatarUrl={profil?.avatar_url||null} onClose={()=>setDrawer(false)}/>}
-    </div>
+          <LoadMore
+            more={more}
+            loading={loading}
+            onClick={() => setPage((p) => p + 1)}
+          />
+        </>
+      )}
+    </SocialLayout>
   );
 }

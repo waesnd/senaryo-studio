@@ -1,13 +1,16 @@
 {
-  "name": "Scriptify",
-  "short_name": "Scriptify",
-  "description": "AI destekli senaryo yazma ve paylaşma platformu",
-  "start_url": "/",
+  "name": "Senaryo Studio",
+  "short_name": "Studio",
+  "description": "Türkçe senaryo çalışma alanı: yaz, geliştir, sürümlerini koru.",
+  "start_url": "/uret",
   "display": "standalone",
-  "background_color": "#0A0F1E",
-  "theme_color": "#0A0F1E",
-  "orientation": "portrait-primary",
-  "categories": ["social", "entertainment"],
+  "background_color": "#f6f5f1",
+  "theme_color": "#16635b",
+  "orientation": "any",
+  "categories": [
+    "productivity",
+    "education"
+  ],
   "lang": "tr",
   "dir": "ltr",
   "scope": "/",
@@ -27,40 +30,16 @@
   ],
   "shortcuts": [
     {
-      "name": "Senaryo Üret",
-      "short_name": "Üret",
-      "url": "/uret",
-      "description": "AI ile senaryo üret",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "name": "Yeni taslak",
+      "url": "/uret"
+    },
+    {
+      "name": "Kitaplığım",
+      "url": "/profil"
     },
     {
       "name": "Keşfet",
-      "short_name": "Keşfet",
-      "url": "/kesfet",
-      "description": "Senaryoları keşfet",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Topluluk",
-      "short_name": "Topluluk",
-      "url": "/topluluk",
-      "description": "Topluluk ve challengelar",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Mesajlar",
-      "short_name": "Mesajlar",
-      "url": "/mesajlar",
-      "description": "Mesajlarını gör",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/og-image.png",
-      "sizes": "1200x630",
-      "type": "image/png",
-      "label": "Scriptify Ana Sayfa"
+      "url": "/kesfet"
     }
   ],
   "related_applications": [],
