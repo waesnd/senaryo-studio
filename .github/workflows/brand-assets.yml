@@ -1,0 +1,21 @@
+name: Brand asset checks
+on:
+  push:
+    branches:
+      - feat/fabularc-brand-assets-v1
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  brand-assets:
+    if: github.head_ref == 'feat/fabularc-brand-assets-v1' || github.ref_name == 'feat/fabularc-brand-assets-v1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run brand integrity tests
+        run: npm test
