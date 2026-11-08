@@ -5,25 +5,25 @@ export default function Document(){
     <Html lang="tr">
       <Head>
         <meta charSet="utf-8"/>
-        <meta name="application-name" content="Scriptify"/>
+        <meta name="application-name" content="Fabularc"/>
         <meta name="apple-mobile-web-app-capable" content="yes"/>
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-        <meta name="apple-mobile-web-app-title" content="Scriptify"/>
-        <meta name="description" content="AI destekli senaryo yazma ve paylaşma platformu — Üret, paylaş, keşfet."/>
+        <meta name="apple-mobile-web-app-title" content="Fabularc"/>
+        <meta name="description" content="Profesyonel senaryo, yaratıcı yazarlık ve yapay zekâ destekli hikâye geliştirme platformu."/>
         <meta name="mobile-web-app-capable" content="yes"/>
-        <meta name="theme-color" content="#0A0F1E"/>
-        <meta name="msapplication-TileColor" content="#0A0F1E"/>
+        <meta name="theme-color" content="#063B32"/>
+        <meta name="msapplication-TileColor" content="#063B32"/>
 
         {/* PWA */}
         <link rel="manifest" href="/manifest.json"/>
+        <link rel="icon" type="image/svg+xml" href="/brand/fabularc-favicon.svg"/>
+        {/* Apple/PWA raster icons remain on existing paths until the approved PNG package is deployed. */}
         <link rel="apple-touch-icon" href="/icon-192.png"/>
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png"/>
 
         {/* Open Graph */}
-        <meta property="og:site_name" content="Scriptify"/>
-        <meta property="og:title" content="Scriptify — AI Senaryo Platformu"/>
-        <meta property="og:description" content="AI ile özgün film & dizi senaryoları üret, paylaş, keşfet."/>
+        <meta property="og:site_name" content="Fabularc"/>
+        <meta property="og:title" content="Fabularc — Yaratıcı Yazarlık ve Senaryo Platformu"/>
+        <meta property="og:description" content="Senaryo ve edebî eserlerini yaz, geliştir ve yaratıcı toplulukla paylaş."/>
         <meta property="og:type" content="website"/>
         <meta property="og:url" content="https://senaryo-studio-git-main-waesnds-projects.vercel.app"/>
         <meta property="og:image" content="https://senaryo-studio-git-main-waesnds-projects.vercel.app/og-image.png"/>
@@ -33,7 +33,7 @@ export default function Document(){
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image"/>
-        <meta name="twitter:title" content="Scriptify — AI Senaryo Platformu"/>
+        <meta name="twitter:title" content="Fabularc — AI Senaryo Platformu"/>
         <meta name="twitter:description" content="AI ile özgün film & dizi senaryoları üret, paylaş, keşfet."/>
         <meta name="twitter:image" content="https://senaryo-studio-git-main-waesnds-projects.vercel.app/og-image.png"/>
         <meta name="twitter:creator" content="@uykusuzyazar"/>
@@ -47,8 +47,8 @@ export default function Document(){
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
         <style>{`
           /* Flash of unstyled content engelle */
-          html { background: #0A0F1E; }
-          body { background: #0A0F1E; color: #F1F5F9; }
+          html { background: #063B32; }
+          body { background: #063B32; color: #F1F5F9; }
         `}</style>
       </Head>
       <body>
