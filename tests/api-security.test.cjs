@@ -94,13 +94,14 @@ test("Cloudinary deletion rejects forged owner folder without DB ownership proof
 
 test("Cloudinary deletion allows exact media on authenticated profile", async () => {
   let deletes = 0;
+  const publicId = "fabularc/users/11111111-1111-4111-8111-111111111111/avatar-abcdef0123456789abcdef01";
   const query = {
     select() { return this; },
     eq() { return this; },
     single() {
       return Promise.resolve({
         data: {
-          avatar_url: "https://res.cloudinary.com/demo/image/upload/v123456/avatar-own.png",
+          avatar_url: "https://res.cloudinary.com/demo/image/upload/v123456/" + publicId + ".png",
           banner_url: null,
         },
       });
@@ -118,8 +119,8 @@ test("Cloudinary deletion allows exact media on authenticated profile", async ()
   const res = response();
   await handler({
     method: "POST",
-    body: { public_id: "avatar-own", resource_type: "image" },
-    user: { id: "owner-123" },
+    body: { public_id: publicId, resource_type: "image" },
+    user: { id: "11111111-1111-4111-8111-111111111111" },
     supabase: { from: () => query },
   }, res);
   assert.equal(res.statusCode, 200);
