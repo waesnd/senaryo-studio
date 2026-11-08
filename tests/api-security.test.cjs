@@ -169,3 +169,51 @@ test("AI generation respects explicit story language and country", async () => {
   assert.doesNotMatch(sentPrompt, /MUTLAKA Türkçe\/Türk ismi/);
   assert.doesNotMatch(sentPrompt, /Dil tamamen Türkçe/);
 });
+
+test("AI generation preserves Turkish default for existing clients", async () => {
+  let sentPrompt = "";
+  const query = {
+    select() { return this; },
+    eq() { return this; },
+    gte() { return Promise.resolve({ count: 0, error: null }); },
+    insert() { return Promise.resolve({ error: null }); },
+  };
+  const handler = handlerFrom("pages/api/generate.js", {
+    withAuth: fn => fn,
+    createClient: () => ({ from: () => query }),
+    callGroq: async (prompt) => {
+      sentPrompt = prompt;
+      return {
+        baslik: "Başlık", tagline: "Kısa söz", ana_fikir: "Hikâye",
+        karakter: "Karakterler", acilis_sahnesi: "Açılış", buyuk_soru: "Soru",
+      };
+    },
+  });
+  const res = response();
+  await handler({
+    method: "POST", user: { id: "writer-2" },
+    body: { tip: "film", tur: "dram" },
+  }, res);
+  assert.equal(res.statusCode, 200);
+  assert.match(sentPrompt, /Eser dili: tr/);
+  assert.match(sentPrompt, /hikâye ülkesi: TR/);
+});
+
+test("AI generation rejects invalid locale before quota or provider calls", async () => {
+  let clientCalls = 0;
+  let providerCalls = 0;
+  const handler = handlerFrom("pages/api/generate.js", {
+    withAuth: fn => fn,
+    createClient: () => { clientCalls++; return {}; },
+    callGroq: async () => { providerCalls++; return {}; },
+  });
+  const res = response();
+  await handler({
+    method: "POST", user: { id: "writer-3" },
+    body: { tip: "film", tur: "dram", dil: "english", ulke: "USA" },
+  }, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.code, "INVALID_LOCALE");
+  assert.equal(clientCalls, 0);
+  assert.equal(providerCalls, 0);
+});
