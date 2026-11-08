@@ -32,7 +32,7 @@ SQL
 psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611080001_atomic_ai_quota.sql
 
 # Permissions are a required security boundary.
-psql -X -v ON_ERROR_STOP=1 -tA <<'SQL' | grep -qx 't,f'
+psql -X -v ON_ERROR_STOP=1 -tA <<'SQL' | grep -Fqx 't|f'
 SELECT has_function_privilege('authenticated','public.reserve_generate_quota(jsonb)','EXECUTE'),
        has_function_privilege('anon','public.reserve_generate_quota(jsonb)','EXECUTE');
 SQL
