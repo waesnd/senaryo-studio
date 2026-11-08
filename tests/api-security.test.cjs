@@ -81,3 +81,25 @@ test("Cloudinary deletion rejects substring-based ownership", async () => {
   assert.equal(res.statusCode, 403);
   assert.equal(deletes, 0);
 });
+
+test("Cloudinary deletion rejects forged owner folder without DB ownership proof", async () => {
+  let deletes = 0;
+  const query = {
+    select() { return this; },
+    eq() { return this; },
+    single() { return Promise.resolve({ data: { avatar_url: null, banner_url: null } }); },
+  };
+  const handler = handlerFrom("pages/api/medya-sil.js", {
+    withAuth: fn => fn,
+    fetch: async () => { deletes++; return { ok: true, json: async () => ({ result: "ok" }) }; },
+  });
+  const res = response();
+  await handler({
+    method: "POST",
+    body: { public_id: "user-123/foreign-asset" },
+    user: { id: "user-123" },
+    supabase: { from: () => query },
+  }, res);
+  assert.equal(res.statusCode, 403);
+  assert.equal(deletes, 0);
+});
