@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { withAuth } from "../../lib/withAuth";
 import { callGroq } from "../../lib/groq";
 
@@ -47,6 +46,16 @@ function validateBody(body) {
   const ozelIstek = sanitizeText(body?.ozelIstek, 2000);
   const sahneSayisi = toSafeInteger(body?.sahneSayisi, null);
   const karakterSayisi = toSafeInteger(body?.karakterSayisi, null);
+  const dil = sanitizeText(body?.dil ?? "tr", 10).toLowerCase();
+  const ulke = sanitizeText(body?.ulke ?? "TR", 10).toUpperCase();
+
+  if (!/^[a-z]{2}(?:-[a-z]{2})?$/.test(dil) || !/^[A-Z]{2}$/.test(ulke)) {
+    return {
+      valid: false,
+      error: "Geçersiz dil veya ülke kodu.",
+      code: "INVALID_LOCALE",
+    };
+  }
 
   if (!tip || !tur) {
     return {
@@ -80,6 +89,8 @@ function validateBody(body) {
       ozelIstek,
       sahneSayisi,
       karakterSayisi,
+      dil,
+      ulke,
     },
   };
 }
@@ -90,13 +101,16 @@ function buildPrompt({
   ozelIstek,
   sahneSayisi,
   karakterSayisi,
+  dil,
+  ulke,
 }) {
-  return `Sen Türkiye'nin en iyi senaryo yazarısın. ${tip} formatında, ${tur} türünde özgün ve çarpıcı bir senaryo fikri üret.
+  return `Sen deneyimli bir yaratıcı yazarlık ve senaryo geliştirme uzmanısın. ${tip} formatında, ${tur} türünde özgün bir hikâye fikri üret.
 
 ZORUNLU KURALLAR:
-- Tüm karakter isimleri MUTLAKA Türkçe/Türk ismi olmalı (Ayşe, Kemal, Zeynep, Tarık, Defne, Murat, Hira, Serdar, Leyla, Caner, Bora, Naz, Ece, Selim, Melis gibi)
-- Mekanlar Türkiye'de geçsin (aksi belirtilmedikçe)
-- Dil tamamen Türkçe, akıcı ve etkileyici olsun
+- Eser dili: ${dil}. Başlık, özet, açılış ve diğer tüm yazılı içeriği bu dilde üret.
+- Varsayılan hikâye ülkesi: ${ulke}. Kullanıcı farklı bir mekân belirttiyse kullanıcının seçimini koru.
+- Karakter adları ve kültürel ayrıntılar eserin bağlamına uygun olmalı; zorunlu bir milliyet veya isim listesi dayatma.
+- Kullanıcının özellikle seçtiği karakter adlarını, dili ve mekânları izinsiz değiştirme.
 - Karakterler psikolojik olarak derinlikli ve tutarlı olsun
 - Açılış sahnesi seyirciyi anında içine çekecek güçte olsun
 - Tagline akılda kalıcı, film postere yazılabilecek nitelikte olsun
@@ -108,7 +122,7 @@ ${ozelIstek ? `- Özel istekte gerçek kişi adları varsa, bunları yalnızca k
 
 SADECE aşağıdaki JSON formatında yanıt ver. Markdown, açıklama, kod bloğu ekleme:
 {
-  "baslik": "Güçlü ve akılda kalıcı Türkçe başlık",
+  "baslik": "Güçlü ve akılda kalıcı başlık",
   "tagline": "Tek cümlelik çarpıcı tagline",
   "ana_fikir": "3-4 paragraf hikaye özeti ve çatışma",
   "karakter": "Ana karakterler ve kısa psikolojik profilleri",
@@ -130,54 +144,29 @@ function normalizeGroqResponse(parsed) {
   return result;
 }
 
-function createSupabaseServerClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
-async function checkAndLogUsage(userId, meta) {
-  const supabase = createSupabaseServerClient();
-  const sinir = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  const { count, error: countError } = await supabase
-    .from("kullanim_log")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("islem", "generate")
-    .gte("created_at", sinir);
-
-  if (countError) {
-    throw countError;
+async function reserveUsage(req, meta) {
+  // The authenticated request client carries the caller's verified JWT.
+  // A database transaction serializes quota reservations for concurrent calls.
+  if (!req.supabase || typeof req.supabase.rpc !== "function") {
+    throw new Error("Authenticated quota client unavailable");
   }
 
-  const mevcutKullanim = count || 0;
-
-  if (mevcutKullanim >= GUNLUK_LIMIT) {
-    return {
-      allowed: false,
-      kalan: 0,
-      limit: GUNLUK_LIMIT,
-      resetAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    };
-  }
-
-  const { error: insertError } = await supabase.from("kullanim_log").insert({
-    user_id: userId,
-    islem: "generate",
-    meta,
+  const { data, error } = await req.supabase.rpc("reserve_generate_quota", {
+    p_meta: meta,
   });
+  if (error) throw error;
 
-  if (insertError) {
-    throw insertError;
+  if (!data || typeof data.allowed !== "boolean" ||
+      !Number.isInteger(data.kalan) || !Number.isInteger(data.limit) ||
+      data.limit !== GUNLUK_LIMIT || data.kalan < 0 || data.kalan > data.limit) {
+    throw new Error("Invalid quota reservation response");
   }
 
   return {
-    allowed: true,
-    kalan: Math.max(GUNLUK_LIMIT - (mevcutKullanim + 1), 0),
-    limit: GUNLUK_LIMIT,
-    resetAt: null,
+    allowed: data.allowed,
+    kalan: data.kalan,
+    limit: data.limit,
+    resetAt: data.reset_at || null,
   };
 }
 
@@ -196,13 +185,12 @@ async function handler(req, res) {
     return sendError(res, 400, validation.error, validation.code);
   }
 
-  const { tip, tur, ozelIstek, sahneSayisi, karakterSayisi } = validation.values;
-  const userId = req.user.id;
+  const { tip, tur, ozelIstek, sahneSayisi, karakterSayisi, dil, ulke } = validation.values;
 
   let usageInfo = null;
 
   try {
-    usageInfo = await checkAndLogUsage(userId, { tip, tur });
+    usageInfo = await reserveUsage(req, { tip, tur, dil, ulke });
 
     if (!usageInfo.allowed) {
       return sendError(
@@ -221,7 +209,14 @@ async function handler(req, res) {
     res.setHeader("X-Kalan-Uretim", String(usageInfo.kalan));
     res.setHeader("X-Uretim-Limit", String(usageInfo.limit));
   } catch (usageError) {
-    console.error("[generate] kullanim_log hatası:", usageError);
+    console.error("[generate] kota rezervasyonu hatası:", usageError);
+    // Fail closed: do not call a billable AI provider without a verified quota.
+    return sendError(
+      res,
+      503,
+      "Kullanım limiti şu anda doğrulanamıyor. Lütfen daha sonra tekrar deneyin.",
+      "USAGE_CHECK_UNAVAILABLE"
+    );
   }
 
   const prompt = buildPrompt({
@@ -230,6 +225,8 @@ async function handler(req, res) {
     ozelIstek,
     sahneSayisi,
     karakterSayisi,
+    dil,
+    ulke,
   });
 
   try {

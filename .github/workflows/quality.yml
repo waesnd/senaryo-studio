@@ -1,0 +1,171 @@
+name: Fabularc integrated quality gate
+on:
+  push:
+    branches:
+      - main
+      - integration/fabularc-foundation
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Full regression suite
+        run: npm test
+      - name: Enforce production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Production build with fake public Supabase configuration
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-placeholder-not-a-secret
+        run: npm run build
+      - name: HTTP smoke with synthetic configuration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-placeholder-not-a-secret
+        run: bash tests/smoke.sh
+
+  atomic-quota-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: local-ci-only
+      PGDATABASE: postgres
+      FABULARC_TEST_DATABASE: disposable-ci-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test SQL migration, concurrent calls and role permissions
+        run: bash tests/sql/atomic-quota.sh
+
+  story-version-rls-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: disposable-ci-only
+      PGDATABASE: postgres
+      FABULARC_TEST_DATABASE: disposable-ci-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify story/version RLS with anonymous and authenticated users
+        run: bash tests/sql/story-version-rls.sh
+
+  private-archive-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: disposable-ci-only
+      PGDATABASE: postgres
+      FABULARC_TEST_DATABASE: disposable-ci-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify owner-only personal archive permissions
+        run: bash tests/sql/private-archive.sh
+
+  message-update-guard-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: disposable-ci-only
+      PGDATABASE: postgres
+      FABULARC_TEST_DATABASE: disposable-ci-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify immutable chat messages and recipient read status
+        run: bash tests/sql/message-update-guard.sh
+
+  post-privacy-reports-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: disposable-ci-only
+      PGDATABASE: postgres
+      FABULARC_TEST_DATABASE: disposable-ci-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify private posts, ownership and report moderation
+        run: bash tests/sql/post-privacy-reports.sh
