@@ -1,13 +1,16 @@
 {
-  "name": "Scriptify",
-  "short_name": "Scriptify",
-  "description": "AI destekli senaryo yazma ve paylaşma platformu",
+  "name": "Fabularc",
+  "short_name": "Fabularc",
+  "description": "Profesyonel senaryo yazarlığı, yaratıcı edebiyat, yapay zekâ ve yazar topluluğu",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A0F1E",
-  "theme_color": "#0A0F1E",
+  "background_color": "#063B32",
+  "theme_color": "#063B32",
   "orientation": "portrait-primary",
-  "categories": ["social", "entertainment"],
+  "categories": [
+    "productivity",
+    "social"
+  ],
   "lang": "tr",
   "dir": "ltr",
   "scope": "/",
@@ -16,13 +19,13 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -31,36 +34,48 @@
       "short_name": "Üret",
       "url": "/uret",
       "description": "AI ile senaryo üret",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Keşfet",
       "short_name": "Keşfet",
       "url": "/kesfet",
-      "description": "Senaryoları keşfet",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "description": "Hikâyeları keşfet",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Topluluk",
       "short_name": "Topluluk",
       "url": "/topluluk",
       "description": "Topluluk ve challengelar",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Mesajlar",
       "short_name": "Mesajlar",
       "url": "/mesajlar",
       "description": "Mesajlarını gör",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/og-image.png",
-      "sizes": "1200x630",
-      "type": "image/png",
-      "label": "Scriptify Ana Sayfa"
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "related_applications": [],
