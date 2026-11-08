@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
+import { uploadChatMedia } from "../lib/cloudinaryUpload";
 import { useAuth } from "../lib/useAuth";
 
 var G = {
@@ -447,32 +448,45 @@ export default function Mesajlar(){
   }
 
   async function gorselGonder(e){
-    var file=e.target.files[0];if(!file)return;
+    const file=e.target.files?.[0];
+    if(!file)return;
     setGorselYukleniyor(true);
-    try{
-      var fd=new FormData();fd.append("file",file);fd.append("upload_preset","scriptify_posts");
-      var res=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
-      var data=await res.json();
-      if(data.secure_url)await mesajGonder(data.secure_url,"gorsel",null);
-    }catch(e){}
-    setGorselYukleniyor(false);
+    try {
+      const data=await uploadChatMedia({supabase,file,kind:"message-image"});
+      await mesajGonder(data.secure_url,"gorsel",null);
+    } catch(error) {
+      console.error("[mesaj] görsel yükleme hatası:",error);
+      alert(error.message || "Görsel gönderilemedi.");
+    } finally {
+      setGorselYukleniyor(false);
+      if(e.target)e.target.value="";
+    }
   }
 
   async function sesBaslat(){
     try{
-      var stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      var rec=new MediaRecorder(stream);var chunks=[];
-      rec.ondataavailable=e=>chunks.push(e.data);
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const rec=new MediaRecorder(stream);
+      const chunks=[];
+      rec.ondataavailable=e=>{if(e.data?.size>0)chunks.push(e.data);};
       rec.onstop=async()=>{
-        var blob=new Blob(chunks,{type:"audio/webm"});
-        var fd=new FormData();fd.append("file",blob,"ses.webm");fd.append("upload_preset","scriptify_posts");
-        var res=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/video/upload",{method:"POST",body:fd});
-        var data=await res.json();
-        if(data.secure_url)await mesajGonder(null,null,data.secure_url);
-        stream.getTracks().forEach(t=>t.stop());
+        try {
+          const mime=(rec.mimeType||"audio/webm").split(";")[0];
+          const blob=new Blob(chunks,{type:mime});
+          const data=await uploadChatMedia({supabase,file:blob,kind:"message-audio"});
+          await mesajGonder(null,null,data.secure_url);
+        }catch(error){
+          console.error("[mesaj] ses yükleme hatası:",error);
+          alert(error.message || "Sesli mesaj gönderilemedi.");
+        }finally{
+          stream.getTracks().forEach(t=>t.stop());
+        }
       };
-      rec.start();setMediaRec(rec);setSesKayd(true);
-    }catch(e){alert("Mikrofon izni gerekli");}
+      rec.onerror=()=>stream.getTracks().forEach(t=>t.stop());
+      rec.start();
+      setMediaRec(rec);
+      setSesKayd(true);
+    }catch(error){alert("Mikrofon izni veya ses kaydı kullanılamıyor.");}
   }
 
   function sesDur(){if(mediaRec){mediaRec.stop();setMediaRec(null);setSesKayd(false);}}
