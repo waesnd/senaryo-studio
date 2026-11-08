@@ -60,6 +60,13 @@ export default function FabularcEditor() {
   useEffect(() => { bodyRef.current = body; }, [body]);
 
   useEffect(() => {
+    // Never show a prior account's locally cached workspace after an auth switch.
+    setProjects([]);
+    setActiveProject(null);
+    setScenes([]);
+    setActiveScene(null);
+    setHeading("");
+    setBody("");
     if (!user?.id) return;
     let cancelled = false;
     (async () => {
