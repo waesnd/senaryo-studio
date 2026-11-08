@@ -190,6 +190,8 @@ export default function Uret(){
   var {user, profil, authHazir, okunmayanBildirim} = useAuth();
   var [tip,setTip]=useState("Dizi");
   var [tur,setTur]=useState("Gerilim");
+  var [eserDili,setEserDili]=useState("tr");
+  var [hikayeUlkesi,setHikayeUlkesi]=useState("TR");
   var [ozelIstek,setOzelIstek]=useState("");
   var [yukleniyor,setYukleniyor]=useState(false);
   var [senaryo,setSenaryo]=useState(null);
@@ -275,7 +277,7 @@ export default function Uret(){
     if(limitDoldu) return;
     setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");
     try{
-      var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi});
+      var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi,dil:eserDili,ulke:hikayeUlkesi});
       var kalan=res.headers.get("X-Kalan-Uretim");
       if(kalan!==null) setKalanUretim(parseInt(kalan));
 
@@ -739,6 +741,22 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
           <SecBaslik label="Tür"/>
           <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:20}}>
             {TURLER.map(t=><SecBtn key={t} aktif={tur===t} onClick={()=>setTur(t)} color={G.purple}>{t}</SecBtn>)}
+          </div>
+
+          <SecBaslik label="Eser Dili ve Hikâye Ülkesi" info="Yazım dili ve hikâyenin geçtiği ülke birbirinden bağımsızdır."/>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10,marginBottom:20}}>
+            <label style={{display:"flex",flexDirection:"column",gap:7,fontSize:12,color:G.textMuted}}>
+              Eser dili
+              <select aria-label="Eser dili" value={eserDili} onChange={e=>setEserDili(e.target.value)} style={{padding:"12px",borderRadius:10,background:G.surface,border:`1px solid ${G.border}`,color:G.text,minWidth:0}}>
+                <option value="tr">Türkçe</option><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="es">Español</option><option value="it">Italiano</option><option value="pt">Português</option><option value="ar">العربية</option>
+              </select>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:7,fontSize:12,color:G.textMuted}}>
+              Hikâye ülkesi
+              <select aria-label="Hikâye ülkesi" value={hikayeUlkesi} onChange={e=>setHikayeUlkesi(e.target.value)} style={{padding:"12px",borderRadius:10,background:G.surface,border:`1px solid ${G.border}`,color:G.text,minWidth:0}}>
+                <option value="TR">Türkiye</option><option value="US">ABD</option><option value="GB">Birleşik Krallık</option><option value="FR">Fransa</option><option value="DE">Almanya</option><option value="ES">İspanya</option><option value="IT">İtalya</option><option value="JP">Japonya</option><option value="IN">Hindistan</option><option value="BR">Brezilya</option><option value="CA">Kanada</option>
+              </select>
+            </label>
           </div>
 
           <SecBaslik label="Özel İstek" info="İstanbul'da geçsin, güçlü kadın karakter..."/>
