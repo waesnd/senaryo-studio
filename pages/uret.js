@@ -371,50 +371,68 @@ export default function Uret(){
   }
 
 
-  // Arşivi yükle
+  // Kişisel arşivi yükle (senaryo sürüm geçmişinden bağımsız)
   async function arsivYukle(){
     if(!user) return;
     setArsivYukleniyor(true);
-    var {data} = await supabase.from("senaryo_versiyonlar")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", {ascending:false})
-      .limit(50);
-    if(data) setArsiv(data);
-    setArsivYukleniyor(false);
+    try {
+      const {data,error} = await supabase.from("yazar_arsivi")
+        .select("id,user_id,tip,tur,baslik,tagline,veri,created_at")
+        .eq("user_id", user.id)
+        .order("created_at", {ascending:false})
+        .limit(50);
+      if(error) throw error;
+      setArsiv(data || []);
+    } catch(error) {
+      console.error("[arsiv] yükleme hatası:",error);
+      alert("Arşiv yüklenemedi: " + (error.message || "Bilinmeyen hata"));
+    } finally {
+      setArsivYukleniyor(false);
+    }
   }
 
-  // Versiyonu arşive kaydet
+  // Yaratıcı çalışma anlık görüntüsünü kişisel arşive kaydet
   async function versiyonKaydet(){
     if(!user||!senaryo||arsivKaydediliyor) return;
     setArsivKaydediliyor(true);
-    await supabase.from("senaryo_versiyonlar").insert({
-      user_id:    user.id,
-      tip,
-      tur,
-      baslik:     senaryo.baslik,
-      tagline:    senaryo.tagline,
-      veri:       JSON.stringify({
-        senaryo,
-        beatler:        Object.keys(beatler).length>0 ? beatler : null,
-        karakterBible:  karakterBible || null,
-        heroJourney:    heroJourney || null,
-        logline:        logline || null,
-        pitchDeck:      pitchDeck || null,
-        dramaturgAnaliz:dramaturgAnaliz || null,
-        puan:           puan || null,
-      }),
-    });
-    // Arşivi güncelle
-    await arsivYukle();
-    setArsivKaydediliyor(false);
+    try {
+      const {error} = await supabase.from("yazar_arsivi").insert({
+        user_id:user.id,
+        tip,
+        tur,
+        baslik:senaryo.baslik,
+        tagline:senaryo.tagline,
+        veri:{
+          senaryo,
+          beatler:Object.keys(beatler).length>0 ? beatler : null,
+          karakterBible:karakterBible || null,
+          heroJourney:heroJourney || null,
+          logline:logline || null,
+          pitchDeck:pitchDeck || null,
+          dramaturgAnaliz:dramaturgAnaliz || null,
+          puan:puan || null,
+        },
+      });
+      if(error) throw error;
+      await arsivYukle();
+    } catch(error) {
+      console.error("[arsiv] kayıt hatası:",error);
+      alert("Arşive kaydedilemedi: " + (error.message || "Bilinmeyen hata"));
+    } finally {
+      setArsivKaydediliyor(false);
+    }
   }
 
-  // Versiyonu geri yükle
+  // Arşiv kaydını geri yükle; JSONB nesne olarak dönebilir.
   function versiyonYukle(versiyon){
     try{
-      var veri = JSON.parse(versiyon.veri);
-      setSenaryo(veri.senaryo || null);
+      const veri = typeof versiyon.veri === "string"
+        ? JSON.parse(versiyon.veri)
+        : versiyon.veri;
+      if(!veri || typeof veri !== "object" || !veri.senaryo) {
+        throw new Error("Geçersiz arşiv kaydı.");
+      }
+      setSenaryo(veri.senaryo);
       setBeatler(veri.beatler || {});
       setKarakterBible(veri.karakterBible || null);
       setHeroJourney(veri.heroJourney || null);
@@ -429,11 +447,17 @@ export default function Uret(){
     }
   }
 
-  // Versiyonu sil
+  // Sadece kendi arşiv kaydını sil
   async function versiyonSil(id){
-    if(!confirm("Bu versiyonu silmek istediğine emin misin?")) return;
-    await supabase.from("senaryo_versiyonlar").delete().eq("id", id).eq("user_id", user.id);
-    setArsiv(prev => prev.filter(v => v.id !== id));
+    if(!user || !confirm("Bu versiyonu silmek istediğine emin misin?")) return;
+    try {
+      const {error} = await supabase.from("yazar_arsivi")
+        .delete().eq("id", id).eq("user_id", user.id);
+      if(error) throw error;
+      setArsiv(prev => prev.filter(v => v.id !== id));
+    } catch(error) {
+      alert("Arşiv kaydı silinemedi: " + (error.message || "Bilinmeyen hata"));
+    }
   }
 
   async function profilKaydet(){
