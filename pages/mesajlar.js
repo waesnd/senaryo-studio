@@ -535,7 +535,7 @@ export default function Mesajlar(){
           <>
             <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
               <Av url={avatarUrl} size={34}/>
-              <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
+              <img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{height:44,objectFit:"contain",maxWidth:150}}/>
             </button>
             <div style={{flex:1}}>
               <span style={{fontFamily:G.fontDisp,fontSize:20,letterSpacing:"0.1em",color:G.text}}>MESAJLAR</span>

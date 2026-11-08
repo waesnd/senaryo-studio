@@ -158,7 +158,7 @@ function Drawer({user,profil,avatarUrl,username,onClose}){
         </div>
       </nav>
       <div style={{padding:"12px 20px",borderTop:`1px solid ${G.border}`,textAlign:"center"}}>
-        <p style={{fontSize:10,color:G.textDim,letterSpacing:"0.1em"}}>© 2025 SCRIPTIFY</p>
+        <p style={{fontSize:10,color:G.textDim,letterSpacing:"0.1em"}}>© 2026 FABULARC</p>
       </div>
     </div>
 
@@ -258,7 +258,7 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
 
         {/* Üst bar */}
         <div style={{height:22,background:"rgba(0,0,0,0.4)",borderBottom:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 14px"}}>
-          <span style={{fontFamily:G.fontDisp,fontSize:10,color:G.blueD,letterSpacing:"0.2em"}}>SCRIPTIFY</span>
+          <span style={{fontFamily:G.fontDisp,fontSize:10,color:G.blueD,letterSpacing:"0.2em"}}>FABULARC</span>
           <div style={{display:"flex",gap:3}}>
             {[1,0,0,1,0,0,1].map((on,i)=><div key={i} style={{width:5,height:8,borderRadius:1,background:on?`${G.blue}40`:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.06)`}}/>)}
           </div>
@@ -712,7 +712,7 @@ export default function Index(){
 
       {/* NAV */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:50,padding:"16px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(10,15,30,0.8)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`}}>
-        <img src="/logo.png" alt="Scriptify" style={{height:32,objectFit:"contain"}}/>
+        <img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{height:32,objectFit:"contain"}}/>
         <div style={{display:"flex",gap:10}}>
           <a href="/kesfet" style={{padding:"8px 18px",borderRadius:20,border:`1px solid ${G.border}`,color:G.textMuted,fontSize:13,fontWeight:600}}>Keşfet</a>
           <button onClick={()=>supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:"https://senaryo-studio-git-main-waesnds-projects.vercel.app/auth/callback"}})} style={{padding:"8px 20px",borderRadius:20,background:G.blueGrad,color:G.black,fontSize:13,fontWeight:800,boxShadow:G.glowBlue,border:"none",cursor:"pointer"}}>Giriş Yap</button>
@@ -766,7 +766,7 @@ export default function Index(){
       </div>
       {/* FOOTER */}
       <footer style={{padding:"24px",textAlign:"center",borderTop:`1px solid ${G.border}`}}>
-        <p style={{fontSize:12,color:G.textDim}}>© 2025 Scriptify — AI Senaryo Platformu</p>
+        <p style={{fontSize:12,color:G.textDim}}>© 2026 Fabularc — AI Senaryo Platformu</p>
       </footer>
     </div>
   );
@@ -791,7 +791,7 @@ export default function Index(){
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}20,${G.purple}15,transparent)`,pointerEvents:"none"}}/>
         <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
           <Av url={avatarUrl} size={34} ring={!!user}/>
-          <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
+          <img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{height:44,objectFit:"contain",maxWidth:150}}/>
         </button>
         <div style={{display:"flex",gap:8}}>
           <a href="/bildirimler" style={{width:36,height:36,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",position:"relative",alignItems:"center",justifyContent:"center"}}>
