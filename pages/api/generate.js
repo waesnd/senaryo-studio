@@ -47,6 +47,16 @@ function validateBody(body) {
   const ozelIstek = sanitizeText(body?.ozelIstek, 2000);
   const sahneSayisi = toSafeInteger(body?.sahneSayisi, null);
   const karakterSayisi = toSafeInteger(body?.karakterSayisi, null);
+  const dil = sanitizeText(body?.dil ?? "tr", 10).toLowerCase();
+  const ulke = sanitizeText(body?.ulke ?? "TR", 10).toUpperCase();
+
+  if (!/^[a-z]{2}(?:-[a-z]{2})?$/.test(dil) || !/^[A-Z]{2}$/.test(ulke)) {
+    return {
+      valid: false,
+      error: "Geçersiz dil veya ülke kodu.",
+      code: "INVALID_LOCALE",
+    };
+  }
 
   if (!tip || !tur) {
     return {
@@ -80,6 +90,8 @@ function validateBody(body) {
       ozelIstek,
       sahneSayisi,
       karakterSayisi,
+      dil,
+      ulke,
     },
   };
 }
@@ -90,13 +102,16 @@ function buildPrompt({
   ozelIstek,
   sahneSayisi,
   karakterSayisi,
+  dil,
+  ulke,
 }) {
-  return `Sen Türkiye'nin en iyi senaryo yazarısın. ${tip} formatında, ${tur} türünde özgün ve çarpıcı bir senaryo fikri üret.
+  return `Sen deneyimli bir yaratıcı yazarlık ve senaryo geliştirme uzmanısın. ${tip} formatında, ${tur} türünde özgün bir hikâye fikri üret.
 
 ZORUNLU KURALLAR:
-- Tüm karakter isimleri MUTLAKA Türkçe/Türk ismi olmalı (Ayşe, Kemal, Zeynep, Tarık, Defne, Murat, Hira, Serdar, Leyla, Caner, Bora, Naz, Ece, Selim, Melis gibi)
-- Mekanlar Türkiye'de geçsin (aksi belirtilmedikçe)
-- Dil tamamen Türkçe, akıcı ve etkileyici olsun
+- Eser dili: ${dil}. Başlık, özet, açılış ve diğer tüm yazılı içeriği bu dilde üret.
+- Varsayılan hikâye ülkesi: ${ulke}. Kullanıcı farklı bir mekân belirttiyse kullanıcının seçimini koru.
+- Karakter adları ve kültürel ayrıntılar eserin bağlamına uygun olmalı; zorunlu bir milliyet veya isim listesi dayatma.
+- Kullanıcının özellikle seçtiği karakter adlarını, dili ve mekânları izinsiz değiştirme.
 - Karakterler psikolojik olarak derinlikli ve tutarlı olsun
 - Açılış sahnesi seyirciyi anında içine çekecek güçte olsun
 - Tagline akılda kalıcı, film postere yazılabilecek nitelikte olsun
@@ -108,7 +123,7 @@ ${ozelIstek ? `- Özel istekte gerçek kişi adları varsa, bunları yalnızca k
 
 SADECE aşağıdaki JSON formatında yanıt ver. Markdown, açıklama, kod bloğu ekleme:
 {
-  "baslik": "Güçlü ve akılda kalıcı Türkçe başlık",
+  "baslik": "Güçlü ve akılda kalıcı başlık",
   "tagline": "Tek cümlelik çarpıcı tagline",
   "ana_fikir": "3-4 paragraf hikaye özeti ve çatışma",
   "karakter": "Ana karakterler ve kısa psikolojik profilleri",
@@ -196,13 +211,13 @@ async function handler(req, res) {
     return sendError(res, 400, validation.error, validation.code);
   }
 
-  const { tip, tur, ozelIstek, sahneSayisi, karakterSayisi } = validation.values;
+  const { tip, tur, ozelIstek, sahneSayisi, karakterSayisi, dil, ulke } = validation.values;
   const userId = req.user.id;
 
   let usageInfo = null;
 
   try {
-    usageInfo = await checkAndLogUsage(userId, { tip, tur });
+    usageInfo = await checkAndLogUsage(userId, { tip, tur, dil, ulke });
 
     if (!usageInfo.allowed) {
       return sendError(
@@ -222,6 +237,13 @@ async function handler(req, res) {
     res.setHeader("X-Uretim-Limit", String(usageInfo.limit));
   } catch (usageError) {
     console.error("[generate] kullanim_log hatası:", usageError);
+    // Fail closed: do not call a billable AI provider without a verified quota.
+    return sendError(
+      res,
+      503,
+      "Kullanım limiti şu anda doğrulanamıyor. Lütfen daha sonra tekrar deneyin.",
+      "USAGE_CHECK_UNAVAILABLE"
+    );
   }
 
   const prompt = buildPrompt({
@@ -230,6 +252,8 @@ async function handler(req, res) {
     ozelIstek,
     sahneSayisi,
     karakterSayisi,
+    dil,
+    ulke,
   });
 
   try {
