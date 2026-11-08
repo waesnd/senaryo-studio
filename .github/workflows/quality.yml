@@ -21,8 +21,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Full regression suite
         run: npm test
-      - name: Dependency security audit (report only until triaged)
-        run: npm audit --omit=dev --audit-level=high || true
+      - name: Enforce production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
       - name: Production build with fake public Supabase configuration
         env:
           NEXT_TELEMETRY_DISABLED: '1'
