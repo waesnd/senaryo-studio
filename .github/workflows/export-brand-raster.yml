@@ -1,0 +1,37 @@
+name: Export approved Fabularc PNG icons
+on:
+  push:
+    branches:
+      - feat/fabularc-brand-assets-v1
+    paths:
+      - .github/workflows/export-brand-raster.yml
+      - scripts/export-brand-icons.py
+      - public/brand/fabularc-app-icon.svg
+      - public/brand/fabularc-favicon.svg
+permissions:
+  contents: write
+jobs:
+  export-icons:
+    if: github.ref == 'refs/heads/feat/fabularc-brand-assets-v1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned SVG renderer
+        run: python -m pip install --disable-pip-version-check cairosvg==2.8.2
+      - name: Rasterize approved SVG sources
+        run: python scripts/export-brand-icons.py
+      - name: Commit PNG assets to feature branch only
+        shell: bash
+        run: |
+          git add public/icon-192.png public/icon-512.png public/favicon-16.png public/favicon-32.png public/favicon-48.png
+          if git diff --cached --quiet; then
+            echo "No image changes"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "brand: export PNG icons from approved Fabularc SVGs"
+          git push origin HEAD:feat/fabularc-brand-assets-v1
