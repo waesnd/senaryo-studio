@@ -137,3 +137,35 @@ test("Cloudinary deletion allows exact media on authenticated profile", async ()
   assert.equal(res.statusCode, 200);
   assert.equal(deletes, 1);
 });
+
+test("AI generation respects explicit story language and country", async () => {
+  let sentPrompt = "";
+  const query = {
+    select() { return this; },
+    eq() { return this; },
+    gte() { return Promise.resolve({ count: 0, error: null }); },
+    insert() { return Promise.resolve({ error: null }); },
+  };
+  const handler = handlerFrom("pages/api/generate.js", {
+    withAuth: fn => fn,
+    createClient: () => ({ from: () => query }),
+    callGroq: async (prompt) => {
+      sentPrompt = prompt;
+      return {
+        baslik: "Title", tagline: "Tagline", ana_fikir: "Plot",
+        karakter: "Characters", acilis_sahnesi: "Opening", buyuk_soru: "Question",
+      };
+    },
+  });
+  const res = response();
+  await handler({
+    method: "POST",
+    user: { id: "writer-1" },
+    body: { tip: "feature film", tur: "thriller", dil: "en", ulke: "US" },
+  }, res);
+  assert.equal(res.statusCode, 200);
+  assert.match(sentPrompt, /en/i);
+  assert.match(sentPrompt, /US/);
+  assert.doesNotMatch(sentPrompt, /MUTLAKA Türkçe\/Türk ismi/);
+  assert.doesNotMatch(sentPrompt, /Dil tamamen Türkçe/);
+});
