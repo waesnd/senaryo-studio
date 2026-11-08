@@ -32,3 +32,11 @@ test("migration preserves existing scenario version history", () => {
   assert.doesNotMatch(migration, /DROP TABLE|TRUNCATE|DELETE FROM/);
   assert.doesNotMatch(migration, /ALTER TABLE public\.senaryo_versiyonlar/);
 });
+
+test("story generation has independently configurable language and country", () => {
+  assert.match(editor, /\[eserDili,setEserDili\]=useState\("tr"\)/);
+  assert.match(editor, /\[hikayeUlkesi,setHikayeUlkesi\]=useState\("TR"\)/);
+  assert.match(editor, /dil:eserDili,ulke:hikayeUlkesi/);
+  assert.match(editor, /aria-label="Eser dili"/);
+  assert.match(editor, /aria-label="Hikâye ülkesi"/);
+});
