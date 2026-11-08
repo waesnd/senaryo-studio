@@ -268,8 +268,27 @@ export default function FabularcEditor() {
     downloadText(filename+".fdx",xml,"application/xml;charset=utf-8");
   }
 
-  if (!authHazir) return <div className="loading">Editör hazırlanıyor...</div>;
-  if (!user) return <div className="loading">Yazarlık editörüne erişmek için giriş yapmalısınız. <a href="/">Ana sayfa</a></div>;
+  if (!authHazir) return (
+    <div role="status" style={{minHeight:"100dvh",background:"#063B32",color:"#F7F4ED",display:"grid",placeItems:"center",padding:24,font:"15px system-ui"}}>
+      Editör hazırlanıyor…
+    </div>
+  );
+  if (!user) return (
+    <div style={{minHeight:"100dvh",background:"#063B32",color:"#F7F4ED",fontFamily:"system-ui,-apple-system,sans-serif"}}>
+      <Head><title>Fabularc — Yazarlık Stüdyosu</title><meta name="description" content="Fabularc senaryo editörünü ücretsiz demo ile dene." /></Head>
+      <header style={{background:"#F7F4ED",padding:"18px 24px"}}>
+        <a href="/" aria-label="Fabularc ana sayfa"><img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{width:168,maxWidth:"100%",height:"auto",display:"block"}} /></a>
+      </header>
+      <main style={{maxWidth:570,margin:"0 auto",padding:"clamp(38px,9vh,90px) 22px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:18}}>
+        <span style={{background:"#C8F33B",color:"#063B32",padding:"7px 14px",borderRadius:25,fontSize:11,fontWeight:850,letterSpacing:".1em"}}>FABULARC YAZARLIK STÜDYOSU</span>
+        <h1 style={{fontSize:"clamp(30px,7vw,47px)",lineHeight:1.12,letterSpacing:"-.04em",margin:0}}>Hikâyen burada başlar.</h1>
+        <p style={{fontSize:15,lineHeight:1.75,color:"#D6E4DA",maxWidth:450,margin:0}}>Sahne yaz, düzenle, cihazında sakla ve FDX olarak dışa aktar. Denemek için hesap açman gerekmiyor.</p>
+        <a href="/demo" style={{display:"block",width:"100%",maxWidth:350,padding:"17px 20px",background:"#C8F33B",color:"#063B32",borderRadius:12,textDecoration:"none",fontWeight:850,fontSize:15}}>Ücretsiz demoyu başlat</a>
+        <a href="/" style={{display:"block",width:"100%",maxWidth:350,padding:"15px 20px",background:"transparent",color:"#F7F4ED",border:"1px solid rgba(247,244,237,.45)",borderRadius:12,textDecoration:"none",fontWeight:650,fontSize:14}}>Hesabımla giriş yap</a>
+        <p style={{fontSize:12,color:"#B5C8BE",maxWidth:390,margin:0}}>Demo verileri yalnızca bu tarayıcıda tutulur. Hesabındaki özel projelerle paylaşılmaz.</p>
+      </main>
+    </div>
+  );
 
   return (
     <>
