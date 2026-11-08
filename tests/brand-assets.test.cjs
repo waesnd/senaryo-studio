@@ -41,3 +41,15 @@ test("main product metadata is not confused with an unsupported PWA icon migrati
     assert.ok(fs.existsSync(path.join(root, "public", icon.src.replace(/^\//, ""))));
   }
 });
+
+test("PWA manifest uses the Fabularc identity and safe icon purposes", () => {
+  const manifest = JSON.parse(read("public/manifest.json"));
+  assert.equal(manifest.name, "Fabularc");
+  assert.equal(manifest.short_name, "Fabularc");
+  assert.equal(manifest.theme_color, "#063B32");
+  assert.equal(manifest.background_color, "#063B32");
+  const sizes = manifest.icons.map((icon) => icon.sizes);
+  assert.deepEqual(sizes, ["192x192", "512x512"]);
+  assert.ok(manifest.icons.every((icon) => icon.purpose === "any"));
+  assert.doesNotMatch(JSON.stringify(manifest), /Scriptify/i);
+});
