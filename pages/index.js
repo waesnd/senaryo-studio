@@ -211,20 +211,19 @@ function FilmCard({gonderi,user,onBegen,onYorum,onKaydet}){
   }
   async function handleRapor(sebep){
     if(!user) return;
-    await supabase.from("raporlar").insert([{
+    const {error} = await supabase.from("raporlar").insert([{
       rapor_eden: user.id,
       icerik_turu: "gonderi",
-      icerik_id: gonderi.id,
+      icerik_id: String(gonderi.id),
       sebep,
     }]);
-    // 5 rapor eşiği — otomatik gizle
-    var { count } = await supabase.from("raporlar")
-      .select("*",{count:"exact",head:true})
-      .eq("icerik_id", gonderi.id)
-      .eq("icerik_turu", "gonderi");
-    if(count >= 5){
-      await supabase.from("gonderiler").update({paylasim_acik:false}).eq("id",gonderi.id);
+    if(error){
+      console.error("[rapor] gönderim hatası:",error);
+      alert("Rapor gönderilemedi: " + (error.message || "Bilinmeyen hata"));
+      return;
     }
+    // Raporlama eşiği ve gönderiyi gizleme kararı, yetkili PostgreSQL
+    // tetikleyicisinde benzersiz raporlayan hesaplar sayılarak uygulanır.
     setRaporGonderildi(true);
     setRaporModal(false);
   }
