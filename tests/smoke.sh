@@ -40,7 +40,10 @@ node -e "const m=require(process.argv[1]); if(m.name!=='Fabularc'||m.icons.lengt
 curl -fsS "http://127.0.0.1:$port/brand/fabularc-primary.svg" -o "$tmp_dir/logo.svg"
 grep -q '<svg' "$tmp_dir/logo.svg"
 
+curl -fsS "http://127.0.0.1:$port/editor" -o "$tmp_dir/editor.html"
+grep -q 'Editör hazırlanıyor' "$tmp_dir/editor.html"
+
 status="$(curl -sS -o "$tmp_dir/unauthorized.json" -w '%{http_code}' "http://127.0.0.1:$port/api/generate")"
 test "$status" = "401"
 
-echo "PASS: homepage, Fabularc metadata, PWA manifest, vector logo, and unauthorized API response"
+echo "PASS: homepage, editor route, Fabularc metadata, PWA manifest, vector logo, and unauthorized API response"
