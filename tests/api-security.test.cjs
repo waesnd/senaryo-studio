@@ -261,3 +261,32 @@ test("Cloudinary upload signature endpoint rejects invalid kind and missing iden
   await handler({ method: "POST", body: { kind: "avatar" } }, res);
   assert.equal(res.statusCode, 401);
 });
+
+test("Cloudinary deletion rejects other user's asset even when attacker sets own avatar URL", async () => {
+  let deletes = 0;
+  const victimAsset = "fabularc/users/22222222-2222-4222-8222-222222222222/avatar-abcdef";
+  const query = {
+    select() { return this; },
+    eq() { return this; },
+    single() {
+      return Promise.resolve({ data: {
+        avatar_url: "https://res.cloudinary.com/demo/image/upload/v1/" + victimAsset + ".png",
+        banner_url: null,
+      } });
+    },
+  };
+  const handler = handlerFrom("pages/api/medya-sil.js", {
+    withAuth: fn => fn,
+    env: { CLOUDINARY_CLOUD_NAME: "demo", CLOUDINARY_API_KEY: "key", CLOUDINARY_API_SECRET: "secret" },
+    fetch: async () => { deletes++; return { ok: true, json: async () => ({ result: "ok" }) }; },
+  });
+  const res = response();
+  await handler({
+    method: "POST",
+    user: { id: "11111111-1111-4111-8111-111111111111" },
+    body: { public_id: victimAsset },
+    supabase: { from: () => query },
+  }, res);
+  assert.equal(res.statusCode, 403);
+  assert.equal(deletes, 0);
+});
