@@ -30,7 +30,8 @@ async function handler(req, res) {
   var userId = req.user?.id;
   if (!userId) return sendError(res, 401, "Giriş yapmanız gerekiyor.", "UNAUTHORIZED");
 
-  var isOwner = String(public_id).includes(userId);
+  // Require an exact folder segment; arbitrary substring matches do not prove ownership.
+  var isOwner = String(public_id).split("/").includes(String(userId));
 
   if (!isOwner) {
     try {
@@ -41,8 +42,19 @@ async function handler(req, res) {
         .single();
 
       if (profil) {
-        var isAvatar = profil.avatar_url && profil.avatar_url.includes(public_id);
-        var isBanner = profil.banner_url && profil.banner_url.includes(public_id);
+        const getStoredPublicId = (storedUrl) => {
+          if (typeof storedUrl !== "string") return null;
+          try {
+            const parsedUrl = new URL(storedUrl);
+            if (parsedUrl.protocol !== "https:" || !parsedUrl.hostname.endsWith(".cloudinary.com")) return null;
+            const match = parsedUrl.pathname.match(/\/(?:image|video)\/upload\/(?:v\d+\/)?(.+)\.[a-z0-9]+$/i);
+            return match ? decodeURIComponent(match[1]) : null;
+          } catch {
+            return null;
+          }
+        };
+        var isAvatar = getStoredPublicId(profil.avatar_url) === String(public_id);
+        var isBanner = getStoredPublicId(profil.banner_url) === String(public_id);
         isOwner = Boolean(isAvatar || isBanner);
       }
     } catch (e) {
