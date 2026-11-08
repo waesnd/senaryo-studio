@@ -2,6 +2,7 @@ name: Fabularc integrated quality gate
 on:
   push:
     branches:
+      - main
       - integration/fabularc-foundation
   pull_request:
     branches:
@@ -10,7 +11,6 @@ permissions:
   contents: read
 jobs:
   quality:
-    if: github.head_ref == 'integration/fabularc-foundation' || github.ref_name == 'integration/fabularc-foundation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +21,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Full regression suite
         run: npm test
+      - name: Dependency security audit (report only until triaged)
+        run: npm audit --omit=dev --audit-level=high || true
       - name: Production build with fake public Supabase configuration
         env:
           NEXT_TELEMETRY_DISABLED: '1'
