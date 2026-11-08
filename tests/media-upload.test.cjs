@@ -6,7 +6,8 @@ const path = require("node:path");
 
 function uploadFunction() {
   const source = fs.readFileSync(path.join(__dirname, "../lib/cloudinaryUpload.js"), "utf8")
-    .replace("export async function uploadProfileMedia", "globalThis.uploadProfileMedia = async function uploadProfileMedia");
+    .replace("export async function uploadProfileMedia", "globalThis.uploadProfileMedia = async function uploadProfileMedia")
+    .replace("export async function uploadChatMedia", "async function uploadChatMedia");
   const sandbox = { FormData, Blob, Error };
   vm.runInNewContext(source, sandbox, { filename: "lib/cloudinaryUpload.js" });
   return sandbox.uploadProfileMedia;
