@@ -29,6 +29,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-placeholder-not-a-secret
         run: npm run build
+      - name: HTTP smoke with synthetic configuration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-placeholder-not-a-secret
+        run: bash tests/smoke.sh
 
   atomic-quota-postgres:
     runs-on: ubuntu-latest
