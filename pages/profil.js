@@ -634,7 +634,7 @@ export default function Profil(){
       <div style={{position:"sticky",top:0,zIndex:50,background:`rgba(10,15,30,0.95)`,backdropFilter:"blur(20px)",borderBottom:`1px solid ${G.border}`,padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
         <a href="/" style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",padding:0}}>
-          <img src="/logo.png" alt="Scriptify" style={{height:40,objectFit:"contain",maxWidth:120}}/>
+          <img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{height:40,objectFit:"contain",maxWidth:120}}/>
         </a>
         <button onClick={()=>setDrawer(true)} style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <Icon id="menu" size={16} color={G.blue}/>
