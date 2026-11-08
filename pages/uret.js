@@ -190,6 +190,8 @@ export default function Uret(){
   var {user, profil, authHazir, okunmayanBildirim} = useAuth();
   var [tip,setTip]=useState("Dizi");
   var [tur,setTur]=useState("Gerilim");
+  var [eserDili,setEserDili]=useState("tr");
+  var [hikayeUlkesi,setHikayeUlkesi]=useState("TR");
   var [ozelIstek,setOzelIstek]=useState("");
   var [yukleniyor,setYukleniyor]=useState(false);
   var [senaryo,setSenaryo]=useState(null);
@@ -275,7 +277,7 @@ export default function Uret(){
     if(limitDoldu) return;
     setYukleniyor(true);setSenaryo(null);setBeatler({});setKarakterBible(null);setDraturagAnaliz(null);setPuan(null);setSequel(null);setSekme("senaryo");setLogline(null);setPitchDeck(null);setDiyalogSonuc(null);setHeroJourney(null);setSahneSekme("stc");
     try{
-      var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi});
+      var res=await authFetch("/api/generate", {tip,tur,ozelIstek,sahneSayisi,karakterSayisi,dil:eserDili,ulke:hikayeUlkesi});
       var kalan=res.headers.get("X-Kalan-Uretim");
       if(kalan!==null) setKalanUretim(parseInt(kalan));
 
@@ -371,50 +373,68 @@ export default function Uret(){
   }
 
 
-  // Arşivi yükle
+  // Kişisel arşivi yükle (senaryo sürüm geçmişinden bağımsız)
   async function arsivYukle(){
     if(!user) return;
     setArsivYukleniyor(true);
-    var {data} = await supabase.from("senaryo_versiyonlar")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", {ascending:false})
-      .limit(50);
-    if(data) setArsiv(data);
-    setArsivYukleniyor(false);
+    try {
+      const {data,error} = await supabase.from("yazar_arsivi")
+        .select("id,user_id,tip,tur,baslik,tagline,veri,created_at")
+        .eq("user_id", user.id)
+        .order("created_at", {ascending:false})
+        .limit(50);
+      if(error) throw error;
+      setArsiv(data || []);
+    } catch(error) {
+      console.error("[arsiv] yükleme hatası:",error);
+      alert("Arşiv yüklenemedi: " + (error.message || "Bilinmeyen hata"));
+    } finally {
+      setArsivYukleniyor(false);
+    }
   }
 
-  // Versiyonu arşive kaydet
+  // Yaratıcı çalışma anlık görüntüsünü kişisel arşive kaydet
   async function versiyonKaydet(){
     if(!user||!senaryo||arsivKaydediliyor) return;
     setArsivKaydediliyor(true);
-    await supabase.from("senaryo_versiyonlar").insert({
-      user_id:    user.id,
-      tip,
-      tur,
-      baslik:     senaryo.baslik,
-      tagline:    senaryo.tagline,
-      veri:       JSON.stringify({
-        senaryo,
-        beatler:        Object.keys(beatler).length>0 ? beatler : null,
-        karakterBible:  karakterBible || null,
-        heroJourney:    heroJourney || null,
-        logline:        logline || null,
-        pitchDeck:      pitchDeck || null,
-        dramaturgAnaliz:dramaturgAnaliz || null,
-        puan:           puan || null,
-      }),
-    });
-    // Arşivi güncelle
-    await arsivYukle();
-    setArsivKaydediliyor(false);
+    try {
+      const {error} = await supabase.from("yazar_arsivi").insert({
+        user_id:user.id,
+        tip,
+        tur,
+        baslik:senaryo.baslik,
+        tagline:senaryo.tagline,
+        veri:{
+          senaryo,
+          beatler:Object.keys(beatler).length>0 ? beatler : null,
+          karakterBible:karakterBible || null,
+          heroJourney:heroJourney || null,
+          logline:logline || null,
+          pitchDeck:pitchDeck || null,
+          dramaturgAnaliz:dramaturgAnaliz || null,
+          puan:puan || null,
+        },
+      });
+      if(error) throw error;
+      await arsivYukle();
+    } catch(error) {
+      console.error("[arsiv] kayıt hatası:",error);
+      alert("Arşive kaydedilemedi: " + (error.message || "Bilinmeyen hata"));
+    } finally {
+      setArsivKaydediliyor(false);
+    }
   }
 
-  // Versiyonu geri yükle
+  // Arşiv kaydını geri yükle; JSONB nesne olarak dönebilir.
   function versiyonYukle(versiyon){
     try{
-      var veri = JSON.parse(versiyon.veri);
-      setSenaryo(veri.senaryo || null);
+      const veri = typeof versiyon.veri === "string"
+        ? JSON.parse(versiyon.veri)
+        : versiyon.veri;
+      if(!veri || typeof veri !== "object" || !veri.senaryo) {
+        throw new Error("Geçersiz arşiv kaydı.");
+      }
+      setSenaryo(veri.senaryo);
       setBeatler(veri.beatler || {});
       setKarakterBible(veri.karakterBible || null);
       setHeroJourney(veri.heroJourney || null);
@@ -429,11 +449,17 @@ export default function Uret(){
     }
   }
 
-  // Versiyonu sil
+  // Sadece kendi arşiv kaydını sil
   async function versiyonSil(id){
-    if(!confirm("Bu versiyonu silmek istediğine emin misin?")) return;
-    await supabase.from("senaryo_versiyonlar").delete().eq("id", id).eq("user_id", user.id);
-    setArsiv(prev => prev.filter(v => v.id !== id));
+    if(!user || !confirm("Bu versiyonu silmek istediğine emin misin?")) return;
+    try {
+      const {error} = await supabase.from("yazar_arsivi")
+        .delete().eq("id", id).eq("user_id", user.id);
+      if(error) throw error;
+      setArsiv(prev => prev.filter(v => v.id !== id));
+    } catch(error) {
+      alert("Arşiv kaydı silinemedi: " + (error.message || "Bilinmeyen hata"));
+    }
   }
 
   async function profilKaydet(){
@@ -454,7 +480,7 @@ export default function Uret(){
     var icerik=`<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <FinalDraft DocumentType="Script" Template="No" Version="2">
 <Content>
-${fdxParagraph("Title Page","SCRIPTIFY — AI SENARYO PLATFORMU")}
+${fdxParagraph("Title Page","FABULARC — YARATICI YAZARLIK PLATFORMU")}
 ${fdxParagraph("Title Page",baslik)}
 ${senaryo.tagline?fdxParagraph("Title Page",`"${senaryo.tagline.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}"`):""}
 ${fdxParagraph("Scene Heading","FADE IN:")}
@@ -467,7 +493,7 @@ ${Object.keys(beatler).length>0?BEAT_SHEET.filter(b=>beatler[b.id]).map(b=>
   fdxParagraph("Action",beatler[b.id])
 ).join(""):""}
 ${fdxParagraph("Scene Heading","FADE OUT.")}
-${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-TR")+" | Scriptify AI Senaryo Platformu")}
+${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-TR")+" | Fabularc Yaratıcı Yazarlık Platformu")}
 </Content>
 </FinalDraft>`;
 
@@ -539,7 +565,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
     // SCRIPTIFY logo
     doc.setFontSize(9); doc.setTextColor(56,189,248);
     doc.setFont("helvetica","bold");
-    doc.text("SCRIPTIFY — AI SENARYO PLATFORMU",x,10);
+    doc.text("FABULARC — YARATICI YAZARLIK PLATFORMU",x,10);
 
     // Başlık
     addText(senaryo.baslik,24,[56,189,248],true);
@@ -593,7 +619,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
     for(var i=1;i<=pageCount;i++){
       doc.setPage(i);
       doc.setFontSize(8); doc.setTextColor(56,189,248,0.4);
-      doc.text("scriptify.app",margin,291);
+      doc.text("FABULARC",margin,291);
       doc.text(new Date().toLocaleDateString("tr-TR"),W-margin,291,{align:"right"});
       doc.text("Sayfa "+i+"/"+pageCount,W/2,291,{align:"center"});
     }
@@ -603,7 +629,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
 
   async function txtIndir(){
     if(!senaryo)return;
-    var icerik=`SCRIPTIFY — SENARYO\n${"=".repeat(50)}\n\nBaşlık: ${senaryo.baslik}\nTür: ${tur} | Format: ${tip}\n${senaryo.tagline?`Tagline: "${senaryo.tagline}"\n`:""}\n${"─".repeat(40)}\n\n`+
+    var icerik=`FABULARC — SENARYO\n${"=".repeat(50)}\n\nBaşlık: ${senaryo.baslik}\nTür: ${tur} | Format: ${tip}\n${senaryo.tagline?`Tagline: "${senaryo.tagline}"\n`:""}\n${"─".repeat(40)}\n\n`+
       (senaryo.ana_fikir?`ANA FİKİR\n${senaryo.ana_fikir}\n\n`:"")+
       (senaryo.karakter?`KARAKTERLER\n${senaryo.karakter}\n\n`:"")+
       (senaryo.acilis_sahnesi?`AÇILIŞ SAHNESİ\n${senaryo.acilis_sahnesi}\n\n`:"")+
@@ -640,7 +666,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
         var aw=af.split(" ");var al="";var ay=660;
         aw.forEach(w=>{var t=al+(al?" ":"")+w;if(ctx.measureText(t).width>W-120){ctx.fillText(al,60,ay);ay+=38;al=w;}else al=t;});ctx.fillText(al,60,ay);
       }
-      ctx.font="bold 22px sans-serif";ctx.fillStyle="rgba(56,189,248,0.4)";ctx.fillText("scriptify.app",60,H-38);
+      ctx.font="bold 22px sans-serif";ctx.fillStyle="rgba(56,189,248,0.4)";ctx.fillText("FABULARC",60,H-38);
       if(username){ctx.fillStyle="rgba(56,189,248,0.6)";ctx.textAlign="right";ctx.fillText("@"+username,W-60,H-38);ctx.textAlign="left";}
     },[]);
     function indir(){var c=document.getElementById("paylasim-karti");if(!c)return;var a=document.createElement("a");a.download=(senaryo.baslik||"senaryo").replace(/\s+/g,"_")+"_scriptify.png";a.href=c.toDataURL("image/png");a.click();}
@@ -677,7 +703,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
         <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
           <Av url={avatarUrl} size={34}/>
-          <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
+          <img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{height:44,objectFit:"contain",maxWidth:150}}/>
         </button>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <a href="/" style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -715,6 +741,22 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
           <SecBaslik label="Tür"/>
           <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:20}}>
             {TURLER.map(t=><SecBtn key={t} aktif={tur===t} onClick={()=>setTur(t)} color={G.purple}>{t}</SecBtn>)}
+          </div>
+
+          <SecBaslik label="Eser Dili ve Hikâye Ülkesi" info="Yazım dili ve hikâyenin geçtiği ülke birbirinden bağımsızdır."/>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10,marginBottom:20}}>
+            <label style={{display:"flex",flexDirection:"column",gap:7,fontSize:12,color:G.textMuted}}>
+              Eser dili
+              <select aria-label="Eser dili" value={eserDili} onChange={e=>setEserDili(e.target.value)} style={{padding:"12px",borderRadius:10,background:G.surface,border:`1px solid ${G.border}`,color:G.text,minWidth:0}}>
+                <option value="tr">Türkçe</option><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="es">Español</option><option value="it">Italiano</option><option value="pt">Português</option><option value="ar">العربية</option>
+              </select>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:7,fontSize:12,color:G.textMuted}}>
+              Hikâye ülkesi
+              <select aria-label="Hikâye ülkesi" value={hikayeUlkesi} onChange={e=>setHikayeUlkesi(e.target.value)} style={{padding:"12px",borderRadius:10,background:G.surface,border:`1px solid ${G.border}`,color:G.text,minWidth:0}}>
+                <option value="TR">Türkiye</option><option value="US">ABD</option><option value="GB">Birleşik Krallık</option><option value="FR">Fransa</option><option value="DE">Almanya</option><option value="ES">İspanya</option><option value="IT">İtalya</option><option value="JP">Japonya</option><option value="IN">Hindistan</option><option value="BR">Brezilya</option><option value="CA">Kanada</option>
+              </select>
+            </label>
           </div>
 
           <SecBaslik label="Özel İstek" info="İstanbul'da geçsin, güçlü kadın karakter..."/>
