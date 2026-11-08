@@ -53,3 +53,9 @@ test("signed upload refuses missing login and unsupported media", async () => {
   await assert.rejects(upload({ supabase: noSession, file: image, kind: "avatar", fetchImpl: () => { throw Error("never"); } }));
   await assert.rejects(upload({ supabase: auth, file: new Blob(["x"], { type: "text/html" }), kind: "avatar", fetchImpl: () => { throw Error("never"); } }));
 });
+
+test("profile page uses signed upload helper, not hardcoded unsigned upload presets", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../pages/profil.js"), "utf8");
+  assert.match(source, /uploadProfileMedia/);
+  assert.doesNotMatch(source, /scriptify_avatars|upload_preset|api\.cloudinary\.com\/v1_1\/duuebxmro/);
+});
