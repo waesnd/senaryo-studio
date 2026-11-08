@@ -222,6 +222,13 @@ async function handler(req, res) {
     res.setHeader("X-Uretim-Limit", String(usageInfo.limit));
   } catch (usageError) {
     console.error("[generate] kullanim_log hatası:", usageError);
+    // Fail closed: do not call a billable AI provider without a verified quota.
+    return sendError(
+      res,
+      503,
+      "Kullanım limiti şu anda doğrulanamıyor. Lütfen daha sonra tekrar deneyin.",
+      "USAGE_CHECK_UNAVAILABLE"
+    );
   }
 
   const prompt = buildPrompt({
