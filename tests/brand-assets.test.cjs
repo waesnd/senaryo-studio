@@ -53,3 +53,19 @@ test("PWA manifest uses the Fabularc identity and safe icon purposes", () => {
   assert.ok(manifest.icons.every((icon) => icon.purpose === "any"));
   assert.doesNotMatch(JSON.stringify(manifest), /Scriptify/i);
 });
+
+test("PWA and favicon PNGs have real, correct pixel dimensions", () => {
+  for (const [name, dimension] of [
+    ["icon-192.png", 192],
+    ["icon-512.png", 512],
+    ["favicon-16.png", 16],
+    ["favicon-32.png", 32],
+    ["favicon-48.png", 48],
+  ]) {
+    const buffer = fs.readFileSync(path.join(root, "public", name));
+    assert.ok(buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])));
+    assert.equal(buffer.toString("ascii", 12, 16), "IHDR");
+    assert.equal(buffer.readUInt32BE(16), dimension);
+    assert.equal(buffer.readUInt32BE(20), dimension);
+  }
+});
