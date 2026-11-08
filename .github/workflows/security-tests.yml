@@ -20,5 +20,9 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Run isolated API security regressions
         run: npm test
-      - name: Compile Next.js app
+      - name: Compile Next.js app using non-secret CI placeholders
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-placeholder-not-a-secret
         run: npm run build
