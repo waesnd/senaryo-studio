@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/useAuth";
+import { uploadProfileMedia } from "../lib/cloudinaryUpload";
 
 // ── MIDNIGHT ASSASSIN TEMA ────────────────────────────────────────────────────
 var G = {
@@ -443,78 +444,55 @@ export default function Profil(){
     }
   }
   async function avatarDegistir(e){
-    var file=e.target.files?.[0];
-    if(!file||!user)return;
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
     setAvatarYukleniyor(true);
-    var fd=new FormData();
-    fd.append("file",file);fd.append("upload_preset","scriptify_avatars");
-    var uploadRes=await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload",{method:"POST",body:fd});
-    var uploadData=await uploadRes.json();
-    if(uploadData.secure_url){
-      // Cache buster ekle — tarayıcı eski görseli göstermesin
-      var url=uploadData.secure_url+"?v="+Date.now();
-      var {data:updated, error}=await supabase
+    try {
+      const uploaded = await uploadProfileMedia({ supabase, file, kind: "avatar" });
+      const url = uploaded.secure_url + "?v=" + Date.now();
+      const { data: updated, error } = await supabase
         .from("profiles")
-        .update({avatar_url:url})
-        .eq("id",user.id)
+        .update({ avatar_url: url })
+        .eq("id", user.id)
         .select()
         .maybeSingle();
-      console.log("[avatar] DB update:", {updated, error});
-      if(error){
-        alert("Fotoğraf kaydedilemedi: "+error.message);
-      }else if(updated){
-        setProfilLokal(p=>({...p,avatar_url:updated.avatar_url}));
-        setProfil(p=>p?({...p,avatar_url:updated.avatar_url}):p);
-      }
-    }else{
-      alert("Fotoğraf yüklenemedi: "+(uploadData.error?.message||"Cloudinary hatası"));
+
+      if (error || !updated) throw new Error(error?.message || "Avatar kaydedilemedi.");
+      setProfilLokal(p => ({ ...p, avatar_url: updated.avatar_url }));
+      setProfil(p => p ? ({ ...p, avatar_url: updated.avatar_url }) : p);
+    } catch (error) {
+      alert("Fotoğraf yüklenemedi: " + error.message);
+    } finally {
+      setAvatarYukleniyor(false);
+      if (e.target) e.target.value = "";
     }
-    setAvatarYukleniyor(false);
   }
+
   async function bannerDegistir(e){
-    var file = e.target.files?.[0];
-    if(!file || !user) return;
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
 
     setBannerYukleniyor(true);
-
-    try{
-      var fd = new FormData();
-      fd.append("file", file);
-      fd.append("upload_preset", "scriptify_avatars");
-
-      var res = await fetch("https://api.cloudinary.com/v1_1/duuebxmro/image/upload", {
-        method:"POST",
-        body:fd
-      });
-
-      var data = await res.json();
-
-      if(!data.secure_url){
-        throw new Error(data.error?.message || "Banner yüklenemedi");
-      }
-
-      var bannerUrl = data.secure_url + "?v=" + Date.now();
-
-      var { data: updated, error } = await supabase
+    try {
+      const uploaded = await uploadProfileMedia({ supabase, file, kind: "banner" });
+      const bannerUrl = uploaded.secure_url + "?v=" + Date.now();
+      const { data: updated, error } = await supabase
         .from("profiles")
         .update({ banner_url: bannerUrl })
         .eq("id", user.id)
         .select()
         .maybeSingle();
 
-      if(error) throw new Error(error.message);
-
-      if(updated){
-        setProfilLokal(p => p ? ({ ...p, banner_url: updated.banner_url }) : p);
-        setProfil(p => p ? ({ ...p, banner_url: updated.banner_url }) : p);
-      }
-
+      if (error || !updated) throw new Error(error?.message || "Banner kaydedilemedi.");
+      setProfilLokal(p => p ? ({ ...p, banner_url: updated.banner_url }) : p);
+      setProfil(p => p ? ({ ...p, banner_url: updated.banner_url }) : p);
       setBannerModal(false);
-    }catch(err){
-      alert("Banner kaydedilemedi: " + err.message);
-    }finally{
+    } catch (error) {
+      alert("Banner kaydedilemedi: " + error.message);
+    } finally {
       setBannerYukleniyor(false);
-      if(e.target) e.target.value = "";
+      if (e.target) e.target.value = "";
     }
   }
   async function bannerSil(){
