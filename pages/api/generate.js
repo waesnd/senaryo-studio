@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { withAuth } from "../../lib/withAuth";
 import { callGroq } from "../../lib/groq";
 
@@ -145,54 +144,29 @@ function normalizeGroqResponse(parsed) {
   return result;
 }
 
-function createSupabaseServerClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
-async function checkAndLogUsage(userId, meta) {
-  const supabase = createSupabaseServerClient();
-  const sinir = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  const { count, error: countError } = await supabase
-    .from("kullanim_log")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("islem", "generate")
-    .gte("created_at", sinir);
-
-  if (countError) {
-    throw countError;
+async function reserveUsage(req, meta) {
+  // The authenticated request client carries the caller's verified JWT.
+  // A database transaction serializes quota reservations for concurrent calls.
+  if (!req.supabase || typeof req.supabase.rpc !== "function") {
+    throw new Error("Authenticated quota client unavailable");
   }
 
-  const mevcutKullanim = count || 0;
-
-  if (mevcutKullanim >= GUNLUK_LIMIT) {
-    return {
-      allowed: false,
-      kalan: 0,
-      limit: GUNLUK_LIMIT,
-      resetAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    };
-  }
-
-  const { error: insertError } = await supabase.from("kullanim_log").insert({
-    user_id: userId,
-    islem: "generate",
-    meta,
+  const { data, error } = await req.supabase.rpc("reserve_generate_quota", {
+    p_meta: meta,
   });
+  if (error) throw error;
 
-  if (insertError) {
-    throw insertError;
+  if (!data || typeof data.allowed !== "boolean" ||
+      !Number.isInteger(data.kalan) || !Number.isInteger(data.limit) ||
+      data.limit !== GUNLUK_LIMIT || data.kalan < 0 || data.kalan > data.limit) {
+    throw new Error("Invalid quota reservation response");
   }
 
   return {
-    allowed: true,
-    kalan: Math.max(GUNLUK_LIMIT - (mevcutKullanim + 1), 0),
-    limit: GUNLUK_LIMIT,
-    resetAt: null,
+    allowed: data.allowed,
+    kalan: data.kalan,
+    limit: data.limit,
+    resetAt: data.reset_at || null,
   };
 }
 
@@ -212,12 +186,11 @@ async function handler(req, res) {
   }
 
   const { tip, tur, ozelIstek, sahneSayisi, karakterSayisi, dil, ulke } = validation.values;
-  const userId = req.user.id;
 
   let usageInfo = null;
 
   try {
-    usageInfo = await checkAndLogUsage(userId, { tip, tur, dil, ulke });
+    usageInfo = await reserveUsage(req, { tip, tur, dil, ulke });
 
     if (!usageInfo.allowed) {
       return sendError(
@@ -236,7 +209,7 @@ async function handler(req, res) {
     res.setHeader("X-Kalan-Uretim", String(usageInfo.kalan));
     res.setHeader("X-Uretim-Limit", String(usageInfo.limit));
   } catch (usageError) {
-    console.error("[generate] kullanim_log hatası:", usageError);
+    console.error("[generate] kota rezervasyonu hatası:", usageError);
     // Fail closed: do not call a billable AI provider without a verified quota.
     return sendError(
       res,
