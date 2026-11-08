@@ -169,3 +169,30 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify private posts, ownership and report moderation
         run: bash tests/sql/post-privacy-reports.sh
+
+  private-editor-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: disposable-ci-only
+      PGDATABASE: postgres
+      FABULARC_TEST_DATABASE: disposable-ci-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify ownership and optimistic scene updates
+        run: bash tests/sql/private-editor.sh
