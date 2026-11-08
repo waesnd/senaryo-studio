@@ -29,3 +29,6 @@
 - Integrated PR: https://github.com/waesnd/senaryo-studio/pull/5
 - Next.js security and media-upload trial: https://github.com/waesnd/senaryo-studio/pull/6
 - Last confirmed green combined workflow: https://github.com/waesnd/senaryo-studio/actions/runs/42449121949
+
+## Read-only RLS inventory
+A catalog query confirmed RLS is enabled across the application's public tables. Two tables, `public.storyler` and `public.medya_silme`, currently have **no RLS policies**. This usually means normal browser roles cannot read or write rows even if grants exist; confirm their intended server-side usage before creating permissions. No policy was altered in this audit. The `public.kullanim_log` INSERT policy explicitly rejects client inserts; the authenticated quota RPC uses controlled SECURITY DEFINER access instead.
