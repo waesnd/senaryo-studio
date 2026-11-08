@@ -480,7 +480,7 @@ export default function Uret(){
     var icerik=`<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <FinalDraft DocumentType="Script" Template="No" Version="2">
 <Content>
-${fdxParagraph("Title Page","SCRIPTIFY — AI SENARYO PLATFORMU")}
+${fdxParagraph("Title Page","FABULARC — YARATICI YAZARLIK PLATFORMU")}
 ${fdxParagraph("Title Page",baslik)}
 ${senaryo.tagline?fdxParagraph("Title Page",`"${senaryo.tagline.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}"`):""}
 ${fdxParagraph("Scene Heading","FADE IN:")}
@@ -493,7 +493,7 @@ ${Object.keys(beatler).length>0?BEAT_SHEET.filter(b=>beatler[b.id]).map(b=>
   fdxParagraph("Action",beatler[b.id])
 ).join(""):""}
 ${fdxParagraph("Scene Heading","FADE OUT.")}
-${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-TR")+" | Scriptify AI Senaryo Platformu")}
+${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-TR")+" | Fabularc Yaratıcı Yazarlık Platformu")}
 </Content>
 </FinalDraft>`;
 
@@ -565,7 +565,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
     // SCRIPTIFY logo
     doc.setFontSize(9); doc.setTextColor(56,189,248);
     doc.setFont("helvetica","bold");
-    doc.text("SCRIPTIFY — AI SENARYO PLATFORMU",x,10);
+    doc.text("FABULARC — YARATICI YAZARLIK PLATFORMU",x,10);
 
     // Başlık
     addText(senaryo.baslik,24,[56,189,248],true);
@@ -619,7 +619,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
     for(var i=1;i<=pageCount;i++){
       doc.setPage(i);
       doc.setFontSize(8); doc.setTextColor(56,189,248,0.4);
-      doc.text("scriptify.app",margin,291);
+      doc.text("FABULARC",margin,291);
       doc.text(new Date().toLocaleDateString("tr-TR"),W-margin,291,{align:"right"});
       doc.text("Sayfa "+i+"/"+pageCount,W/2,291,{align:"center"});
     }
@@ -629,7 +629,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
 
   async function txtIndir(){
     if(!senaryo)return;
-    var icerik=`SCRIPTIFY — SENARYO\n${"=".repeat(50)}\n\nBaşlık: ${senaryo.baslik}\nTür: ${tur} | Format: ${tip}\n${senaryo.tagline?`Tagline: "${senaryo.tagline}"\n`:""}\n${"─".repeat(40)}\n\n`+
+    var icerik=`FABULARC — SENARYO\n${"=".repeat(50)}\n\nBaşlık: ${senaryo.baslik}\nTür: ${tur} | Format: ${tip}\n${senaryo.tagline?`Tagline: "${senaryo.tagline}"\n`:""}\n${"─".repeat(40)}\n\n`+
       (senaryo.ana_fikir?`ANA FİKİR\n${senaryo.ana_fikir}\n\n`:"")+
       (senaryo.karakter?`KARAKTERLER\n${senaryo.karakter}\n\n`:"")+
       (senaryo.acilis_sahnesi?`AÇILIŞ SAHNESİ\n${senaryo.acilis_sahnesi}\n\n`:"")+
@@ -666,7 +666,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
         var aw=af.split(" ");var al="";var ay=660;
         aw.forEach(w=>{var t=al+(al?" ":"")+w;if(ctx.measureText(t).width>W-120){ctx.fillText(al,60,ay);ay+=38;al=w;}else al=t;});ctx.fillText(al,60,ay);
       }
-      ctx.font="bold 22px sans-serif";ctx.fillStyle="rgba(56,189,248,0.4)";ctx.fillText("scriptify.app",60,H-38);
+      ctx.font="bold 22px sans-serif";ctx.fillStyle="rgba(56,189,248,0.4)";ctx.fillText("FABULARC",60,H-38);
       if(username){ctx.fillStyle="rgba(56,189,248,0.6)";ctx.textAlign="right";ctx.fillText("@"+username,W-60,H-38);ctx.textAlign="left";}
     },[]);
     function indir(){var c=document.getElementById("paylasim-karti");if(!c)return;var a=document.createElement("a");a.download=(senaryo.baslik||"senaryo").replace(/\s+/g,"_")+"_scriptify.png";a.href=c.toDataURL("image/png");a.click();}
@@ -703,7 +703,7 @@ ${fdxParagraph("Title Page","Oluşturulma: "+new Date().toLocaleDateString("tr-T
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${G.blue}18,transparent)`,pointerEvents:"none"}}/>
         <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
           <Av url={avatarUrl} size={34}/>
-          <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
+          <img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{height:44,objectFit:"contain",maxWidth:150}}/>
         </button>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <a href="/" style={{width:34,height:34,borderRadius:10,background:`${G.blue}08`,border:`1px solid ${G.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
