@@ -25,18 +25,12 @@ function response() {
 
 test("AI provider is not called when quota verification fails", async () => {
   let providerCalls = 0;
-  const query = {
-    select() { return this; },
-    eq() { return this; },
-    gte() { return Promise.resolve({ count: null, error: new Error("database unavailable") }); },
-  };
   const handler = handlerFrom("pages/api/generate.js", {
     withAuth: fn => fn,
-    createClient: () => ({ from: () => query }),
     callGroq: async () => { providerCalls++; return {}; },
   });
   const res = response();
-  await handler({ method: "POST", user: { id: "user-1" }, body: { tip: "film", tur: "dram" } }, res);
+  await handler({ method: "POST", user: { id: "user-1" }, supabase: { rpc: async () => ({ data: null, error: new Error("database unavailable") }) }, body: { tip: "film", tur: "dram" } }, res);
   assert.equal(res.statusCode, 503);
   assert.equal(res.body.code, "USAGE_CHECK_UNAVAILABLE");
   assert.equal(providerCalls, 0);
@@ -44,18 +38,12 @@ test("AI provider is not called when quota verification fails", async () => {
 
 test("AI provider is not called when quota is exhausted", async () => {
   let providerCalls = 0;
-  const query = {
-    select() { return this; },
-    eq() { return this; },
-    gte() { return Promise.resolve({ count: 50, error: null }); },
-  };
   const handler = handlerFrom("pages/api/generate.js", {
     withAuth: fn => fn,
-    createClient: () => ({ from: () => query }),
     callGroq: async () => { providerCalls++; return {}; },
   });
   const res = response();
-  await handler({ method: "POST", user: { id: "user-1" }, body: { tip: "film", tur: "dram" } }, res);
+  await handler({ method: "POST", user: { id: "user-1" }, supabase: { rpc: async () => ({ data: { allowed: false, kalan: 0, limit: 50 }, error: null }) }, body: { tip: "film", tur: "dram" } }, res);
   assert.equal(res.statusCode, 429);
   assert.equal(providerCalls, 0);
 });
@@ -140,15 +128,8 @@ test("Cloudinary deletion allows exact media on authenticated profile", async ()
 
 test("AI generation respects explicit story language and country", async () => {
   let sentPrompt = "";
-  const query = {
-    select() { return this; },
-    eq() { return this; },
-    gte() { return Promise.resolve({ count: 0, error: null }); },
-    insert() { return Promise.resolve({ error: null }); },
-  };
   const handler = handlerFrom("pages/api/generate.js", {
     withAuth: fn => fn,
-    createClient: () => ({ from: () => query }),
     callGroq: async (prompt) => {
       sentPrompt = prompt;
       return {
@@ -161,6 +142,7 @@ test("AI generation respects explicit story language and country", async () => {
   await handler({
     method: "POST",
     user: { id: "writer-1" },
+    supabase: { rpc: async () => ({ data: { allowed: true, kalan: 49, limit: 50 }, error: null }) },
     body: { tip: "feature film", tur: "thriller", dil: "en", ulke: "US" },
   }, res);
   assert.equal(res.statusCode, 200);
@@ -172,15 +154,8 @@ test("AI generation respects explicit story language and country", async () => {
 
 test("AI generation preserves Turkish default for existing clients", async () => {
   let sentPrompt = "";
-  const query = {
-    select() { return this; },
-    eq() { return this; },
-    gte() { return Promise.resolve({ count: 0, error: null }); },
-    insert() { return Promise.resolve({ error: null }); },
-  };
   const handler = handlerFrom("pages/api/generate.js", {
     withAuth: fn => fn,
-    createClient: () => ({ from: () => query }),
     callGroq: async (prompt) => {
       sentPrompt = prompt;
       return {
@@ -192,6 +167,7 @@ test("AI generation preserves Turkish default for existing clients", async () =>
   const res = response();
   await handler({
     method: "POST", user: { id: "writer-2" },
+    supabase: { rpc: async () => ({ data: { allowed: true, kalan: 49, limit: 50 }, error: null }) },
     body: { tip: "film", tur: "dram" },
   }, res);
   assert.equal(res.statusCode, 200);
