@@ -23,8 +23,9 @@ test("exports show Fabularc branding and do not advertise an unverified domain",
   assert.match(source, /FABULARC —/);
 });
 
-test("brand naming does not rename the legacy browser storage key or cloud credentials", () => {
+test("brand naming preserves existing browser data while removing unsigned chat upload presets", () => {
   const source = fs.readFileSync(path.join(root, "pages/mesajlar.js"), "utf8");
   assert.match(source, /scriptify_last_chat/);
-  assert.match(source, /scriptify_posts/);
+  assert.doesNotMatch(source, /scriptify_posts|upload_preset/);
+  assert.match(source, /uploadChatMedia/);
 });
