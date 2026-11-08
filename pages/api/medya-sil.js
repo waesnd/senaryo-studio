@@ -30,8 +30,10 @@ async function handler(req, res) {
   var userId = req.user?.id;
   if (!userId) return sendError(res, 401, "Giriş yapmanız gerekiyor.", "UNAUTHORIZED");
 
-  // Require an exact folder segment; arbitrary substring matches do not prove ownership.
-  var isOwner = String(public_id).split("/").includes(String(userId));
+  // A client-controlled public_id, including folder segments, is never ownership proof.
+  // Until a dedicated media ownership table exists, only exact references in the
+  // authenticated user profile are eligible for deletion.
+  var isOwner = false;
 
   if (!isOwner) {
     try {
