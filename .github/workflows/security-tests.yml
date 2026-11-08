@@ -16,5 +16,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
       - name: Run isolated API security regressions
         run: npm test
+      - name: Compile Next.js app
+        run: npm run build
