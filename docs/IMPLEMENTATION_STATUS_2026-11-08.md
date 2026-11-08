@@ -70,3 +70,23 @@ Read-only checks verified:
 - Do not merge earlier cumulative drafts independently; they overlap.
 - No merge to `main` or production Vercel promotion has been made.
 - The browser-facing Vercel production branch is not yet updated.
+
+## Additional verified work — latest cumulative editor branch
+
+Branch: `feat/fabularc-screenplay-editor` (draft PR #14).
+Verified GitHub Actions run: https://github.com/waesnd/senaryo-studio/actions/runs/42452343797
+
+- **42 Node tests passed, 0 failed** on the tested commit.
+- Next.js 16.4.5 and React 19.3.1 production build passed.
+- Dependency audit reported **zero high/critical production vulnerabilities** on the tested install.
+- GitHub Actions PostgreSQL isolated database jobs passed for atomic quota, story/version RLS, private archive, immutable messages, private posts/report moderation, and editor project/scene ownership.
+- New `/editor` route passed synthetic-config HTTP smoke test.
+- Vercel preview deployments report READY on previous feature commits; authenticated browser E2E has NOT been verified.
+- Migration `private_editor_projects` was successfully applied to live Supabase, introducing `yazarlik_projeleri` and `yazarlik_sahneleri` with owner-only RLS; anonymous SELECT privilege was verified absent. Existing scenario and archival tables were not rewritten.
+- The editor is a functional **initial** project/scene writing workspace with local draft protection, debounced autosave, optimistic revision guard and TXT/FDX export. It is NOT a completed Final Draft replacement.
+
+### Current release blockers (2026-11-08)
+- Browser-authenticated E2E tests, true offline/online conflict reconciliation, real Groq request and real Cloudinary signed-upload tests are outstanding.
+- Accessibility/a11y, full design-system rollout, community/collaboration feature completion and full internationalization remain outstanding.
+- Existing `public.profiles` broad SELECT policy exposes all columns granted to clients; evaluate sensitive `push_token` exposure with a safe, application-compatible data-access design.
+- Existing Vercel production branch remains untouched; **no main merge or production promotion**.
