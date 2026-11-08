@@ -217,3 +217,35 @@ test("AI generation rejects invalid locale before quota or provider calls", asyn
   assert.equal(clientCalls, 0);
   assert.equal(providerCalls, 0);
 });
+
+test("AI quota reservation uses the authenticated atomic RPC before provider call", async () => {
+  let rpcCalls = 0;
+  let providerCalls = 0;
+  const handler = handlerFrom("pages/api/generate.js", {
+    withAuth: fn => fn,
+    createClient: () => { throw new Error("Legacy count-and-insert must not run"); },
+    callGroq: async () => {
+      providerCalls++;
+      return {
+        baslik: "Başlık", tagline: "Etiket", ana_fikir: "Özet",
+        karakter: "Kişiler", acilis_sahnesi: "Açılış", buyuk_soru: "Soru",
+      };
+    },
+  });
+  const res = response();
+  await handler({
+    method: "POST", user: { id: "writer-atomic" },
+    supabase: {
+      rpc(name, params) {
+        rpcCalls++;
+        assert.equal(name, "reserve_generate_quota");
+        assert.equal(params.p_meta.tip, "film");
+        return Promise.resolve({ data: { allowed: true, kalan: 49, limit: 50 }, error: null });
+      },
+    },
+    body: { tip: "film", tur: "dram" },
+  }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(rpcCalls, 1);
+  assert.equal(providerCalls, 1);
+});
