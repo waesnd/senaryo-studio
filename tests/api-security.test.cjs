@@ -225,3 +225,39 @@ test("AI quota reservation uses the authenticated atomic RPC before provider cal
   assert.equal(rpcCalls, 1);
   assert.equal(providerCalls, 1);
 });
+
+test("Cloudinary upload signatures are bound to the authenticated user and never reveal secrets", async () => {
+  const handler = handlerFrom("pages/api/medya-imza.js", {
+    withAuth: fn => fn,
+    env: {
+      CLOUDINARY_CLOUD_NAME: "demo",
+      CLOUDINARY_API_KEY: "public-key",
+      CLOUDINARY_API_SECRET: "never-expose-this-secret",
+    },
+  });
+  const userId = "11111111-1111-4111-8111-111111111111";
+  const res = response();
+  await handler({ method: "POST", user: { id: userId }, body: { kind: "avatar" } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.match(res.body.public_id, /^fabularc\/users\/11111111-1111-4111-8111-111111111111\/avatar-[0-9a-f]{24}$/);
+  assert.equal(res.body.api_key, "public-key");
+  assert.equal(res.body.cloud_name, "demo");
+  assert.doesNotMatch(JSON.stringify(res.body), /never-expose-this-secret/);
+  const expected = crypto.createHash("sha1")
+    .update("public_id=" + res.body.public_id + "&timestamp=" + res.body.timestamp + "never-expose-this-secret")
+    .digest("hex");
+  assert.equal(res.body.signature, expected);
+});
+
+test("Cloudinary upload signature endpoint rejects invalid kind and missing identity", async () => {
+  const handler = handlerFrom("pages/api/medya-imza.js", {
+    withAuth: fn => fn,
+    env: { CLOUDINARY_CLOUD_NAME: "demo", CLOUDINARY_API_KEY: "key", CLOUDINARY_API_SECRET: "secret" },
+  });
+  let res = response();
+  await handler({ method: "POST", user: { id: "11111111-1111-4111-8111-111111111111" }, body: { kind: "video" } }, res);
+  assert.equal(res.statusCode, 400);
+  res = response();
+  await handler({ method: "POST", body: { kind: "avatar" } }, res);
+  assert.equal(res.statusCode, 401);
+});
