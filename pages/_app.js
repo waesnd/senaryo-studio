@@ -34,16 +34,16 @@ export default function App({ Component, pageProps }){
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-        <meta name="theme-color" content="#0A0F1E"/>
+        <meta name="theme-color" content="#063B32"/>
         <meta name="apple-mobile-web-app-capable" content="yes"/>
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-        <meta name="apple-mobile-web-app-title" content="Scriptify"/>
-        <meta name="description" content="AI destekli senaryo üretici ve sosyal platform"/>
-        <meta property="og:title" content="Scriptify — AI Senaryo Platformu"/>
-        <meta property="og:description" content="Yapay zeka ile senaryo üret, topluluğu keşfet"/>
+        <meta name="apple-mobile-web-app-title" content="Fabularc"/>
+        <meta name="description" content="Profesyonel senaryo, yaratıcı yazarlık ve AI destekli hikâye geliştirme platformu"/>
+        <meta property="og:title" content="Fabularc — Yaratıcı Yazarlık ve Senaryo Platformu"/>
+        <meta property="og:description" content="Senaryolar ve edebî eserler yaz, geliştir ve paylaş"/>
         <meta property="og:type" content="website"/>
         <link rel="manifest" href="/manifest.json"/>
-        <link rel="icon" href="/favicon.ico"/>
+        <link rel="icon" type="image/svg+xml" href="/brand/fabularc-favicon.svg"/>
         <link rel="apple-touch-icon" href="/icon-192.png"/>
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
