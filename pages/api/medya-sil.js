@@ -30,7 +30,21 @@ async function handler(req, res) {
   var userId = req.user?.id;
   if (!userId) return sendError(res, 401, "Giriş yapmanız gerekiyor.", "UNAUTHORIZED");
 
-  var isOwner = String(public_id).includes(userId);
+  // Only signed uploads issued inside this authenticated user's namespace are
+  // eligible. Legacy unsigned assets are intentionally not remotely deletable.
+  const expectedPrefix = `fabularc/users/${userId}/`;
+  const requestedId = String(public_id);
+  const suffix = requestedId.startsWith(expectedPrefix)
+    ? requestedId.slice(expectedPrefix.length)
+    : "";
+  if (resource_type !== "image" || !/^(?:avatar|banner)-[0-9a-f]{24}$/i.test(suffix)) {
+    return sendError(res, 403, "Bu medyayı silme yetkiniz yok.", "FORBIDDEN");
+  }
+
+  // A client-controlled public_id, including folder segments, is never ownership proof.
+  // Until a dedicated media ownership table exists, only exact references in the
+  // authenticated user profile are eligible for deletion.
+  var isOwner = false;
 
   if (!isOwner) {
     try {
@@ -41,8 +55,23 @@ async function handler(req, res) {
         .single();
 
       if (profil) {
-        var isAvatar = profil.avatar_url && profil.avatar_url.includes(public_id);
-        var isBanner = profil.banner_url && profil.banner_url.includes(public_id);
+        const getStoredPublicId = (storedUrl) => {
+          if (typeof storedUrl !== "string") return null;
+          try {
+            const parsedUrl = new URL(storedUrl);
+            if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "res.cloudinary.com") return null;
+            const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+            const prefix = `/${cloud}/image/upload/`;
+            if (!cloud || !parsedUrl.pathname.startsWith(prefix)) return null;
+            const rest = parsedUrl.pathname.slice(prefix.length).replace(/^v\d+\//, "");
+            const match = rest.match(/^(.+)\.[a-z0-9]+$/i);
+            return match ? decodeURIComponent(match[1]) : null;
+          } catch {
+            return null;
+          }
+        };
+        var isAvatar = getStoredPublicId(profil.avatar_url) === String(public_id);
+        var isBanner = getStoredPublicId(profil.banner_url) === String(public_id);
         isOwner = Boolean(isAvatar || isBanner);
       }
     } catch (e) {

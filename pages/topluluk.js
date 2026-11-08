@@ -106,7 +106,7 @@ function Drawer({onClose,user,username,avatarUrl}){
         </div>
       </nav>
       <div style={{padding:"12px 18px",borderTop:`1px solid ${G.border}`,textAlign:"center",flexShrink:0}}>
-        <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.18em"}}>© 2025 SCRIPTIFY</p>
+        <p style={{fontSize:9,color:G.textDim,letterSpacing:"0.18em"}}>© 2026 FABULARC</p>
       </div>
     </div>
     {cikisOnay&&<>
@@ -242,7 +242,7 @@ export default function Topluluk(){
         <div style={{padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <button onClick={()=>setDrawer(true)} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",padding:0,cursor:"pointer"}}>
             <Av url={avatarUrl} size={34}/>
-            <img src="/logo.png" alt="Scriptify" style={{height:44,objectFit:"contain",maxWidth:150}}/>
+            <img src="/brand/fabularc-primary.svg" alt="Fabularc" style={{height:44,objectFit:"contain",maxWidth:150}}/>
           </button>
           <span style={{fontFamily:G.fontDisp,fontSize:13,letterSpacing:"0.12em",color:G.blue,background:`${G.blue}12`,border:`1px solid ${G.blue}25`,borderRadius:20,padding:"4px 12px",boxShadow:G.glowBlue}}>TOPLULUK</span>
         </div>
