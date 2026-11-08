@@ -17,5 +17,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
       - name: Run brand integrity tests
         run: npm test
+      - name: Compile branded Next.js app using non-secret placeholders
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-placeholder-not-a-secret
+        run: npm run build
