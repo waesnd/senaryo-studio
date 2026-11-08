@@ -9,7 +9,7 @@ function handlerFrom(relativePath, mocks) {
   const source = fs.readFileSync(path.join(__dirname, "..", relativePath), "utf8")
     .replace(/^import .*;\s*$/gm, "")
     .replace(/export default withAuth\(handler\);?/g, "globalThis.testHandler = handler;");
-  const sandbox = { ...mocks, crypto, process: { env: {} }, URL, URLSearchParams, console: { log() {}, error() {} } };
+  const sandbox = { ...mocks, crypto, process: { env: mocks.env || {} }, URL, URLSearchParams, console: { log() {}, error() {} } };
   vm.runInNewContext(source, sandbox, { filename: relativePath });
   return sandbox.testHandler;
 }
@@ -102,4 +102,38 @@ test("Cloudinary deletion rejects forged owner folder without DB ownership proof
   }, res);
   assert.equal(res.statusCode, 403);
   assert.equal(deletes, 0);
+});
+
+test("Cloudinary deletion allows exact media on authenticated profile", async () => {
+  let deletes = 0;
+  const query = {
+    select() { return this; },
+    eq() { return this; },
+    single() {
+      return Promise.resolve({
+        data: {
+          avatar_url: "https://res.cloudinary.com/demo/image/upload/v123456/avatar-own.png",
+          banner_url: null,
+        },
+      });
+    },
+  };
+  const handler = handlerFrom("pages/api/medya-sil.js", {
+    withAuth: fn => fn,
+    env: {
+      CLOUDINARY_CLOUD_NAME: "demo",
+      CLOUDINARY_API_KEY: "fake-test-key",
+      CLOUDINARY_API_SECRET: "fake-test-secret",
+    },
+    fetch: async () => { deletes++; return { ok: true, json: async () => ({ result: "ok" }) }; },
+  });
+  const res = response();
+  await handler({
+    method: "POST",
+    body: { public_id: "avatar-own", resource_type: "image" },
+    user: { id: "owner-123" },
+    supabase: { from: () => query },
+  }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(deletes, 1);
 });
