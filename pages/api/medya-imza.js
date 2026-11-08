@@ -16,7 +16,13 @@ async function handler(req, res) {
   }
 
   const kind = req.body?.kind;
-  if (kind !== "avatar" && kind !== "banner") {
+  const kinds = {
+    avatar: "image",
+    banner: "image",
+    "message-image": "image",
+    "message-audio": "video",
+  };
+  if (!Object.hasOwn(kinds, kind)) {
     return res.status(400).json({ error: "Geçersiz medya türü.", code: "INVALID_MEDIA_KIND" });
   }
 
@@ -36,7 +42,7 @@ async function handler(req, res) {
   return res.status(200).json({
     cloud_name,
     api_key,
-    resource_type: "image",
+    resource_type: kinds[kind],
     public_id,
     timestamp,
     signature,
